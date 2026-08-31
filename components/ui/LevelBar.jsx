@@ -1,12 +1,13 @@
-// Estilo para la barra de racha y botón de comida
-const streakGlassStyle =
-  "bg-white/40 backdrop-blur-xl border border-white/80 shadow-[0_6px_16px_rgba(215,180,140,0.2)] rounded-full";
+// Acabado "vidrio real": gradiente de luz superior + reflejo interno +
+// sombra de base, compartido con NavButton/TopBar.
+const glassStyle =
+  "rounded-full bg-gradient-to-b from-white/60 via-white/25 to-white/10 backdrop-blur-2xl border border-white/80 border-b-white/30 shadow-[inset_0_2px_4px_rgba(255,255,255,0.95),_inset_0_-3px_6px_rgba(0,0,0,0.06),_0_10px_20px_-4px_rgba(0,0,0,0.1)]";
 
 export default function LevelBar({ level = 1, xp = 0, xpToNext = 100 }) {
   const progress = Math.min((xp / xpToNext) * 100, 100);
 
   return (
-    <div className={`flex h-8 flex-1 items-center gap-2 px-1.5 ${streakGlassStyle}`}>
+    <div className={`flex h-8 flex-1 items-center gap-2 px-1.5 ${glassStyle}`}>
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-gradient-to-b from-amber-400 to-orange-500 text-xs font-black text-white shadow-md">
         {level}
       </span>
