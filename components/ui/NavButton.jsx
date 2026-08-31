@@ -25,7 +25,7 @@ export default function NavButton({
       <button
         type="button"
         onClick={onClick}
-        className={`flex h-28 w-32 -translate-y-4 flex-col items-center justify-center gap-1 rounded-t-[44px] rounded-b-[32px] ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+        className={`flex h-20 w-36 -translate-y-1.5 flex-col items-center justify-center gap-1 rounded-[32px] ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
       >
         <span className="flex items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 p-2 text-3xl drop-shadow-[0_4px_8px_rgba(245,158,11,0.4)]">
           {icon}
@@ -44,7 +44,7 @@ export default function NavButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-20 w-28 flex-col items-center justify-center gap-1 rounded-[38px] ${TILT_CLASSES[tilt] ?? ""} ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+      className={`flex h-16 w-24 flex-col items-center justify-center gap-1 rounded-[28px] ${TILT_CLASSES[tilt] ?? ""} ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
     >
       <span className="text-2xl">{icon}</span>
       <span className="text-xs font-medium text-amber-950/80 [text-shadow:0_1px_2px_rgba(120,53,15,0.25)]">
