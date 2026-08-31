@@ -9,13 +9,18 @@ import { useState } from "react";
 // usuario.
 export default function usePetStats() {
   const [stats, setStats] = useState({
-    streak: 5,
+    level: 2,
+    xp: 25,
+    xpToNext: 80,
     hunger: 72,
     coins: 120,
   });
 
-  function feed() {
-    setStats((prev) => ({ ...prev, hunger: Math.min(prev.hunger + 15, 100) }));
+  function feed(restore = 15) {
+    setStats((prev) => ({
+      ...prev,
+      hunger: Math.min(prev.hunger + restore, 100),
+    }));
   }
 
   return { ...stats, feed };
