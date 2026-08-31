@@ -33,7 +33,7 @@ export default function MainLayout() {
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,196,110,0.55),transparent_60%)]" />
 
       {/* Capa 3D / Background */}
-      <PetCanvas />
+      <PetCanvas onOpenChat={() => toggleModal("chat")} />
 
       <TopBar
         coins={coins}
