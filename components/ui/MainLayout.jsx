@@ -28,7 +28,7 @@ export default function MainLayout() {
   const closeModal = () => setActiveModal(null);
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FFF8ED] via-[#FCECD7] to-[#F5E2C8]">
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-gradient-to-b from-[#FFF9F2] via-[#FCECD7] to-[#F5E2C8]">
       {/* Brillo cálido central detrás de la mascota, para dar profundidad */}
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,196,110,0.55),transparent_60%)]" />
 

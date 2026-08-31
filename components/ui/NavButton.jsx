@@ -27,7 +27,9 @@ export default function NavButton({
         <span className="flex items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 p-2 text-3xl drop-shadow-[0_4px_8px_rgba(245,158,11,0.4)]">
           {icon}
         </span>
-        <span className="text-xs font-medium text-amber-950/80">{label}</span>
+        <span className="text-xs font-medium text-amber-950/80 [text-shadow:0_1px_2px_rgba(120,53,15,0.25)]">
+          {label}
+        </span>
         {sublabel && (
           <span className="text-[10px] font-semibold text-amber-600">{sublabel}</span>
         )}
@@ -42,7 +44,9 @@ export default function NavButton({
       className={`flex h-20 flex-1 flex-col items-center justify-center gap-1 ${glassCapsuleStyle} ${activeRing}`}
     >
       <span className="text-2xl">{icon}</span>
-      <span className="text-xs font-medium text-amber-950/80">{label}</span>
+      <span className="text-xs font-medium text-amber-950/80 [text-shadow:0_1px_2px_rgba(120,53,15,0.25)]">
+        {label}
+      </span>
     </button>
   );
 }
