@@ -8,6 +8,13 @@ const TILT_CLASSES = {
   right: "rotate-6",
 };
 
+// Curvatura arqueada convexa (domo/píldora orgánica) en vez del
+// border-radius uniforme, que deja los bordes superior/inferior rectos.
+const ARC_RADIUS = {
+  left: "45% 50% 35% 45% / 30% 35% 25% 30%",
+  right: "50% 45% 45% 35% / 35% 30% 30% 25%",
+};
+
 export default function NavButton({
   icon,
   label,
@@ -25,7 +32,8 @@ export default function NavButton({
       <button
         type="button"
         onClick={onClick}
-        className={`flex h-20 w-36 -translate-y-1.5 flex-col items-center justify-center gap-1 rounded-[32px] ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+        style={{ borderRadius: "50% 50% 45% 45% / 35% 35% 25% 25%" }}
+        className={`flex h-20 w-36 -translate-y-1.5 flex-col items-center justify-center gap-1 ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
       >
         <span className="flex items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 p-2 text-3xl drop-shadow-[0_4px_8px_rgba(245,158,11,0.4)]">
           {icon}
@@ -44,7 +52,8 @@ export default function NavButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-16 w-24 flex-col items-center justify-center gap-1 rounded-[28px] ${TILT_CLASSES[tilt] ?? ""} ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+      style={{ borderRadius: ARC_RADIUS[tilt] ?? ARC_RADIUS.left }}
+      className={`flex h-16 w-24 flex-col items-center justify-center gap-1 ${TILT_CLASSES[tilt] ?? ""} ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
     >
       <span className="text-2xl">{icon}</span>
       <span className="text-xs font-medium text-amber-950/80 [text-shadow:0_1px_2px_rgba(120,53,15,0.25)]">
