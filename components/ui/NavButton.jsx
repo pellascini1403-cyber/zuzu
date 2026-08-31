@@ -7,26 +7,32 @@ export default function NavButton({
   size = "md",
 }) {
   const isLg = size === "lg";
-  const sizeClasses = isLg
-    ? "-mt-6 py-4 shadow-xl bg-gradient-to-b from-amber-50 to-white"
-    : "py-2.5";
-  const colorClasses = active
-    ? "bg-violet-100 text-violet-700"
-    : isLg
-      ? "text-amber-600"
-      : "text-zinc-500 hover:bg-zinc-100";
+  const activeRing = active ? "ring-2 ring-amber-300" : "";
+
+  if (isLg) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`flex h-28 flex-1 -translate-y-2 flex-col items-center justify-center gap-1 rounded-[36px] border-2 border-white/70 bg-white/45 shadow-[0_10px_40px_0_rgba(255,200,0,0.15)] backdrop-blur-2xl transition-transform active:scale-95 ${activeRing}`}
+      >
+        <span className="text-4xl">{icon}</span>
+        <span className="text-xs font-medium text-amber-950/80">{label}</span>
+        {sublabel && (
+          <span className="text-[10px] font-semibold text-amber-600">{sublabel}</span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 flex-col items-center justify-center gap-0.5 rounded-3xl transition-all ${sizeClasses} ${colorClasses}`}
+      className={`flex h-20 flex-1 flex-col items-center justify-center gap-1 rounded-[28px] border border-white/50 bg-white/35 shadow-[0_8px_32px_0_rgba(0,0,0,0.08)] backdrop-blur-xl transition-transform active:scale-95 ${activeRing}`}
     >
-      <span className={isLg ? "text-4xl" : "text-2xl"}>{icon}</span>
-      <span className={`font-medium ${isLg ? "text-sm" : "text-xs"}`}>{label}</span>
-      {sublabel && (
-        <span className="text-[10px] font-semibold text-amber-500">{sublabel}</span>
-      )}
+      <span className="text-2xl">{icon}</span>
+      <span className="text-xs font-medium text-amber-950/80">{label}</span>
     </button>
   );
 }

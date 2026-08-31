@@ -28,8 +28,10 @@ export default function MainLayout() {
   const closeModal = () => setActiveModal(null);
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-amber-50">
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-amber-50">
+      {/* Capa 3D / Background */}
       <PetCanvas />
+
       <TopBar
         coins={coins}
         onOpenResources={() => toggleModal("resources")}
@@ -37,14 +39,20 @@ export default function MainLayout() {
       />
       <PetStage onOpenChat={() => toggleModal("chat")} />
 
-      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3">
-        <div className="flex w-full max-w-sm items-stretch justify-center gap-3 px-4">
+      {/* Capa Intermedia: Streak (nivel) & Food */}
+      <div className="absolute bottom-[28%] left-1/2 z-10 -translate-x-1/2">
+        <div className="mx-auto flex w-full max-w-xs items-center justify-center gap-3">
           <LevelBar level={level} xp={xp} xpToNext={xpToNext} />
           <FoodPlate hunger={hunger} onOpen={() => toggleModal("food")} />
         </div>
-        <BottomNav activeModal={activeModal} onSelect={toggleModal} />
-        <ThemeBar onOpen={() => toggleModal("theme")} />
       </div>
+
+      {/* Capa Inferior: navegación de 3 cápsulas */}
+      <div className="absolute inset-x-0 bottom-6 z-10 px-6">
+        <BottomNav activeModal={activeModal} onSelect={toggleModal} />
+      </div>
+
+      <ThemeBar onOpen={() => toggleModal("theme")} />
 
       {activeModal === "chat" && <ChatModal onClose={closeModal} />}
       {activeModal === "resources" && <ResourcesModal onClose={closeModal} />}
