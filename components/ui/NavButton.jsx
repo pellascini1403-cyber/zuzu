@@ -3,6 +3,11 @@
 const glassStyle =
   "bg-gradient-to-b from-white/60 via-white/25 to-white/10 backdrop-blur-2xl border border-white/80 border-b-white/30 shadow-[inset_0_2px_4px_rgba(255,255,255,0.95),_inset_0_-3px_6px_rgba(0,0,0,0.06),_0_10px_20px_-4px_rgba(0,0,0,0.1)]";
 
+const TILT_CLASSES = {
+  left: "-rotate-6",
+  right: "rotate-6",
+};
+
 export default function NavButton({
   icon,
   label,
@@ -10,6 +15,7 @@ export default function NavButton({
   onClick,
   active = false,
   size = "md",
+  tilt = "none",
 }) {
   const isLg = size === "lg";
   const activeRing = active ? "ring-2 ring-amber-300" : "";
@@ -19,7 +25,7 @@ export default function NavButton({
       <button
         type="button"
         onClick={onClick}
-        className={`flex h-28 flex-1 -translate-y-3 flex-col items-center justify-center gap-1 rounded-[40px] ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+        className={`flex h-28 w-32 -translate-y-4 flex-col items-center justify-center gap-1 rounded-t-[44px] rounded-b-[32px] ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
       >
         <span className="flex items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 p-2 text-3xl drop-shadow-[0_4px_8px_rgba(245,158,11,0.4)]">
           {icon}
@@ -38,7 +44,7 @@ export default function NavButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-20 flex-1 flex-col items-center justify-center gap-1 rounded-[40px] ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+      className={`flex h-20 w-28 flex-col items-center justify-center gap-1 rounded-[38px] ${TILT_CLASSES[tilt] ?? ""} ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
     >
       <span className="text-2xl">{icon}</span>
       <span className="text-xs font-medium text-amber-950/80 [text-shadow:0_1px_2px_rgba(120,53,15,0.25)]">

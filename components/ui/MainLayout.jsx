@@ -42,16 +42,16 @@ export default function MainLayout() {
       />
       <PetStage onOpenChat={() => toggleModal("chat")} />
 
-      {/* Capa Intermedia: Streak (nivel) & Food */}
-      <div className="absolute bottom-[28%] left-1/2 z-10 -translate-x-1/2">
-        <div className="mx-auto flex w-full max-w-xs items-center justify-center gap-3">
-          <LevelBar level={level} xp={xp} xpToNext={xpToNext} />
-          <FoodPlate hunger={hunger} onOpen={() => toggleModal("food")} />
-        </div>
+      {/* Capa Intermedia: Streak (nivel) & Food, alineadas justo debajo de
+          la sombra del personaje */}
+      <div className="absolute inset-x-0 bottom-[28%] z-10 flex items-center justify-center gap-3 px-6">
+        <LevelBar level={level} xp={xp} xpToNext={xpToNext} />
+        <FoodPlate hunger={hunger} onOpen={() => toggleModal("food")} />
       </div>
 
-      {/* Capa Inferior: navegación de 3 cápsulas, elevada sobre la franja de tema */}
-      <div className="absolute inset-x-0 bottom-16 z-20 px-6">
+      {/* Capa Inferior: navegación de 3 cápsulas en abanico, elevada sobre
+          la franja de tema */}
+      <div className="absolute inset-x-0 bottom-16 z-20">
         <BottomNav activeModal={activeModal} onSelect={toggleModal} />
       </div>
 

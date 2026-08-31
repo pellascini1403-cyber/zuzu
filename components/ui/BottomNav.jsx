@@ -1,14 +1,14 @@
 import NavButton from "./NavButton";
 
 const NAV_ITEMS = [
-  { key: "characters", icon: "🐷", label: "Vestidor" },
+  { key: "characters", icon: "🐷", label: "Vestidor", tilt: "left" },
   { key: "habits", icon: "⭐", label: "Hábitos", sublabel: "⭐ 1", size: "lg" },
-  { key: "shop", icon: "👜", label: "Tienda" },
+  { key: "shop", icon: "👜", label: "Tienda", tilt: "right" },
 ];
 
 export default function BottomNav({ activeModal, onSelect }) {
   return (
-    <nav className="mx-auto flex w-full max-w-sm items-end justify-center gap-4">
+    <nav className="flex items-end justify-center gap-2">
       {NAV_ITEMS.map((item) => (
         <NavButton
           key={item.key}
@@ -16,6 +16,7 @@ export default function BottomNav({ activeModal, onSelect }) {
           label={item.label}
           sublabel={item.sublabel}
           size={item.size}
+          tilt={item.tilt}
           active={activeModal === item.key}
           onClick={() => onSelect(item.key)}
         />
