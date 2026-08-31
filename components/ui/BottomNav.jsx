@@ -8,7 +8,7 @@ const NAV_ITEMS = [
 
 export default function BottomNav({ activeModal, onSelect }) {
   return (
-    <nav className="flex items-end justify-center gap-2">
+    <nav className="flex items-end justify-center gap-1">
       {NAV_ITEMS.map((item) => (
         <NavButton
           key={item.key}

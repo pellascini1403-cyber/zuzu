@@ -4,14 +4,9 @@ const glassStyle =
   "bg-gradient-to-b from-white/60 via-white/25 to-white/10 backdrop-blur-2xl border border-white/80 border-b-white/30 shadow-[inset_0_2px_4px_rgba(255,255,255,0.95),_inset_0_-3px_6px_rgba(0,0,0,0.06),_0_10px_20px_-4px_rgba(0,0,0,0.1)]";
 
 const TILT_CLASSES = {
-  left: "-rotate-6",
-  right: "rotate-6",
+  left: "-rotate-12",
+  right: "rotate-12",
 };
-
-// Esquinas muy redondeadas (50% horizontal) con las líneas superior e
-// inferior arqueadas hacia arriba en paralelo (60% arriba, 20% abajo),
-// como si los 3 botones estuvieran montados sobre el mismo disco/esfera.
-const ARC_RADIUS = "50% 50% 50% 50% / 60% 60% 20% 20%";
 
 export default function NavButton({
   icon,
@@ -30,8 +25,7 @@ export default function NavButton({
       <button
         type="button"
         onClick={onClick}
-        style={{ borderRadius: ARC_RADIUS }}
-        className={`flex h-20 w-36 -translate-y-1.5 flex-col items-center justify-center gap-1 ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+        className={`flex h-20 w-36 -translate-y-2 flex-col items-center justify-center gap-1 rounded-3xl ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
       >
         <span className="flex items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 p-2 text-3xl drop-shadow-[0_4px_8px_rgba(245,158,11,0.4)]">
           {icon}
@@ -50,8 +44,7 @@ export default function NavButton({
     <button
       type="button"
       onClick={onClick}
-      style={{ borderRadius: ARC_RADIUS }}
-      className={`flex h-16 w-24 flex-col items-center justify-center gap-1 ${TILT_CLASSES[tilt] ?? ""} ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
+      className={`flex h-16 w-24 translate-y-2 flex-col items-center justify-center gap-1 rounded-3xl ${TILT_CLASSES[tilt] ?? ""} ${glassStyle} transition-transform active:scale-95 ${activeRing}`}
     >
       <span className="text-2xl">{icon}</span>
       <span className="text-xs font-medium text-amber-950/80 [text-shadow:0_1px_2px_rgba(120,53,15,0.25)]">
