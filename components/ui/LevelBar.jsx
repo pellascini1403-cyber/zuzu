@@ -1,8 +1,10 @@
+import { softGlass } from "./glassStyle";
+
 export default function LevelBar({ level = 1, xp = 0, xpToNext = 100 }) {
   const progress = Math.min((xp / xpToNext) * 100, 100);
 
   return (
-    <div className="flex h-8 flex-1 items-center gap-2 rounded-full border border-white/50 bg-[#EBDBC8]/60 px-1.5 shadow-inner backdrop-blur-md">
+    <div className={`flex h-8 flex-1 items-center gap-2 rounded-full px-1.5 ${softGlass()}`}>
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-gradient-to-b from-amber-400 to-orange-500 text-xs font-black text-white shadow-md">
         {level}
       </span>

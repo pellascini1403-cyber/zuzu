@@ -50,8 +50,8 @@ export default function MainLayout() {
         </div>
       </div>
 
-      {/* Capa Inferior: navegación de 3 cápsulas */}
-      <div className="absolute inset-x-0 bottom-6 z-10 px-6">
+      {/* Capa Inferior: navegación de 3 cápsulas, elevada sobre la franja de tema */}
+      <div className="absolute inset-x-0 bottom-16 z-20 px-6">
         <BottomNav activeModal={activeModal} onSelect={toggleModal} />
       </div>
 

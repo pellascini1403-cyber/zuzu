@@ -3,7 +3,7 @@ export default function ThemeBar({ onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="absolute inset-x-0 bottom-0 z-10 flex w-full items-center justify-center gap-1 bg-white/70 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 text-xs font-medium text-zinc-500 backdrop-blur transition-colors hover:bg-white/90"
+      className="absolute inset-x-0 bottom-2 z-10 flex w-full items-center justify-center gap-1 bg-white/70 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 text-xs font-medium text-zinc-500 backdrop-blur transition-colors hover:bg-white/90"
     >
       <span aria-hidden="true">⌃</span>
       Personalizar escenario
