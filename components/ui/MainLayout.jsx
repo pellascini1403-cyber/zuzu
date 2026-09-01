@@ -7,6 +7,7 @@ import PetStage from "@/components/ui/PetStage";
 import LevelBar from "@/components/ui/LevelBar";
 import BottomNav from "@/components/ui/BottomNav";
 import ThemeBar from "@/components/ui/ThemeBar";
+import BackgroundLayer from "@/components/ui/BackgroundLayer";
 import ChatModal from "@/components/modals/ChatModal";
 import ResourcesModal from "@/components/modals/ResourcesModal";
 import SettingsModal from "@/components/modals/SettingsModal";
@@ -16,10 +17,12 @@ import ShopModal from "@/components/modals/ShopModal";
 import FoodDrawer from "@/components/modals/FoodDrawer";
 import ThemeDrawer from "@/components/modals/ThemeDrawer";
 import usePetStats from "@/hooks/usePetStats";
+import useBackground from "@/hooks/useBackground";
 
 export default function MainLayout() {
   const [activeModal, setActiveModal] = useState(null);
   const { level, xp, xpToNext, coins, feed } = usePetStats();
+  const { currentBackground } = useBackground();
 
   function toggleModal(key) {
     setActiveModal((current) => (current === key ? null : key));
@@ -27,11 +30,14 @@ export default function MainLayout() {
   const closeModal = () => setActiveModal(null);
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-gradient-to-b from-[#FFF9F2] via-[#FCECD7] to-[#F5E2C8]">
-      {/* Brillo cálido central detrás de la mascota, para dar profundidad */}
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,196,110,0.55),transparent_60%)]" />
+    <div className="relative h-[100dvh] w-full overflow-hidden">
+      {/* Capa de Fondo Global: full-bleed, siempre detrás (z-0) del resto
+          de la UI. El asset/degradado depende de `currentBackground`
+          (hooks/useBackground.js) para poder intercambiarse más adelante
+          desde la Tienda o "Personalizar escenario" — ver lib/backgrounds.js. */}
+      <BackgroundLayer background={currentBackground} />
 
-      {/* Capa 3D / Background */}
+      {/* Capa 3D: la mascota, por encima del fondo global (z-10). */}
       <PetCanvas onOpenChat={() => toggleModal("chat")} />
 
       <TopBar

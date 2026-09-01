@@ -6,13 +6,14 @@ import { Bounds, ContactShadows } from "@react-three/drei";
 import PetModel from "./PetModel";
 
 // Escena 3D real. El fondo cálido y el brillo detrás de la mascota viven en
-// MainLayout; este componente solo monta el Canvas, la luz y el modelo.
+// components/ui/BackgroundLayer.jsx (z-0); este componente solo monta el
+// Canvas, la luz y el modelo, en una capa por encima del fondo (z-10).
 // <Bounds> encuadra la cámara automáticamente según el tamaño real del
 // modelo cargado, así que no depende de sus unidades/escala nativas — sirve
 // igual cuando se reemplace el modelo de prueba por el definitivo de Zuzu.
 export default function PetCanvas({ onOpenChat }) {
   return (
-    <div className="absolute inset-0 z-0">
+    <div className="absolute inset-0 z-10">
       <Canvas shadows camera={{ position: [2.8, 1, 0], fov: 30 }}>
         <ambientLight intensity={0.9} />
         <directionalLight
