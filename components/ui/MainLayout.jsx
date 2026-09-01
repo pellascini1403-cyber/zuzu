@@ -43,7 +43,7 @@ export default function MainLayout() {
 
       {/* Capa Intermedia: Streak (nivel), centrada justo debajo de la
           sombra del personaje. El botón de comida se quitó de aquí. */}
-      <div className="absolute inset-x-0 bottom-[28%] z-10 flex items-center justify-center px-6">
+      <div className="absolute inset-x-0 bottom-[34.7%] z-10 flex items-center justify-center px-6">
         <LevelBar level={level} xp={xp} xpToNext={xpToNext} />
       </div>
 
