@@ -5,10 +5,21 @@ import NavButton from "./NavButton";
 // izquierda ("Tienda") en (14.3%, 55.3%), Hábitos en (49.9%, 43.2%),
 // derecha ("Mascotas") en (85.5%, 55.3%). Estos valores no cambiaron.
 const NAV_ITEMS = [
-  { key: "characters", icon: "🐷", label: "Tienda", top: "55.3%", left: "14.3%", width: "23%" },
+  {
+    key: "characters",
+    iconSrc: "/nav/bag-red.png",
+    iconSize: "52px",
+    iconTop: "12px",
+    label: "Tienda",
+    top: "55.3%",
+    left: "14.3%",
+    width: "23%",
+  },
   {
     key: "habits",
     iconSrc: "/nav/star-pink.png",
+    iconSize: "80px",
+    iconTop: "16px",
     label: "Hábitos",
     sublabel: "⭐ 1",
     top: "43.2%",
@@ -108,6 +119,8 @@ export default function BottomNav({ activeModal, onSelect }) {
           key={item.key}
           icon={item.icon}
           iconSrc={item.iconSrc}
+          iconSize={item.iconSize}
+          iconTop={item.iconTop}
           label={item.label}
           sublabel={item.sublabel}
           size={item.size}

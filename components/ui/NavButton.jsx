@@ -6,6 +6,8 @@
 export default function NavButton({
   icon,
   iconSrc,
+  iconSize,
+  iconTop,
   label,
   sublabel,
   onClick,
@@ -27,19 +29,21 @@ export default function NavButton({
       {iconSrc ? (
         <>
           {/* Reserva el mismo espacio vertical que ocupaba el badge
-              circular anterior, para que "Hábitos" y el contador
+              circular anterior, para que la etiqueta y el contador
               mantengan su posición centrada dentro del marco. */}
-          <span aria-hidden="true" className="block h-16 w-16" />
-          {/* Asset propio (estrella rosa 3D): a propósito más grande que
-              los demás íconos, posicionada absoluta y centrada sobre el
-              borde superior del marco para que sobresalga por encima.
-              El contenedor (este botón y BottomNav) no tiene
-              overflow-hidden, así que no se recorta. */}
+          <span aria-hidden="true" className={isLg ? "block h-16 w-16" : "block h-8 w-8"} />
+          {/* Asset propio: tamaño (iconSize) y posición vertical (iconTop,
+              con -translate-y-1/2) medidos por botón contra la imagen de
+              referencia de cada ícono, para calcar su escala/ubicación
+              relativa al marco de cristal. El contenedor (este botón y
+              BottomNav) no tiene overflow-hidden, así que si el ícono
+              sobresale del marco no se recorta. */}
           <img
             src={iconSrc}
             alt=""
             draggable={false}
-            className="pointer-events-none absolute top-[16px] h-20 w-20 -translate-y-1/2 select-none object-contain drop-shadow-[0_8px_14px_rgba(217,119,6,0.35)]"
+            style={{ top: iconTop, height: iconSize, width: iconSize }}
+            className="pointer-events-none absolute -translate-y-1/2 select-none object-contain drop-shadow-[0_8px_14px_rgba(217,119,6,0.35)]"
           />
         </>
       ) : (
