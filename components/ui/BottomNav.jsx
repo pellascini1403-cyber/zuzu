@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { key: "characters", icon: "🐷", label: "Vestidor", top: "55.3%", left: "14.3%", width: "23%" },
   {
     key: "habits",
-    icon: "⭐",
+    iconSrc: "/nav/star-hearts.png",
     label: "Hábitos",
     sublabel: "⭐ 1",
     top: "43.2%",
@@ -57,6 +57,7 @@ export default function BottomNav({ activeModal, onSelect }) {
         <NavButton
           key={item.key}
           icon={item.icon}
+          iconSrc={item.iconSrc}
           label={item.label}
           sublabel={item.sublabel}
           size={item.size}
