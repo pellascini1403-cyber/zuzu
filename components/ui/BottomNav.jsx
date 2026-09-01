@@ -45,50 +45,53 @@ const NAV_ITEMS = [
 // trazo (w-full, alto automático) quedan perfectamente alineados.
 const FRAME_ASPECT_RATIO = "2400 / 927";
 
-// Recorte de cada marco (bounding box en % del contenedor), medido
-// escaneando el canal alfa de marcos-botones.png. mask-size/mask-position
-// son una técnica de "sprite": muestran la máscara completa (marcos-fill-mask.png)
-// a la escala real del contenedor pero recortada a la ventana de este botón,
-// para que CADA marco tenga su propia pieza de vidrio independiente — y por
-// lo tanto su propio box-shadow inset (el brillo superior y la sombra
-// cálida inferior no se pueden repartir correctamente en un solo div que
-// cubra los 3 marcos, ya que el inset shadow sigue el rectángulo del
-// elemento, no la silueta enmascarada).
+// Recorte de cada marco (bounding box en % del contenedor), medido con
+// scipy.ndimage.label sobre el canal alfa de marcos-botones.png para
+// obtener los 3 componentes conectados exactos (más preciso que escanear
+// una banda de ancho asumido, que había recortado ~1% de cada lado y
+// dejaba un hueco visible entre el relleno y el borde). mask-size/
+// mask-position son una técnica de "sprite": muestran la máscara completa
+// (marcos-fill-mask.png) a la escala real del contenedor pero recortada a
+// la ventana de este botón, para que CADA marco tenga su propia pieza de
+// vidrio independiente — y por lo tanto su propio box-shadow inset (el
+// inset superior y la sombra cálida inferior no se pueden repartir
+// correctamente en un solo div que cubra los 3 marcos, ya que el inset
+// shadow sigue el rectángulo del elemento, no la silueta enmascarada).
 const GLASS_FRAMES = [
   {
     key: "characters",
-    left: "2.79%",
-    top: "32.69%",
-    width: "22.96%",
-    height: "45.31%",
-    maskSize: "435.54% 220.70%",
-    maskPosition: "3.62% 59.77%",
+    left: "2.583%",
+    top: "32.686%",
+    width: "23.375%",
+    height: "45.307%",
+    maskSize: "427.81% 220.72%",
+    maskPosition: "3.37% 59.76%",
   },
   {
     key: "habits",
-    left: "32.38%",
-    top: "13.38%",
-    width: "34.96%",
-    height: "59.65%",
-    maskSize: "286.04% 167.64%",
-    maskPosition: "49.78% 33.16%",
+    left: "31.292%",
+    top: "13.376%",
+    width: "37.167%",
+    height: "59.655%",
+    maskSize: "269.06% 167.63%",
+    maskPosition: "49.80% 33.15%",
   },
   {
     key: "shop",
-    left: "74.00%",
-    top: "32.69%",
-    width: "22.96%",
-    height: "45.31%",
-    maskSize: "435.54% 220.70%",
-    maskPosition: "96.05% 59.77%",
+    left: "73.792%",
+    top: "32.686%",
+    width: "23.375%",
+    height: "45.307%",
+    maskSize: "427.81% 220.72%",
+    maskPosition: "96.30% 59.76%",
   },
 ];
 
 // Mismos valores de sombra/fondo que LevelBar.jsx y ThemeBar.jsx: base
-// gris/beige translúcida (GLASS_BG) en vez de blanco brillante, con un
-// inset oscuro arriba (en vez del brillo blanco anterior) que oscurece el
-// centro del botón para que el texto blanco resalte, más la sombra cálida
-// inferior que le da volumen 3D. El borde blanco translúcido del botón lo
+// blanca translúcida sutil (GLASS_BG) con un inset oscuro arriba (en vez
+// del brillo blanco original) que oscurece el centro del botón para que
+// el texto blanco resalte, más la sombra cálida inferior que le da
+// volumen 3D. El borde blanco translúcido del botón lo
 // aporta la imagen del marco (marcos-botones.png), no un border CSS acá.
 const GLASS_SHADOW =
   `${GLASS_BG} shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),inset_0_-6px_10px_rgba(180,120,70,0.25)] backdrop-blur-md drop-shadow-[0_6px_12px_rgba(0,0,0,0.06)]`;

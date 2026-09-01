@@ -1,12 +1,12 @@
 import { UI_TEXT_STYLE } from "@/lib/typography";
 
-// Acabado "vidrio real": gradiente gris/beige translúcido (en vez del
-// gradiente blanco brillante anterior) + inset superior oscuro (en vez
-// del brillo blanco) + sombra de base, compartido con NavButton/LevelBar.
-// El texto blanco de estos botones ahora resalta contra este fondo más
-// oscuro en lugar de perderse contra un blanco casi igual de claro.
+// Acabado "vidrio real": gradiente blanco translúcido sutil (mismo tono
+// base que GLASS_BG en lib/glass.js, en degradado en vez de plano) +
+// inset superior oscuro + sombra de base, compartido con NavButton/
+// LevelBar. Suficiente tinte para que el texto blanco de estos botones
+// resalte, sin quedar pesado ni volver al blanco opaco original.
 const glassStyle =
-  "bg-gradient-to-b from-[rgba(40,30,20,0.22)] via-[rgba(40,30,20,0.14)] to-[rgba(40,30,20,0.06)] backdrop-blur-2xl border border-white/80 border-b-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),_inset_0_-3px_6px_rgba(0,0,0,0.06),_0_10px_20px_-4px_rgba(0,0,0,0.1)]";
+  "bg-gradient-to-b from-[rgba(255,255,255,0.38)] via-[rgba(255,255,255,0.22)] to-[rgba(255,255,255,0.10)] backdrop-blur-2xl border border-white/80 border-b-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),_inset_0_-3px_6px_rgba(0,0,0,0.06),_0_10px_20px_-4px_rgba(0,0,0,0.1)]";
 
 // Mock: usuarios vinculados a esta mascota (1 o 2). Se reemplaza por los
 // datos reales del módulo de Vinculación (QR / Código) más adelante — por

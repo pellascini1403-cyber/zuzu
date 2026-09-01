@@ -3,10 +3,9 @@ import { GLASS_BG } from "@/lib/glass";
 
 // Cápsula de vidrio translúcida, mismo lenguaje visual que NavButton/
 // TopBar (borde blanco visible + brillo). El relleno de progreso (más
-// abajo) no cambió: mismo degradado, misma lógica de ancho. Fondo
-// gris/beige translúcido (GLASS_BG) en vez de blanco brillante, con el
-// inset superior oscuro en vez del brillo blanco, para que el texto
-// blanco resalte.
+// abajo) no cambió: mismo degradado, misma lógica de ancho. Fondo blanco
+// translúcido sutil (GLASS_BG) con el inset superior oscuro, para que el
+// texto blanco resalte sin quedar pesado.
 const trackStyle = `rounded-full ${GLASS_BG} backdrop-blur-md border border-white/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),inset_0_-6px_10px_rgba(180,120,70,0.25)]`;
 
 export default function LevelBar({ level = 1, xp = 0, xpToNext = 100 }) {
