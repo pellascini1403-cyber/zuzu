@@ -47,13 +47,13 @@ export default function MainLayout() {
         <LevelBar level={level} xp={xp} xpToNext={xpToNext} />
       </div>
 
-      {/* Capa Inferior: navegación de 3 cápsulas en abanico, elevada sobre
-          la franja de tema */}
-      <div className="absolute inset-x-0 bottom-16 z-20">
+      {/* Capa Inferior: navegación de 3 cápsulas en abanico, con
+          "Personalizar escenario" apilada justo debajo, sobre el margen
+          de zona segura del dispositivo. */}
+      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
         <BottomNav activeModal={activeModal} onSelect={toggleModal} />
+        <ThemeBar onOpen={() => toggleModal("theme")} />
       </div>
-
-      <ThemeBar onOpen={() => toggleModal("theme")} />
 
       {activeModal === "chat" && <ChatModal onClose={closeModal} />}
       {activeModal === "resources" && <ResourcesModal onClose={closeModal} />}
