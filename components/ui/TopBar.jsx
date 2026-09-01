@@ -34,29 +34,34 @@ export default function TopBar({
         </div>
       )}
 
-      <div className="ml-auto flex items-center gap-2">
+      {/* Columna alineada a la derecha: botones de acción arriba, píldora
+          de tokens en una segunda fila justo debajo, con el mismo borde
+          derecho que el botón de cerrar (items-end). */}
+      <div className="ml-auto flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenResources}
+            aria-label="Recursos"
+            className={`flex h-10 w-10 items-center justify-center rounded-full text-lg text-zinc-600 ${glassStyle}`}
+          >
+            ⋯
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            aria-label="Configuración"
+            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm text-zinc-600 ${glassStyle}`}
+          >
+            ✕
+          </button>
+        </div>
         <div
           className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-amber-700 ${glassStyle}`}
         >
           <span>💎</span>
           <span>{coins}</span>
         </div>
-        <button
-          type="button"
-          onClick={onOpenResources}
-          aria-label="Recursos"
-          className={`flex h-10 w-10 items-center justify-center rounded-full text-lg text-zinc-600 ${glassStyle}`}
-        >
-          ⋯
-        </button>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          aria-label="Configuración"
-          className={`flex h-10 w-10 items-center justify-center rounded-full text-sm text-zinc-600 ${glassStyle}`}
-        >
-          ✕
-        </button>
       </div>
     </div>
   );
