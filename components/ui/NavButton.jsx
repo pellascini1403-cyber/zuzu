@@ -1,3 +1,5 @@
+import { UI_TEXT_STYLE } from "@/lib/typography";
+
 // Overlay sobre el marco de BottomNav.jsx: solo ícono y texto, sin
 // forma ni relleno propio (el vidrio ahora es una sola pieza a tamaño
 // completo en BottomNav.jsx, enmascarada con la silueta real de los 3
@@ -55,11 +57,9 @@ export default function NavButton({
         // emoji) cuando lleguen los archivos.
         <span aria-hidden="true" className={isLg ? "block h-16 w-16" : "block h-8 w-8"} />
       )}
-      <span className="text-xs font-medium text-amber-950/80 [text-shadow:0_1px_2px_rgba(120,53,15,0.25)]">
-        {label}
-      </span>
+      <span className={`text-xs font-medium ${UI_TEXT_STYLE}`}>{label}</span>
       {sublabel && (
-        <span className="text-[10px] font-semibold text-amber-600">{sublabel}</span>
+        <span className={`text-[10px] font-semibold ${UI_TEXT_STYLE}`}>{sublabel}</span>
       )}
     </button>
   );

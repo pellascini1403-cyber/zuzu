@@ -1,3 +1,5 @@
+import { UI_TEXT_STYLE } from "@/lib/typography";
+
 // Acabado "vidrio real": gradiente de luz superior + reflejo interno +
 // sombra de base, compartido con NavButton/LevelBar.
 const glassStyle =
@@ -28,7 +30,7 @@ export default function TopBar({
           type="button"
           onClick={onOpenResources}
           aria-label="Recursos"
-          className={`flex h-10 w-10 items-center justify-center rounded-full text-lg text-zinc-600 ${glassStyle}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${UI_TEXT_STYLE} ${glassStyle}`}
         >
           ⋯
         </button>
@@ -38,7 +40,7 @@ export default function TopBar({
               {users.slice(0, 2).map((user) => (
                 <span
                   key={user.id}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-amber-200 to-orange-300 text-xs font-bold text-amber-900"
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-amber-200 to-orange-300 text-xs font-bold ${UI_TEXT_STYLE}`}
                 >
                   {user.initial}
                 </span>
@@ -56,12 +58,12 @@ export default function TopBar({
           type="button"
           onClick={onOpenSettings}
           aria-label="Configuración"
-          className={`flex h-10 w-10 items-center justify-center rounded-full text-sm text-zinc-600 ${glassStyle}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full text-sm ${UI_TEXT_STYLE} ${glassStyle}`}
         >
           ✕
         </button>
         <div
-          className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-amber-700 ${glassStyle}`}
+          className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ${UI_TEXT_STYLE} ${glassStyle}`}
         >
           <span>💎</span>
           <span>{coins}</span>
