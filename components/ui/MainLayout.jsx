@@ -5,7 +5,6 @@ import PetCanvas from "@/components/3d/PetCanvas";
 import TopBar from "@/components/ui/TopBar";
 import PetStage from "@/components/ui/PetStage";
 import LevelBar from "@/components/ui/LevelBar";
-import FoodPlate from "@/components/ui/FoodPlate";
 import BottomNav from "@/components/ui/BottomNav";
 import ThemeBar from "@/components/ui/ThemeBar";
 import ChatModal from "@/components/modals/ChatModal";
@@ -20,7 +19,7 @@ import usePetStats from "@/hooks/usePetStats";
 
 export default function MainLayout() {
   const [activeModal, setActiveModal] = useState(null);
-  const { level, xp, xpToNext, hunger, coins, feed } = usePetStats();
+  const { level, xp, xpToNext, coins, feed } = usePetStats();
 
   function toggleModal(key) {
     setActiveModal((current) => (current === key ? null : key));
@@ -42,11 +41,10 @@ export default function MainLayout() {
       />
       <PetStage onOpenChat={() => toggleModal("chat")} />
 
-      {/* Capa Intermedia: Streak (nivel) & Food, alineadas justo debajo de
-          la sombra del personaje */}
-      <div className="absolute inset-x-0 bottom-[28%] z-10 flex items-center justify-center gap-3 px-6">
+      {/* Capa Intermedia: Streak (nivel), centrada justo debajo de la
+          sombra del personaje. El botón de comida se quitó de aquí. */}
+      <div className="absolute inset-x-0 bottom-[28%] z-10 flex items-center justify-center px-6">
         <LevelBar level={level} xp={xp} xpToNext={xpToNext} />
-        <FoodPlate hunger={hunger} onOpen={() => toggleModal("food")} />
       </div>
 
       {/* Capa Inferior: navegación de 3 cápsulas en abanico, elevada sobre

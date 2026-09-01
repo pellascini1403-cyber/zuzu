@@ -1,7 +1,8 @@
-// Cápsula translúcida vacía/oscura suave que contiene el relleno de
-// progreso (a diferencia del vidrio claro de NavButton/TopBar).
+// Cápsula de vidrio translúcida, mismo lenguaje visual que NavButton/
+// TopBar (borde blanco visible + brillo). El relleno de progreso (más
+// abajo) no cambió: mismo degradado, misma lógica de ancho.
 const trackStyle =
-  "rounded-full bg-amber-900/10 backdrop-blur-xl border border-white/40 shadow-inner";
+  "rounded-full bg-white/40 backdrop-blur-md border border-white/80 shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-6px_10px_rgba(180,120,70,0.25)]";
 
 export default function LevelBar({ level = 1, xp = 0, xpToNext = 100 }) {
   const progress = Math.min((xp / xpToNext) * 100, 100);
@@ -10,7 +11,7 @@ export default function LevelBar({ level = 1, xp = 0, xpToNext = 100 }) {
     <div
       className={`flex h-8 w-[65%] max-w-[280px] flex-none items-center gap-2 px-1.5 ${trackStyle}`}
     >
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-gradient-to-b from-amber-400 to-orange-500 text-xs font-black text-white shadow-md">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-gradient-to-b from-amber-400 to-orange-500 text-xs font-black text-white shadow-[0_0_10px_rgba(251,191,36,0.7),0_2px_4px_rgba(0,0,0,0.15)]">
         {level}
       </span>
       <div className="relative h-2.5 flex-1 overflow-hidden rounded-full">
