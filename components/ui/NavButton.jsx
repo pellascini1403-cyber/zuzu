@@ -57,10 +57,8 @@ export default function NavButton({
         // emoji) cuando lleguen los archivos.
         <span aria-hidden="true" className={isLg ? "block h-16 w-16" : "block h-8 w-8"} />
       )}
-      <span className={`text-xs font-medium ${UI_TEXT_STYLE}`}>{label}</span>
-      {sublabel && (
-        <span className={`text-[10px] font-semibold ${UI_TEXT_STYLE}`}>{sublabel}</span>
-      )}
+      <span className={`text-xs ${UI_TEXT_STYLE}`}>{label}</span>
+      {sublabel && <span className={`text-[10px] ${UI_TEXT_STYLE}`}>{sublabel}</span>}
     </button>
   );
 }

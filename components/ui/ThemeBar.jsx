@@ -10,7 +10,7 @@ export default function ThemeBar({ onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className={`mx-auto flex w-[90%] items-center justify-center gap-1 rounded-full border-2 border-white ${GLASS_BG} py-3 text-xs font-medium backdrop-blur-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),inset_0_-6px_10px_rgba(180,120,70,0.25)] transition-colors hover:bg-[rgba(255,255,255,0.35)] ${UI_TEXT_STYLE}`}
+      className={`mx-auto flex w-[90%] items-center justify-center gap-1 rounded-full border-2 border-white ${GLASS_BG} py-3 text-xs backdrop-blur-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),inset_0_-6px_10px_rgba(180,120,70,0.25)] transition-colors hover:bg-[rgba(255,255,255,0.35)] ${UI_TEXT_STYLE}`}
     >
       <span aria-hidden="true">⌃</span>
       Personalizar escenario

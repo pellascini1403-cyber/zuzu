@@ -43,7 +43,7 @@ export default function TopBar({
               {users.slice(0, 2).map((user) => (
                 <span
                   key={user.id}
-                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-amber-200 to-orange-300 text-xs font-bold ${UI_TEXT_STYLE}`}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-amber-200 to-orange-300 text-xs ${UI_TEXT_STYLE}`}
                 >
                   {user.initial}
                 </span>
@@ -66,7 +66,7 @@ export default function TopBar({
           ✕
         </button>
         <div
-          className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ${UI_TEXT_STYLE} ${glassStyle}`}
+          className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
         >
           <span>💎</span>
           <span>{coins}</span>
