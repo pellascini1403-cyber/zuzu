@@ -39,7 +39,7 @@ export default function NavButton({
             src={iconSrc}
             alt=""
             draggable={false}
-            className="pointer-events-none absolute top-1.5 h-28 w-28 -translate-y-1/2 select-none object-contain drop-shadow-[0_8px_14px_rgba(217,119,6,0.35)]"
+            className="pointer-events-none absolute top-[16px] h-20 w-20 -translate-y-1/2 select-none object-contain drop-shadow-[0_8px_14px_rgba(217,119,6,0.35)]"
           />
         </>
       ) : (
