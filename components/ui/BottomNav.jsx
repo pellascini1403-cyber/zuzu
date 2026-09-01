@@ -27,7 +27,16 @@ const NAV_ITEMS = [
     width: "35%",
     size: "lg",
   },
-  { key: "shop", icon: "👜", label: "Mascotas", top: "55.3%", left: "85.5%", width: "23%" },
+  {
+    key: "shop",
+    iconSrc: "/nav/cat-purple.png",
+    iconSize: "51px",
+    iconTop: "3px",
+    label: "Mascotas",
+    top: "55.3%",
+    left: "85.5%",
+    width: "23%",
+  },
 ];
 
 // aspectRatio fija el alto del contenedor exactamente al del PNG
