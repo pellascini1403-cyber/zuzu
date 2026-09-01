@@ -18,44 +18,48 @@ export default function TopBar({
   onOpenSettings,
 }) {
   return (
-    <div className="absolute inset-x-0 top-0 z-20 flex items-center gap-2 p-4">
-      {users.length > 0 && (
-        <div className={`flex items-center rounded-full p-1 ${glassStyle}`}>
-          <div className="flex -space-x-2">
-            {users.slice(0, 2).map((user) => (
-              <span
-                key={user.id}
-                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-amber-200 to-orange-300 text-xs font-bold text-amber-900"
-              >
-                {user.initial}
-              </span>
-            ))}
+    <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
+      {/* Columna izquierda: botón de recursos ("...") arriba, en posición
+          simétrica al botón de cerrar de la derecha; avatares debajo,
+          alineados a la izquierda y a la misma altura que la píldora de
+          tokens de la columna derecha. */}
+      <div className="flex flex-col items-start gap-2">
+        <button
+          type="button"
+          onClick={onOpenResources}
+          aria-label="Recursos"
+          className={`flex h-10 w-10 items-center justify-center rounded-full text-lg text-zinc-600 ${glassStyle}`}
+        >
+          ⋯
+        </button>
+        {users.length > 0 && (
+          <div className={`flex items-center rounded-full p-1 ${glassStyle}`}>
+            <div className="flex -space-x-2">
+              {users.slice(0, 2).map((user) => (
+                <span
+                  key={user.id}
+                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-amber-200 to-orange-300 text-xs font-bold text-amber-900"
+                >
+                  {user.initial}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Columna alineada a la derecha: botones de acción arriba, píldora
-          de tokens en una segunda fila justo debajo, con el mismo borde
-          derecho que el botón de cerrar (items-end). */}
-      <div className="ml-auto flex flex-col items-end gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onOpenResources}
-            aria-label="Recursos"
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-lg text-zinc-600 ${glassStyle}`}
-          >
-            ⋯
-          </button>
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            aria-label="Configuración"
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm text-zinc-600 ${glassStyle}`}
-          >
-            ✕
-          </button>
-        </div>
+      {/* Columna derecha: botón de cerrar arriba (sin cambios de
+          posición), píldora de tokens debajo, con el mismo borde derecho
+          (items-end). */}
+      <div className="flex flex-col items-end gap-2">
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          aria-label="Configuración"
+          className={`flex h-10 w-10 items-center justify-center rounded-full text-sm text-zinc-600 ${glassStyle}`}
+        >
+          ✕
+        </button>
         <div
           className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-amber-700 ${glassStyle}`}
         >
