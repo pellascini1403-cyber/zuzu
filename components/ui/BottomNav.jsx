@@ -9,7 +9,7 @@ const NAV_ITEMS = [
     key: "characters",
     iconSrc: "/nav/bag-red.png",
     iconSize: "52px",
-    iconTop: "12px",
+    iconTop: "1px",
     label: "Tienda",
     top: "55.3%",
     left: "14.3%",
