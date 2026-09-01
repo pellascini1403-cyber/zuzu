@@ -1,7 +1,8 @@
-// Overlay sobre el marco de BottomNav.jsx. La posición/alineación
-// (top/left/width) no cambia en este ajuste — solo se agregó el relleno
-// de vidrio y se recoloreó el trazo (ver BottomNav.jsx) para que
-// combinen con el resto de la interfaz.
+// Overlay sobre el marco de BottomNav.jsx. Posición, forma y trazo blanco
+// no cambian en este ajuste — solo se le dio volumen 3D al relleno de
+// vidrio: brillo superior + sombra cálida inferior (ambas inset, dentro
+// del propio relleno) y una sombra proyectada suave hacia afuera.
+// El relleno mide ~82% del marco, así que queda por detrás del trazo.
 export default function NavButton({
   icon,
   label,
@@ -27,7 +28,7 @@ export default function NavButton({
       {/* Relleno glassmorphism, encajado dentro del marco */}
       <div
         style={{ width: glassWidth, height: glassHeight }}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-[999px] bg-white/40 shadow-[inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-md"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-[999px] bg-white/40 backdrop-blur-md shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-8px_12px_rgba(255,235,215,0.6)] drop-shadow-[0_6px_12px_rgba(0,0,0,0.06)]"
       />
 
       {isLg ? (
