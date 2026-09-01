@@ -42,7 +42,7 @@ export default function BottomNav({ activeModal, onSelect }) {
           maskPosition: "center",
           WebkitMaskPosition: "center",
         }}
-        className="absolute inset-0 bg-white/40 shadow-[inset_0_4px_8px_rgba(255,255,255,1),inset_0_-16px_20px_rgba(180,120,70,0.45)] backdrop-blur-md drop-shadow-[0_6px_12px_rgba(0,0,0,0.06)]"
+        className="absolute inset-0 bg-white/40 shadow-[inset_0_4px_8px_rgba(255,255,255,1),inset_0_-6px_10px_rgba(180,120,70,0.25)] backdrop-blur-md drop-shadow-[0_6px_12px_rgba(0,0,0,0.06)]"
       />
 
       {/* Trazo blanco (marco), recoloreado directamente en el archivo. */}
