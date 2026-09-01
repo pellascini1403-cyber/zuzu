@@ -12,30 +12,27 @@ export default function LevelBar({ level = 1, xp = 0, xpToNext = 100 }) {
 
   return (
     <div
-      className={`flex h-8 w-[65%] max-w-[280px] flex-none items-center gap-2 px-1.5 ${trackStyle}`}
+      className={`flex h-8 w-[65%] max-w-[280px] flex-none items-center pl-1.5 pr-1.5 ${trackStyle}`}
     >
-      {/* Reserva el mismo espacio que ocupaba la insignia redonda anterior,
-          para que la barra de progreso no se mueva. */}
-      <span aria-hidden="true" className="block h-6 w-6 shrink-0" />
-      {/* Llama 3D: reemplaza la insignia naranja. Escalada más grande que
-          su antigua caja y desplazada con translate para que sobresalga
-          ligeramente por encima y por fuera del borde izquierdo de la
-          cápsula de cristal. Sin overflow-hidden en este contenedor ni en
-          el padre (MainLayout), así que no se recorta. */}
+      {/* Llama 3D: reemplaza la insignia naranja, pero contenida por
+          completo dentro de la cápsula (mismo tamaño/lugar que ocupaba el
+          círculo original) — sin desbordar ni flotar por fuera. */}
       <img
         src="/nav/flame-pink.png"
         alt=""
         draggable={false}
-        style={{ height: "46px", width: "36px" }}
-        className="pointer-events-none absolute left-0 top-1/2 -translate-x-[38%] -translate-y-1/2 select-none object-contain drop-shadow-[0_4px_8px_rgba(219,39,119,0.35)]"
+        style={{ height: "22px", width: "17px" }}
+        className="pointer-events-none block shrink-0 select-none object-contain drop-shadow-[0_2px_4px_rgba(219,39,119,0.35)]"
       />
-      <div className="relative h-2.5 flex-1 overflow-hidden rounded-full">
+      {/* La barra arranca pegada a la llama (sin gap acá); el gap sólo
+          está entre la barra y el contador de la derecha. */}
+      <div className="relative ml-1.5 h-5 flex-1 overflow-hidden rounded-full">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-pink-400 to-pink-600 shadow-[inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-sm transition-all duration-300"
+          className="h-full rounded-full bg-gradient-to-r from-pink-300 via-fuchsia-400 to-pink-500 shadow-[0_0_8px_rgba(255,105,180,0.6),inset_0_1px_2px_rgba(255,255,255,0.7)] transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
-      <span className={`shrink-0 pr-1 text-[10px] ${UI_TEXT_STYLE}`}>
+      <span className={`ml-2 shrink-0 text-[10px] ${UI_TEXT_STYLE}`}>
         {xp}/{xpToNext}
       </span>
     </div>
