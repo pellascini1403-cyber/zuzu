@@ -1,4 +1,5 @@
 import NavButton from "./NavButton";
+import { GLASS_BG } from "@/lib/glass";
 
 // Posición del centro de cada marco (en % del ancho/alto de la imagen),
 // medida directamente sobre public/nav/marcos-botones.png (2400x927px):
@@ -83,11 +84,14 @@ const GLASS_FRAMES = [
   },
 ];
 
-// Mismos valores de sombra/brillo exactos que LevelBar.jsx y ThemeBar.jsx:
-// brillo blanco superior + sombra cálida inferior, para un volumen 3D
-// consistente en toda la app.
+// Mismos valores de sombra/fondo que LevelBar.jsx y ThemeBar.jsx: base
+// gris/beige translúcida (GLASS_BG) en vez de blanco brillante, con un
+// inset oscuro arriba (en vez del brillo blanco anterior) que oscurece el
+// centro del botón para que el texto blanco resalte, más la sombra cálida
+// inferior que le da volumen 3D. El borde blanco translúcido del botón lo
+// aporta la imagen del marco (marcos-botones.png), no un border CSS acá.
 const GLASS_SHADOW =
-  "bg-white/40 shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),inset_0_-6px_10px_rgba(180,120,70,0.25)] backdrop-blur-md drop-shadow-[0_6px_12px_rgba(0,0,0,0.06)]";
+  `${GLASS_BG} shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),inset_0_-6px_10px_rgba(180,120,70,0.25)] backdrop-blur-md drop-shadow-[0_6px_12px_rgba(0,0,0,0.06)]`;
 
 export default function BottomNav({ activeModal, onSelect }) {
   return (
