@@ -11,7 +11,7 @@ export default function usePetStats() {
   const [stats, setStats] = useState({
     level: 2,
     xp: 25,
-    xpToNext: 80,
+    xpToNext: 50,
     hunger: 72,
     coins: 120,
   });
