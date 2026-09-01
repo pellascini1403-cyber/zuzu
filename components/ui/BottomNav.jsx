@@ -2,13 +2,13 @@ import NavButton from "./NavButton";
 
 // Posición del centro de cada marco (en % del ancho/alto de la imagen),
 // medida directamente sobre public/nav/marcos-botones.png (2400x927px):
-// Vestidor centrado en (14.3%, 55.3%), Hábitos en (49.9%, 43.2%),
-// Tienda en (85.5%, 55.3%). Estos valores no cambiaron en este ajuste.
+// izquierda ("Tienda") en (14.3%, 55.3%), Hábitos en (49.9%, 43.2%),
+// derecha ("Mascotas") en (85.5%, 55.3%). Estos valores no cambiaron.
 const NAV_ITEMS = [
-  { key: "characters", icon: "🐷", label: "Vestidor", top: "55.3%", left: "14.3%", width: "23%" },
+  { key: "characters", icon: "🐷", label: "Tienda", top: "55.3%", left: "14.3%", width: "23%" },
   {
     key: "habits",
-    iconSrc: "/nav/star-hearts.png",
+    iconSrc: "/nav/star-pink.png",
     label: "Hábitos",
     sublabel: "⭐ 1",
     top: "43.2%",
@@ -16,7 +16,7 @@ const NAV_ITEMS = [
     width: "35%",
     size: "lg",
   },
-  { key: "shop", icon: "👜", label: "Tienda", top: "55.3%", left: "85.5%", width: "23%" },
+  { key: "shop", icon: "👜", label: "Mascotas", top: "55.3%", left: "85.5%", width: "23%" },
 ];
 
 // aspectRatio fija el alto del contenedor exactamente al del PNG
