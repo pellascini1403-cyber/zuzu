@@ -81,10 +81,23 @@ export default function TopBar({
             className="pointer-events-none block h-1/2 w-1/2 select-none object-contain drop-shadow-[0px_2px_3px_rgba(0,0,0,0.35)]"
           />
         </button>
+        {/* Píldora de saldo: el ícono de moneda queda fijo a la izquierda
+            del texto (shrink-0, para que nunca se deforme), y el número
+            crece hacia la izquierda sin mover el borde derecho — el
+            contenedor padre (items-end dentro de un row con
+            justify-between) ya ancla el borde derecho de esta columna al
+            margen de la pantalla; esta píldora no tiene ancho fijo, así
+            que solo se expande hacia la izquierda a medida que el texto
+            crece. */}
         <div
-          className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
         >
-          <span>💎</span>
+          <img
+            src="/nav/coin-zuzu.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none block h-4 w-4 shrink-0 select-none object-contain drop-shadow-[0px_1px_2px_rgba(0,0,0,0.25)]"
+          />
           <span>{coins}</span>
         </div>
       </div>
