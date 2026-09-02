@@ -1,5 +1,6 @@
 import { UI_TEXT_STYLE } from "@/lib/typography";
 import { GLASS_BG } from "@/lib/glass";
+import { PRESS_FEEDBACK } from "@/lib/interaction";
 
 // Cápsula de vidrio translúcida, mismo lenguaje visual que NavButton/
 // TopBar (borde blanco visible + brillo). Fondo blanco translúcido sutil
@@ -12,7 +13,7 @@ export default function LevelBar({ xp = 0, xpToNext = 100, animateFill = false }
 
   return (
     <div
-      className={`flex h-8 w-[65%] max-w-[280px] flex-none items-center pl-1.5 pr-1.5 ${trackStyle}`}
+      className={`flex h-8 w-[65%] max-w-[280px] flex-none items-center pl-1.5 pr-1.5 ${PRESS_FEEDBACK} ${trackStyle}`}
     >
       {/* Llama 3D: reemplaza la insignia naranja, pero contenida por
           completo dentro de la cápsula (mismo tamaño/lugar que ocupaba el

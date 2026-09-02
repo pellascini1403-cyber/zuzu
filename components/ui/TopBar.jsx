@@ -1,12 +1,15 @@
 import { UI_TEXT_STYLE } from "@/lib/typography";
+import { PRESS_FEEDBACK } from "@/lib/interaction";
 
 // Acabado "vidrio real": gradiente blanco translúcido sutil (mismo tono
 // base que GLASS_BG en lib/glass.js, en degradado en vez de plano) +
 // inset superior oscuro + sombra de base, compartido con NavButton/
 // LevelBar. Suficiente tinte para que el texto blanco de estos botones
 // resalte, sin quedar pesado ni volver al blanco opaco original.
+// backdrop-blur-md (12px) para que el desenfoque de cristal sea
+// consistente con el resto de los contenedores de la app.
 const glassStyle =
-  "bg-gradient-to-b from-[rgba(255,255,255,0.38)] via-[rgba(255,255,255,0.22)] to-[rgba(255,255,255,0.10)] backdrop-blur-2xl border border-white/80 border-b-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),_inset_0_-3px_6px_rgba(0,0,0,0.06),_0_10px_20px_-4px_rgba(0,0,0,0.1)]";
+  "bg-gradient-to-b from-[rgba(255,255,255,0.38)] via-[rgba(255,255,255,0.22)] to-[rgba(255,255,255,0.10)] backdrop-blur-md border border-white/80 border-b-white/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),_inset_0_-3px_6px_rgba(0,0,0,0.06),_0_10px_20px_-4px_rgba(0,0,0,0.1)]";
 
 // Mock: usuarios vinculados a esta mascota (1 o 2). Se reemplaza por los
 // datos reales del módulo de Vinculación (QR / Código) más adelante — por
@@ -33,7 +36,7 @@ export default function TopBar({
           type="button"
           onClick={onOpenResources}
           aria-label="Recursos"
-          className={`flex h-10 w-10 items-center justify-center rounded-full ${glassStyle}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full ${PRESS_FEEDBACK} ${glassStyle}`}
         >
           <img
             src="/nav/gear-white.png"
@@ -67,7 +70,7 @@ export default function TopBar({
           type="button"
           onClick={onOpenSettings}
           aria-label="Perfil"
-          className={`flex h-10 w-10 items-center justify-center rounded-full ${glassStyle}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full ${PRESS_FEEDBACK} ${glassStyle}`}
         >
           {/* Centrado puramente por flexbox: el botón ya es flex +
               items-center + justify-center, y esta imagen no lleva

@@ -1,4 +1,5 @@
 import { UI_TEXT_STYLE } from "@/lib/typography";
+import { PRESS_FEEDBACK } from "@/lib/interaction";
 
 // Overlay sobre el marco de BottomNav.jsx: solo ícono y texto, sin
 // forma ni relleno propio (el vidrio ahora es una sola pieza a tamaño
@@ -26,7 +27,7 @@ export default function NavButton({
       type="button"
       onClick={onClick}
       style={{ top, left, width }}
-      className={`absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 bg-transparent transition-transform active:scale-95 ${active ? "scale-110" : ""}`}
+      className={`absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 bg-transparent ${PRESS_FEEDBACK} ${active ? "scale-110" : ""}`}
     >
       {iconSrc ? (
         <>
