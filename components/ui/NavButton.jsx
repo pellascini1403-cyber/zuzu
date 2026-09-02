@@ -1,11 +1,15 @@
 import { UI_TEXT_STYLE } from "@/lib/typography";
-import { PRESS_FEEDBACK } from "@/lib/interaction";
+import { PRESS_TRANSITION, PRESSED_CLASSES } from "@/lib/interaction";
 
 // Overlay sobre el marco de BottomNav.jsx: solo ícono y texto, sin
-// forma ni relleno propio (el vidrio ahora es una sola pieza a tamaño
-// completo en BottomNav.jsx, enmascarada con la silueta real de los 3
-// marcos — no hay círculos/burbujas sueltas aquí). Posición y trazo
-// blanco no cambian en este ajuste.
+// forma ni relleno propio (el vidrio y el borde son capas hermanas en
+// BottomNav.jsx, recortadas a la silueta real de cada marco). Posición y
+// trazo blanco no cambian en este ajuste.
+//
+// El estado "presionado" (pressed) llega desde BottomNav.jsx como prop —
+// no usamos `:active` nativo acá — para que este ícono/texto se achique e
+// ilumine en el MISMO instante que el vidrio y el borde (capas hermanas,
+// sincronizadas todas por el mismo estado de React en el padre).
 export default function NavButton({
   icon,
   iconSrc,
@@ -15,6 +19,9 @@ export default function NavButton({
   sublabel,
   onClick,
   active = false,
+  pressed = false,
+  onPressStart,
+  onPressEnd,
   size = "md",
   top,
   left,
@@ -26,8 +33,12 @@ export default function NavButton({
     <button
       type="button"
       onClick={onClick}
+      onPointerDown={onPressStart}
+      onPointerUp={onPressEnd}
+      onPointerLeave={onPressEnd}
+      onPointerCancel={onPressEnd}
       style={{ top, left, width }}
-      className={`absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 bg-transparent ${PRESS_FEEDBACK} ${active ? "scale-110" : ""}`}
+      className={`absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 bg-transparent ${PRESS_TRANSITION} ${pressed ? PRESSED_CLASSES : active ? "scale-110" : ""}`}
     >
       {iconSrc ? (
         <>

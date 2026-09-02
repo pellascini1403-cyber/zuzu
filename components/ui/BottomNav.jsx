@@ -1,5 +1,9 @@
+"use client";
+
+import { Fragment, useState } from "react";
 import NavButton from "./NavButton";
 import { GLASS_BG } from "@/lib/glass";
+import { PRESS_TRANSITION, PRESSED_CLASSES } from "@/lib/interaction";
 
 // Posición del centro de cada marco (en % del ancho/alto de la imagen),
 // medida directamente sobre public/nav/marcos-botones.png (2400x927px):
@@ -96,38 +100,62 @@ const GLASS_SHADOW =
   `${GLASS_BG} shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),inset_0_-6px_10px_rgba(180,120,70,0.25)] backdrop-blur-md drop-shadow-[0_6px_12px_rgba(0,0,0,0.06)]`;
 
 export default function BottomNav({ activeModal, onSelect }) {
+  // Estado de "presionado" centralizado acá (en vez de `:active` por
+  // elemento) para que las 3 capas hermanas de un mismo botón — vidrio,
+  // borde y overlay de ícono/texto en NavButton — se achiquen (scale-90) y
+  // se iluminen (brightness-1.35) en el MISMO instante, como un solo
+  // bloque sólido. Con `:active` nativo cada capa reacciona a su propio
+  // evento de puntero por separado y el efecto se ve descoordinado.
+  const [pressedKey, setPressedKey] = useState(null);
+
+  const clearPressed = (key) => setPressedKey((current) => (current === key ? null : current));
+
   return (
     <div className="relative w-full" style={{ aspectRatio: FRAME_ASPECT_RATIO }}>
-      {/* Vidrio: una pieza independiente por marco, cada una recortada a
-          su propia silueta exacta (ver GLASS_FRAMES arriba). */}
-      {GLASS_FRAMES.map((frame) => (
-        <div
-          key={frame.key}
-          style={{
-            left: frame.left,
-            top: frame.top,
-            width: frame.width,
-            height: frame.height,
-            maskImage: "url(/nav/marcos-fill-mask.png)",
-            WebkitMaskImage: "url(/nav/marcos-fill-mask.png)",
-            maskRepeat: "no-repeat",
-            WebkitMaskRepeat: "no-repeat",
-            maskSize: frame.maskSize,
-            WebkitMaskSize: frame.maskSize,
-            maskPosition: frame.maskPosition,
-            WebkitMaskPosition: frame.maskPosition,
-          }}
-          className={`absolute ${GLASS_SHADOW}`}
-        />
-      ))}
-
-      {/* Trazo blanco (marco), recoloreado directamente en el archivo. */}
-      <img
-        src="/nav/marcos-botones.png"
-        alt=""
-        draggable={false}
-        className="pointer-events-none absolute inset-0 block h-full w-full select-none drop-shadow-[0_2px_8px_rgba(255,255,255,0.8)]"
-      />
+      {GLASS_FRAMES.map((frame) => {
+        const pressClasses = `${PRESS_TRANSITION} ${pressedKey === frame.key ? PRESSED_CLASSES : ""}`;
+        return (
+          <Fragment key={frame.key}>
+            {/* Vidrio: una pieza independiente por marco, recortada a su
+                propia silueta exacta (ver GLASS_FRAMES arriba). */}
+            <div
+              style={{
+                left: frame.left,
+                top: frame.top,
+                width: frame.width,
+                height: frame.height,
+                maskImage: "url(/nav/marcos-fill-mask.png)",
+                WebkitMaskImage: "url(/nav/marcos-fill-mask.png)",
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskSize: frame.maskSize,
+                WebkitMaskSize: frame.maskSize,
+                maskPosition: frame.maskPosition,
+                WebkitMaskPosition: frame.maskPosition,
+              }}
+              className={`absolute ${GLASS_SHADOW} ${pressClasses}`}
+            />
+            {/* Trazo blanco (marco): recorte propio de este botón, mismo
+                sprite (mask-size/position reutilizados como background-
+                size/position) para que también se achique/ilumine en
+                sincronía con el vidrio de este mismo botón. */}
+            <div
+              aria-hidden="true"
+              style={{
+                left: frame.left,
+                top: frame.top,
+                width: frame.width,
+                height: frame.height,
+                backgroundImage: "url(/nav/marcos-botones.png)",
+                backgroundRepeat: "no-repeat",
+                backgroundSize: frame.maskSize,
+                backgroundPosition: frame.maskPosition,
+              }}
+              className={`pointer-events-none absolute drop-shadow-[0_2px_8px_rgba(255,255,255,0.8)] ${pressClasses}`}
+            />
+          </Fragment>
+        );
+      })}
 
       {NAV_ITEMS.map((item) => (
         <NavButton
@@ -143,6 +171,9 @@ export default function BottomNav({ activeModal, onSelect }) {
           left={item.left}
           width={item.width}
           active={activeModal === item.key}
+          pressed={pressedKey === item.key}
+          onPressStart={() => setPressedKey(item.key)}
+          onPressEnd={() => clearPressed(item.key)}
           onClick={() => onSelect(item.key)}
         />
       ))}
