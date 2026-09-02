@@ -24,18 +24,23 @@ export default function TopBar({
 }) {
   return (
     <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
-      {/* Columna izquierda: botón de recursos ("...") arriba, en posición
-          simétrica al botón de cerrar de la derecha; avatares debajo,
-          alineados a la izquierda y a la misma altura que la píldora de
-          tokens de la columna derecha. */}
+      {/* Columna izquierda: botón de recursos (ícono de engranaje) arriba,
+          en posición simétrica al botón de perfil de la derecha; avatares
+          debajo, alineados a la izquierda y a la misma altura que la
+          píldora de tokens de la columna derecha. */}
       <div className="flex flex-col items-start gap-2">
         <button
           type="button"
           onClick={onOpenResources}
           aria-label="Recursos"
-          className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${UI_TEXT_STYLE} ${glassStyle}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full ${glassStyle}`}
         >
-          ⋯
+          <img
+            src="/nav/gear-white.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none block h-6 w-6 select-none object-contain drop-shadow-[0px_2px_3px_rgba(0,0,0,0.35)]"
+          />
         </button>
         {users.length > 0 && (
           <div className={`flex items-center rounded-full p-1 ${glassStyle}`}>
@@ -53,17 +58,23 @@ export default function TopBar({
         )}
       </div>
 
-      {/* Columna derecha: botón de cerrar arriba (sin cambios de
-          posición), píldora de tokens debajo, con el mismo borde derecho
-          (items-end). */}
+      {/* Columna derecha: botón de perfil arriba (mismo lugar/handler que
+          antes tenía el botón de cerrar — abre SettingsModal, que ya es
+          donde vive la cuenta/vinculación), píldora de tokens debajo, con
+          el mismo borde derecho (items-end). */}
       <div className="flex flex-col items-end gap-2">
         <button
           type="button"
           onClick={onOpenSettings}
-          aria-label="Configuración"
-          className={`flex h-10 w-10 items-center justify-center rounded-full text-sm ${UI_TEXT_STYLE} ${glassStyle}`}
+          aria-label="Perfil"
+          className={`flex h-10 w-10 items-center justify-center rounded-full ${glassStyle}`}
         >
-          ✕
+          <img
+            src="/nav/profile-white.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none block h-6 w-6 select-none object-contain drop-shadow-[0px_2px_3px_rgba(0,0,0,0.35)]"
+          />
         </button>
         <div
           className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
