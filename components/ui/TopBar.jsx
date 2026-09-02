@@ -81,25 +81,24 @@ export default function TopBar({
             className="pointer-events-none block h-1/2 w-1/2 select-none object-contain drop-shadow-[0px_2px_3px_rgba(0,0,0,0.35)]"
           />
         </button>
-        {/* Píldora de saldo: la moneda queda del mismo diámetro que los
-            avatares (h-7, 28px) y al ras de los bordes superior/inferior/
-            izquierdo del contenedor (sin padding ni espacio propio,
-            overflow-hidden para que su silueta circular calce exacto con
-            la punta redondeada de la píldora). El texto conserva su
-            padding normal a la derecha. El número crece hacia la
-            izquierda sin mover el borde derecho — el contenedor padre
-            (items-end dentro de un row con justify-between) ya ancla el
-            borde derecho de esta columna al margen de la pantalla; esta
-            píldora no tiene ancho fijo, así que solo se expande hacia la
-            izquierda a medida que el texto crece. */}
+        {/* Píldora de saldo: la moneda (85% del tamaño anterior) queda
+            adentro del contenedor con un margen propio de 5px arriba/
+            abajo/izquierda, sin tocar el borde blanco. Centrada
+            verticalmente con el texto vía items-center (heredado del
+            padre). El número crece hacia la izquierda sin mover el
+            borde derecho — el contenedor padre (items-end dentro de un
+            row con justify-between) ya ancla el borde derecho de esta
+            columna al margen de la pantalla; esta píldora no tiene
+            ancho fijo, así que solo se expande hacia la izquierda a
+            medida que el texto crece. */}
         <div
-          className={`flex h-7 items-center gap-1.5 overflow-hidden rounded-full py-0 pr-3 pl-0 text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
+          className={`flex items-center gap-1.5 rounded-full py-[5px] pr-3 pl-[5px] text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
         >
           <img
             src="/nav/coin-zuzu.png"
             alt=""
             draggable={false}
-            className="pointer-events-none block h-7 w-7 shrink-0 select-none object-cover"
+            className="pointer-events-none block h-6 w-6 shrink-0 select-none object-contain drop-shadow-[0px_1px_2px_rgba(0,0,0,0.2)]"
           />
           <span>{coins}</span>
         </div>
