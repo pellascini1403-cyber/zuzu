@@ -21,7 +21,7 @@ import useBackground from "@/hooks/useBackground";
 
 export default function MainLayout() {
   const [activeModal, setActiveModal] = useState(null);
-  const { level, xp, xpToNext, coins, feed } = usePetStats();
+  const { xp, xpToNext, coins, feed, streakJustIncreased } = usePetStats();
   const { currentBackground } = useBackground();
 
   function toggleModal(key) {
@@ -50,7 +50,7 @@ export default function MainLayout() {
       {/* Capa Intermedia: Streak (nivel), centrada justo debajo de la
           sombra del personaje. El botón de comida se quitó de aquí. */}
       <div className="absolute inset-x-0 bottom-[34.7%] z-10 flex items-center justify-center px-6">
-        <LevelBar level={level} xp={xp} xpToNext={xpToNext} />
+        <LevelBar xp={xp} xpToNext={xpToNext} animateFill={streakJustIncreased} />
       </div>
 
       {/* Capa Inferior: navegación de 3 cápsulas en abanico, con
