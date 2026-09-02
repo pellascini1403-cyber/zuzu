@@ -69,18 +69,16 @@ export default function TopBar({
           aria-label="Perfil"
           className={`flex h-10 w-10 items-center justify-center rounded-full ${glassStyle}`}
         >
-          {/* La silueta de perfil tiene mucha más masa visual en los
-              hombros que en la cabeza, así que su centro de masa real
-              (medido por píxel) queda bien por debajo del centro de su
-              propio bounding box — centrar solo la caja hacía que el
-              símbolo se viera corrido hacia abajo dentro del círculo. Se
-              compensa con un translate-y hacia arriba, calibrado
-              midiendo el centroide real de los píxeles renderizados. */}
+          {/* Centrado puramente por flexbox: el botón ya es flex +
+              items-center + justify-center, y esta imagen no lleva
+              márgenes, padding, position ni translate propios — solo
+              tamaño relativo (mitad del contenedor) con object-contain,
+              así que flexbox la centra de forma geométrica exacta. */}
           <img
             src="/nav/profile-white.png"
             alt=""
             draggable={false}
-            className="pointer-events-none relative block h-4 w-4 translate-x-[2.3px] -translate-y-[6px] select-none object-contain drop-shadow-[0px_2px_3px_rgba(0,0,0,0.35)]"
+            className="pointer-events-none block h-1/2 w-1/2 select-none object-contain drop-shadow-[0px_2px_3px_rgba(0,0,0,0.35)]"
           />
         </button>
         <div
