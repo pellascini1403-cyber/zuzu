@@ -25,16 +25,19 @@ export default function LevelBar({ xp = 0, xpToNext = 100, animateFill = false }
         className="pointer-events-none block shrink-0 select-none object-contain drop-shadow-[0_2px_4px_rgba(219,39,119,0.35)]"
       />
       {/* La barra arranca pegada a la llama (sin gap acá); el gap sólo
-          está entre la barra y el contador de la derecha. Solo tonos rosa
-          (coral vibrante -> rosa pastel claro), sin violeta/púrpura. El
-          ancho refleja xp/xpToNext (la racha real de hooks/useStreak.js).
-          La transición (animación del relleno) solo se activa cuando
-          `animateFill` es true — es decir, cuando el usuario entra en un
-          día nuevo y la racha subió; en una recarga del mismo día el
-          relleno aparece directo, sin animar de 0 hacia el valor real. */}
+          está entre la barra y el contador de la derecha. Degradado
+          monocromático en rosa: el extremo izquierdo usa el mismo tono
+          "chicle" del asset de la llama/estrella (muestreado del propio
+          PNG: rgb(253,136,191) ≈ #fd88bf), sin rojo/coral/naranja, hacia
+          un rosa casi blanco a la derecha. El ancho refleja xp/xpToNext
+          (la racha real de hooks/useStreak.js). La transición (animación
+          del relleno) solo se activa cuando `animateFill` es true — es
+          decir, cuando el usuario entra en un día nuevo y la racha subió;
+          en una recarga del mismo día el relleno aparece directo, sin
+          animar de 0 hacia el valor real. */}
       <div className="relative ml-1.5 h-5 flex-1 overflow-hidden rounded-full">
         <div
-          className={`relative h-full overflow-hidden rounded-full bg-gradient-to-r from-[#ff5c77] to-[#ffc2d6] shadow-[0_0_8px_rgba(255,105,180,0.6),inset_0_1px_2px_rgba(255,255,255,0.7)] ${
+          className={`relative h-full overflow-hidden rounded-full bg-gradient-to-r from-[#fd88bf] to-[#ffe6f2] shadow-[0_0_8px_rgba(253,136,191,0.6),inset_0_1px_2px_rgba(255,255,255,0.7)] ${
             animateFill ? "transition-all duration-700 ease-out" : ""
           }`}
           style={{ width: `${progress}%` }}
