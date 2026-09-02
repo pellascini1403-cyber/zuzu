@@ -48,7 +48,7 @@ export default function TopBar({
               {users.slice(0, 2).map((user) => (
                 <span
                   key={user.id}
-                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-amber-200 to-orange-300 text-xs ${UI_TEXT_STYLE}`}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white/90 bg-gradient-to-b from-[#ffc2e8] to-[#fc99db] text-xs shadow-[inset_0_-2px_3px_rgba(190,24,93,0.25),inset_0_1px_1px_rgba(255,255,255,0.5)] ${UI_TEXT_STYLE}`}
                 >
                   {user.initial}
                 </span>
@@ -81,22 +81,25 @@ export default function TopBar({
             className="pointer-events-none block h-1/2 w-1/2 select-none object-contain drop-shadow-[0px_2px_3px_rgba(0,0,0,0.35)]"
           />
         </button>
-        {/* Píldora de saldo: el ícono de moneda queda fijo a la izquierda
-            del texto (shrink-0, para que nunca se deforme), y el número
-            crece hacia la izquierda sin mover el borde derecho — el
-            contenedor padre (items-end dentro de un row con
-            justify-between) ya ancla el borde derecho de esta columna al
-            margen de la pantalla; esta píldora no tiene ancho fijo, así
-            que solo se expande hacia la izquierda a medida que el texto
-            crece. */}
+        {/* Píldora de saldo: la moneda queda del mismo diámetro que los
+            avatares (h-7, 28px) y al ras de los bordes superior/inferior/
+            izquierdo del contenedor (sin padding ni espacio propio,
+            overflow-hidden para que su silueta circular calce exacto con
+            la punta redondeada de la píldora). El texto conserva su
+            padding normal a la derecha. El número crece hacia la
+            izquierda sin mover el borde derecho — el contenedor padre
+            (items-end dentro de un row con justify-between) ya ancla el
+            borde derecho de esta columna al margen de la pantalla; esta
+            píldora no tiene ancho fijo, así que solo se expande hacia la
+            izquierda a medida que el texto crece. */}
         <div
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
+          className={`flex h-7 items-center gap-1.5 overflow-hidden rounded-full py-0 pr-3 pl-0 text-xs ${UI_TEXT_STYLE} ${glassStyle}`}
         >
           <img
             src="/nav/coin-zuzu.png"
             alt=""
             draggable={false}
-            className="pointer-events-none block h-4 w-4 shrink-0 select-none object-contain drop-shadow-[0px_1px_2px_rgba(0,0,0,0.25)]"
+            className="pointer-events-none block h-7 w-7 shrink-0 select-none object-cover"
           />
           <span>{coins}</span>
         </div>
