@@ -22,7 +22,6 @@ const NAV_ITEMS = [
     iconSize: "80px",
     iconTop: "16px",
     label: "Hábitos",
-    sublabel: "⭐ 1",
     top: "43.2%",
     left: "49.9%",
     width: "35%",
