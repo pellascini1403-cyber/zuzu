@@ -1,20 +1,18 @@
 import Modal from "./Modal";
-import { GLASS_BG } from "@/lib/glass";
 import { PRESS_FEEDBACK } from "@/lib/interaction";
 
-// Mismo acabado "vidrio real" que los botones de la interfaz principal
-// (TopBar/LevelBar/ThemeBar): fondo blanco translúcido sutil (GLASS_BG),
-// borde blanco fino semi-transparente, blur de fondo y el mismo par de
-// sombras inset (oscura arriba / cálida abajo) para el volumen 3D. Se
-// suma una sombra exterior suave porque acá, a diferencia de la pantalla
-// principal, el fondo detrás de la tarjeta es el modal blanco opaco (no
-// el degradado de la app) — sin esa sombra el borde/blur casi no se
-// distinguen contra blanco. El título va en zinc-800/la descripción en
-// zinc-400: sobre este fondo claro, texto blanco (como el resto de la
-// app) quedaría ilegible, así que la jerarquía tonal oscuro/claro de la
-// imagen de referencia se mantiene, pero el color de los íconos sí seguí
-// la paleta rosa propia de la app en vez del violeta de la referencia.
-const CARD_STYLE = `flex min-h-[152px] flex-col items-start gap-3 rounded-[28px] border border-white/80 p-4 text-left ${GLASS_BG} backdrop-blur-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),inset_0_-6px_10px_rgba(180,120,70,0.25),0_2px_10px_rgba(0,0,0,0.08)]`;
+// Vidrio propio de estas tarjetas (no el GLASS_BG compartido — ese está
+// afinado para ir sobre el degradado colorido de la pantalla principal,
+// donde 0.25 de opacidad ya se distingue bien; acá, sobre el fondo
+// blanco opaco del modal, con esa opacidad la tarjeta no se despega del
+// fondo). Fondo blanco casi sólido + blur, borde de 1px idéntico en los
+// 4 lados y una sombra exterior difusa con tinte rosa ultra suave (sin
+// inset shadows): la sombra cálida rgba(180,120,70,...) que usábamos
+// antes (copiada del mismo tratamiento que los botones de la pantalla
+// principal) se veía marrón/sucia contra el blanco del modal.
+const CARD_BG = "bg-[rgba(255,255,255,0.85)]";
+const CARD_SHADOW = "shadow-[0_10px_20px_rgba(230,150,180,0.15)]";
+const CARD_STYLE = `flex min-h-[152px] flex-col items-start gap-3 rounded-[28px] border border-white/80 p-4 text-left ${CARD_BG} backdrop-blur-md ${CARD_SHADOW}`;
 
 // Placeholder de las 6 opciones de ajustes (grid 2x3). Contenido real a
 // definir cuando se conecten cuenta/vinculación/preferencias; por ahora
