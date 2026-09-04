@@ -281,45 +281,66 @@ const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 // hiperredondeada (80px), ojal centrado a (38.5, 38.5) del propio
 // borde superior-izquierdo de la tarjeta.
 //
-// MARCO vs. RELLENO — a diferencia del primer intento (toda la tarjeta
-// en `.liquid-glass-btn`, cuerpo incluido), el pedido es un marco de
-// cristal alrededor de un relleno gris sólido y plano (como en el
-// boceto), con el efecto Liquid Glass reservado solo al contorno
-// exterior y al ojal:
-//   - <div> exterior: `.liquid-glass-btn` de punta a punta (fondo
-//     translúcido + blur + bisel/sombra de refracción) con la
-//     geometría de la etiqueta completa.
-//   - <div> interior, inset FRAME_WIDTH (6px) parejo por los 4 lados,
-//     con el mismo radio por esquina menos ese inset: fondo gris
-//     sólido (#7f7f7f, muestreado directo del boceto) opaco, SIN
-//     `.liquid-glass-btn` — es lo que queda visible en el centro,
-//     dejando solo un anillo de ~6px del <div> exterior asomando como
-//     marco alrededor.
-//   - Ojal: ya no es un <circle> relleno dentro del SVG del cordón,
-//     sino su propio <span> circular con `.liquid-glass-btn` (mismo
-//     criterio que el marco: efecto de cristal real, no solo un trazo
-//     blanco). El cordón sigue siendo un trazo blanco simple —una
-//     curva abierta no se puede hacer con CSS, así que necesita su
-//     propio <svg>, pero sin el <circle> que antes llevaba dentro.
-//   - Ojal, cordón, label y contenido son hijos DIRECTOS del <div>
-//     exterior (no del interior gris) para que sus coordenadas —ya
-//     medidas contra la esquina superior-izquierda real de la
-//     etiqueta— no cambien; alcanza con que vengan DESPUÉS del <div>
-//     interior en el JSX para quedar apilados encima suyo (mismo
-//     stacking context, sin z-index aparte).
+// MARCO vs. RELLENO — el marco de cristal (<div> exterior) rodea un
+// relleno gris sólido y plano (<div> interior, inset FRAME_WIDTH=6px,
+// mismo radio por esquina menos ese inset): fondo #7f7f7f opaco, SIN
+// `.liquid-glass-btn`, que deja ver el marco solo como el anillo de
+// ~6px alrededor.
+//
+// PROFUNDIDAD DEL OJAL Y EL CORDÓN — el cordón debe pasar POR DETRÁS
+// del marco (para que la parte que cruza el anillo de cristal salga
+// desenfocada por su backdrop-filter) y el ojal debe ser un agujero
+// real (no un círculo relleno) por el que se ve/asoma la punta del
+// cordón sin ningún desenfoque encima. Orden de pintado, de atrás
+// hacia adelante, todo dentro de un mismo <div> ancla (mismas
+// coordenadas left/top/bottom/right que antes tenía el propio marco,
+// para no tener que recalcular nada):
+//   1. Cordón (<svg>, solo trazo — una curva abierta no se hace con
+//      CSS): al fondo del todo. Al quedar detrás del marco, la parte
+//      que el marco cubre se ve a través de su backdrop-filter
+//      (desenfocada); la parte que cae fuera de la tarjeta (el rulo de
+//      arriba) queda nítida, tal como en el boceto.
+//   2. Marco (<div>, `.liquid-glass-btn`): encima del cordón. Lleva un
+//      `mask-image` (radial-gradient sólido con un corte duro, no un
+//      degradado real: transparente adentro del radio del ojal, opaco
+//      inmediatamente después) que le recorta un agujero circular
+//      exacto en (38.5, 38.5) — con la máscara, el propio
+//      backdrop-filter del marco NO se aplica ahí (no hay caja que
+//      filtre), así que el cordón se ve a través sin filtro alguno.
+//   3. Relleno gris, hijo del marco, con el mismo truco de
+//      mask-image — mismo agujero, pero centrado en (32.5, 32.5)
+//      porque el relleno ya está inset FRAME_WIDTH (6px) respecto al
+//      marco, así que su propio origen local está corrido esos 6px.
+//      Sin este segundo agujero el gris opaco taparía el del marco.
+//   4. Anillo del ojal: encima de todo, un <circle> de SVG (fill=none,
+//      con el mismo stroke en gradiente + <feDropShadow> que ya usan
+//      la burbuja/dock para simular el bisel/sombra de refracción de
+//      un Liquid Glass sobre una forma que backdrop-filter no puede
+//      seguir de forma confiable) — es decir, un trazo, no una caja
+//      con backdrop-filter, así que no vuelve a desenfocar el agujero
+//      que las máscaras de los pasos 2-3 dejaron limpio.
 //
 // Fondo oscurecido + deslizamiento: el backdrop y la propia tarjeta
-// quedan siempre montados (nunca `{open && ...}`) para poder animar
-// tanto la entrada como la salida con una simple `transition` de
-// Tailwind — desmontar en `open=false` mataría la animación de salida.
-// Cerrada, la tarjeta se traslada `translateY(100vh)` — no un % de su
-// propia altura (100%/130%, probado y descartado): la tarjeta ya
-// arranca con un hueco debajo (bottom: 18.6%, para dejar ver el Dock)
-// y el cordón del ojal sobresale por encima de su borde superior, así
-// que un % de su propia altura no alcanzaba a sacarla del todo de la
-// pantalla — 100vh desde donde sea que esté en reposo sí, sin depender
-// de su geometría interna.
+// (ahora el <div> ancla completo: cordón + marco + ojal, para que se
+// desplacen juntos como una sola pieza) quedan siempre montados (nunca
+// `{open && ...}`) para poder animar tanto la entrada como la salida
+// con una simple `transition` de Tailwind — desmontar en `open=false`
+// mataría la animación de salida. Cerrada, se traslada
+// `translateY(100vh)` — no un % de la propia altura (100%/130%,
+// probado y descartado): la tarjeta ya arranca con un hueco debajo
+// (bottom: 18.6%, para dejar ver el Dock) y el cordón sobresale por
+// encima de su borde superior, así que un % de su propia altura no
+// alcanzaba a sacarla del todo de la pantalla — 100vh desde donde sea
+// que esté en reposo sí, sin depender de su geometría interna.
 const FRAME_WIDTH = 6;
+const OJAL_CENTER = 38.5;
+const OJAL_RADIUS = 9.5;
+// Corte duro (transparente -> opaco de un salto, sin degradado real)
+// en vez de un radial-gradient "suave": un agujero tiene un borde
+// neto, no un desvanecido.
+function ojalMask(center) {
+  return `radial-gradient(circle at ${center}px ${center}px, transparent ${OJAL_RADIUS}px, black ${OJAL_RADIUS + 0.5}px)`;
+}
 
 function StoreSheet({ open, onClose }) {
   return (
@@ -335,7 +356,7 @@ function StoreSheet({ open, onClose }) {
         role="dialog"
         aria-label="Store"
         aria-hidden={!open}
-        className={`liquid-glass-btn absolute z-50 transition-transform duration-300 ease-out ${
+        className={`absolute z-50 transition-transform duration-300 ease-out ${
           open ? "" : "pointer-events-none"
         }`}
         style={{
@@ -343,60 +364,103 @@ function StoreSheet({ open, onClose }) {
           bottom: "18.6%",
           left: "11%",
           right: "11.3%",
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 80,
-          borderBottomLeftRadius: 20,
-          borderBottomRightRadius: 20,
           transform: open ? "translateY(0)" : "translateY(100vh)",
         }}
       >
-        {/* Relleno: gris sólido y plano, sin cristal — el marco de
-            arriba queda visible solo como el anillo de FRAME_WIDTH que
-            rodea a este <div>. */}
-        <div
-          className="absolute bg-[#7f7f7f]"
-          style={{
-            inset: FRAME_WIDTH,
-            borderTopLeftRadius: 20 - FRAME_WIDTH,
-            borderTopRightRadius: 80 - FRAME_WIDTH,
-            borderBottomLeftRadius: 20 - FRAME_WIDTH,
-            borderBottomRightRadius: 20 - FRAME_WIDTH,
-          }}
-        />
-        {/* Cordón: un solo <svg>, sin escalar (viewBox en px reales),
-            posicionado para que su extremo inferior caiga exactamente
-            sobre el centro del ojal (38.5, 38.5) — offset = punto real
-            menos ese extremo dentro del propio viewBox (44, 64). */}
+        {/* Cordón: al fondo, para que el marco lo desenfoque al pasar
+            por detrás — ver comentario grande de arriba. <svg> sin
+            escalar (viewBox en px reales). Grosor y color subidos (2px
+            rgba(255,255,255,0.85) -> 4px white sólido) para que se
+            note nítido y sólido, no un hilo débil.
+            Tramo recto "M44 70 L44 25" a propósito, no una curva: en
+            coordenadas de la tarjeta (restar 5.5/25.5 al x/y del propio
+            viewBox) va de (38.5, 44.5) —dentro del agujero del ojal,
+            centrado en (38.5, 38.5)— a (38.5, -0.5) —ya por encima del
+            borde superior—, cruzando en línea recta el anillo del
+            marco a x=38.5, un x bien alejado (>20) de la esquina
+            redondeada superior-izquierda para no cruzar por la parte
+            curva (ahí el "grosor" del anillo varía con el radio y el
+            cruce quedaba casi tangencial, demasiado corto para notarse
+            desenfocado). El resto de la curva (el rulo decorativo) es
+            el mismo dibujo original, solo desplazado en Y para arrancar
+            en ese mismo punto (44,25) en vez de (44,55) — queda entero
+            por encima de la tarjeta, sin un segundo cruce. */}
         <svg
           viewBox="0 0 60 80"
           width="60"
           height="80"
           className="pointer-events-none absolute"
-          style={{ left: 38.5 - 44, top: 38.5 - 64, overflow: "visible" }}
+          style={{ left: OJAL_CENTER - 44, top: OJAL_CENTER - 64, overflow: "visible" }}
         >
           <path
-            d="M44 55C22 51 8 34 13 17C17 4 33 2 35 14C37 25 24 28 20 20"
+            d="M44 70L44 25C22 21 8 4 13 -13C17 -26 33 -28 35 -16C37 -5 24 -2 20 -10"
             fill="none"
-            stroke="rgba(255,255,255,0.85)"
-            strokeWidth="2"
+            stroke="white"
+            strokeWidth="4"
             strokeLinecap="round"
           />
         </svg>
-        {/* Ojal: círculo real con el efecto Liquid Glass (no un trazo
-            SVG suelto), centrado en (38.5, 38.5). */}
-        <span
-          className="liquid-glass-btn absolute rounded-full"
-          style={{ left: 38.5 - 9.5, top: 38.5 - 9.5, width: 19, height: 19 }}
-        />
-        <span
-          className={`absolute text-base ${UI_TEXT_STYLE}`}
-          style={{ left: 38.5 + 9.5 + 8, top: 38.5, transform: "translateY(-50%)" }}
+        {/* Marco: `.liquid-glass-btn` con la geometría completa de la
+            etiqueta + el agujero del ojal recortado vía mask-image. */}
+        <div
+          className="liquid-glass-btn absolute inset-0"
+          style={{
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 80,
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            maskImage: ojalMask(OJAL_CENTER),
+            WebkitMaskImage: ojalMask(OJAL_CENTER),
+          }}
         >
-          Store
-        </span>
-        <div className="relative h-full overflow-y-auto pt-[70px] pb-6 pl-6 pr-6">
-          <p className={`text-center text-sm ${UI_TEXT_STYLE}`}>{STORE_SHEET_TEXT}</p>
+          {/* Relleno: gris sólido y plano, sin cristal — mismo agujero
+              que el marco, pero centrado FRAME_WIDTH más cerca (este
+              <div> ya está inset esos 6px). */}
+          <div
+            className="absolute bg-[#7f7f7f]"
+            style={{
+              inset: FRAME_WIDTH,
+              borderTopLeftRadius: 20 - FRAME_WIDTH,
+              borderTopRightRadius: 80 - FRAME_WIDTH,
+              borderBottomLeftRadius: 20 - FRAME_WIDTH,
+              borderBottomRightRadius: 20 - FRAME_WIDTH,
+              maskImage: ojalMask(OJAL_CENTER - FRAME_WIDTH),
+              WebkitMaskImage: ojalMask(OJAL_CENTER - FRAME_WIDTH),
+            }}
+          />
+          <span
+            className={`absolute text-base ${UI_TEXT_STYLE}`}
+            style={{ left: OJAL_CENTER + OJAL_RADIUS + 8, top: OJAL_CENTER, transform: "translateY(-50%)" }}
+          >
+            Store
+          </span>
+          <div className="relative h-full overflow-y-auto pt-[70px] pb-6 pl-6 pr-6">
+            <p className={`text-center text-sm ${UI_TEXT_STYLE}`}>{STORE_SHEET_TEXT}</p>
+          </div>
         </div>
+        {/* Anillo del ojal: un trazo de SVG, no una caja con
+            backdrop-filter — así no vuelve a desenfocar el agujero que
+            las dos máscaras de arriba dejaron limpio. Mismo bisel
+            (gradiente blanco->transparente->negro) + sombra de
+            refracción que ya usan la burbuja/dock para el Liquid Glass
+            sobre formas que backdrop-filter no puede seguir. */}
+        <svg
+          viewBox={`0 0 ${OJAL_RADIUS * 2} ${OJAL_RADIUS * 2}`}
+          width={OJAL_RADIUS * 2}
+          height={OJAL_RADIUS * 2}
+          className="pointer-events-none absolute"
+          style={{ left: OJAL_CENTER - OJAL_RADIUS, top: OJAL_CENTER - OJAL_RADIUS, overflow: "visible" }}
+        >
+          <circle
+            cx={OJAL_RADIUS}
+            cy={OJAL_RADIUS}
+            r={OJAL_RADIUS - 1.25}
+            fill="none"
+            stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
+            strokeWidth="2.5"
+            filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
+          />
+        </svg>
       </div>
     </>
   );
