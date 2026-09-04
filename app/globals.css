@@ -40,7 +40,11 @@ body {
    arriba-izquierda en ambos casos: el inset blanco/negro de acá y el
    degradado de 3 paradas del SVG usan el mismo eje diagonal 0%→100%. */
 .liquid-glass-btn {
-  background: rgba(255, 255, 255, 0.08);
+  /* Crea su propio contexto de apilamiento/composición — recomendado
+     para que backdrop-filter muestree de forma confiable el fondo real
+     y no se vea afectado por ancestros con transform/filter/opacity. */
+  isolation: isolate;
+  background: rgba(255, 255, 255, 0.12);
   /* Solo la propiedad estándar: declarar backdrop-filter y
      -webkit-backdrop-filter juntas hace que el bundler de Tailwind v4
      (Lightning CSS) descarte la estándar del CSS compilado y deje solo
@@ -48,8 +52,10 @@ body {
      (.next/.../app_globals_css_*.css) y con getComputedStyle en el
      navegador real (backdropFilter volvía "none"). Y ese navegador
      tampoco reconoce -webkit-backdrop-filter (CSS.supports lo confirma),
-     así que la única línea que efectivamente renderiza es esta. */
-  backdrop-filter: blur(16px) saturate(180%);
+     así que la única línea que efectivamente renderiza es esta. Blur
+     subido de 16px a 25px (y saturate de 180% a 200%) — el valor
+     anterior quedaba casi imperceptible contra fondos con detalle. */
+  backdrop-filter: blur(25px) saturate(200%);
   /* Contrapunto de refracción: inset -1px -1px oscuro abajo-derecha,
      sumado al inset 1px 1px blanco arriba-izquierda que ya había. */
   box-shadow:

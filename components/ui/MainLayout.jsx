@@ -12,21 +12,31 @@
 //   - Formas orgánicas hechas con <path> de SVG (burbuja "Chat Pet",
 //     panel del Dock con la muesca): box-shadow NO sigue el contorno
 //     real de un path cóncavo, así que usan el equivalente nativo de
-//     SVG — fill translúcido, un <filter> de SVG con <feDropShadow>
+//     SVG — un `stroke` con el gradiente GLASS_BEVEL_GRADIENT_ID (3
+//     paradas: blanco arriba-izquierda → transparente → negro abajo-
+//     derecha) para simular a la vez el bisel de luz Y su contrapunto
+//     de sombra/refracción, y un <filter> de SVG con <feDropShadow>
 //     (atributo `filter="url(#...)"`, NO la propiedad CSS
 //     `filter: drop-shadow(...)`: esa depende de que el navegador deje
 //     "escapar" el efecto del viewport del <svg> vía overflow:visible, y
-//     es justo el tipo de cosa que varía entre motores de renderizado;
-//     <feDropShadow> con una región de filtro explícita (x/y/width/
-//     height ampliados) es la forma nativa y confiable de conseguir lo
-//     mismo) para la sombra exterior, y un `stroke` con el gradiente
-//     GLASS_BEVEL_GRADIENT_ID (3 paradas: blanco arriba-izquierda →
-//     transparente → negro abajo-derecha) para simular a la vez el
-//     bisel de luz Y su contrapunto de sombra/refracción, como trazo en
-//     vez de los dos inset shadow que usa .liquid-glass-btn. Verificado
-//     aislado antes de integrar: misma técnica que ya se usó para
-//     resolver los arcos/costuras del dock y la cola de la burbuja en
-//     fases anteriores.
+//     es justo el tipo de cosa que varía entre motores de renderizado)
+//     para la sombra exterior.
+//
+//     El relleno + backdrop-blur de esas dos formas se resuelven
+//     distinto según si el tamaño es fijo o responsive:
+//       - Burbuja "Chat Pet" (tamaño fijo, 140x51.33px): un <div> real
+//         con `clip-path: path(...)` + `background` + `backdrop-filter`
+//         + `isolation: isolate` — backdrop-filter sobre un <path> de
+//         SVG puro es menos confiable entre navegadores que sobre un
+//         elemento HTML normal recortado con clip-path (mismo tipo de
+//         problema que ya resolvimos con feDropShadow vs. filter CSS).
+//         El SVG queda solo para el trazo del bisel y la sombra, encima
+//         de ese div.
+//       - Panel del Dock (ancho responsive, se estira con el viewport):
+//         clip-path necesita coordenadas en px fijos, así que no es
+//         directamente aplicable sin volver el dock de ancho fijo — se
+//         mantiene el fill/backdrop-filter sobre el <path>, con los
+//         valores de blur reforzados (25px/200%, igual que el resto).
 //
 // Medidas/posiciones: sin cambios respecto a Fase 1 (ver historial de
 // commits) — este paso es solo estilo visual.
@@ -127,21 +137,45 @@ export default function MainLayout() {
       </div>
 
       {/* Zona Central: burbuja de diálogo "Chat Pet", centrada sobre la
-          mascota, top=28.67%. */}
+          mascota, top=28.67%. Contenedor de 140x51.33px (el tamaño ya
+          validado en fases anteriores): adentro, un <div> con
+          clip-path recortado a la silueta exacta de la cápsula+cola
+          (a su tamaño nativo 240x88, achicado con transform:scale al
+          tamaño real vía transform-origin top-left) resuelve el fill +
+          backdrop-blur; el SVG apilado encima (mismo tamaño, sin fill)
+          agrega el trazo del bisel y la sombra proyectada. */}
       <div className="absolute inset-x-0 top-[28.67%] z-10 flex justify-center px-6">
-        <svg viewBox="0 0 240 88" width="140" height="51.33" style={{ overflow: "visible" }}>
-          <path
-            d={CHAT_BUBBLE_PATH}
-            fill="rgba(255,255,255,0.08)"
-            stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
-            strokeWidth="1.5"
-            filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
+        <div className="relative" style={{ width: 140, height: 51.33 }}>
+          <div
+            className="absolute left-0 top-0"
             style={{
-              backdropFilter: "blur(16px) saturate(180%)",
-              WebkitBackdropFilter: "blur(16px) saturate(180%)",
+              width: 240,
+              height: 88,
+              transform: `scale(${140 / 240})`,
+              transformOrigin: "top left",
+              clipPath: `path("${CHAT_BUBBLE_PATH}")`,
+              isolation: "isolate",
+              background: "rgba(255,255,255,0.12)",
+              backdropFilter: "blur(25px) saturate(200%)",
+              WebkitBackdropFilter: "blur(25px) saturate(200%)",
             }}
           />
-        </svg>
+          <svg
+            viewBox="0 0 240 88"
+            width="140"
+            height="51.33"
+            className="absolute inset-0"
+            style={{ overflow: "visible" }}
+          >
+            <path
+              d={CHAT_BUBBLE_PATH}
+              fill="none"
+              stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
+              strokeWidth="1.5"
+              filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
+            />
+          </svg>
+        </div>
       </div>
 
       {/* Racha/Inventario: píldora ancha (235x40px) + círculo chico
@@ -165,13 +199,14 @@ export default function MainLayout() {
       >
         <path
           d={DOCK_PATH}
-          fill="rgba(255,255,255,0.08)"
+          fill="rgba(255,255,255,0.12)"
           stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
           strokeWidth="1.5"
           filter={`url(#${DOCK_SHADOW_FILTER_ID})`}
           style={{
-            backdropFilter: "blur(16px) saturate(180%)",
-            WebkitBackdropFilter: "blur(16px) saturate(180%)",
+            isolation: "isolate",
+            backdropFilter: "blur(25px) saturate(200%)",
+            WebkitBackdropFilter: "blur(25px) saturate(200%)",
           }}
         />
       </svg>
