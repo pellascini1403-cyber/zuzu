@@ -1,76 +1,74 @@
-"use client";
-
-import { useState } from "react";
 import PetCanvas from "@/components/3d/PetCanvas";
-import TopBar from "@/components/ui/TopBar";
-import PetStage from "@/components/ui/PetStage";
-import LevelBar from "@/components/ui/LevelBar";
-import BottomNav from "@/components/ui/BottomNav";
-import ThemeBar from "@/components/ui/ThemeBar";
-import BackgroundLayer from "@/components/ui/BackgroundLayer";
-import ChatModal from "@/components/modals/ChatModal";
-import ResourcesModal from "@/components/modals/ResourcesModal";
-import SettingsModal from "@/components/modals/SettingsModal";
-import WardrobeModal from "@/components/modals/WardrobeModal";
-import HabitsModal from "@/components/modals/HabitsModal";
-import ShopModal from "@/components/modals/ShopModal";
-import FoodDrawer from "@/components/modals/FoodDrawer";
-import ThemeDrawer from "@/components/modals/ThemeDrawer";
-import usePetStats from "@/hooks/usePetStats";
-import useBackground from "@/hooks/useBackground";
+
+// FASE 1 — Maquetación base (wireframe de posiciones). Rediseño desde
+// cero: se descartó toda la UI de cristal anterior (TopBar/BottomNav/
+// NavButton/LevelBar/ThemeBar/PetStage/SpeechBubble/BackgroundLayer, ver
+// commit de este cambio). Por ahora todos los contenedores son cajas
+// vacías con el mismo fondo gris neutro de baja opacidad — sin iconos,
+// sin texto, sin efecto de cristal ni lógica de navegación. Eso llega en
+// fases posteriores:
+//   Fase 2 — iconografía/símbolos/contenido interno.
+//   Fase 3 — modales, pestañas y lógica de navegación.
+//   Fase 4 — estilo visual final (Liquid Glass, transparencias, blur).
+//
+// Medidas: cada caja está ubicada según el análisis de componentes
+// conectados (scipy.ndimage.label sobre el canal alfa) de la imagen de
+// referencia de Fase 1 (390x844px, proporción iPhone estándar). El ancho/
+// alto de cada caja es un tamaño fijo en px (igual que en la referencia);
+// la posición vertical (top) es un % de la altura del viewport, mismo
+// criterio que ya usaba el resto de la app para que escale con
+// `h-[100dvh]` en cualquier dispositivo.
+const PLACEHOLDER = "bg-black/10";
 
 export default function MainLayout() {
-  const [activeModal, setActiveModal] = useState(null);
-  const { xp, xpToNext, coins, feed, streakJustIncreased } = usePetStats();
-  const { currentBackground } = useBackground();
-
-  function toggleModal(key) {
-    setActiveModal((current) => (current === key ? null : key));
-  }
-  const closeModal = () => setActiveModal(null);
-
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden">
-      {/* Capa de Fondo Global: full-bleed, siempre detrás (z-0) del resto
-          de la UI. El asset/degradado depende de `currentBackground`
-          (hooks/useBackground.js) para poder intercambiarse más adelante
-          desde la Tienda o "Personalizar escenario" — ver lib/backgrounds.js. */}
-      <BackgroundLayer background={currentBackground} />
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-white">
+      {/* Marco central transparente reservado para el modelo 3D. */}
+      <PetCanvas />
 
-      {/* Capa 3D: la mascota, por encima del fondo global (z-10). */}
-      <PetCanvas onOpenChat={() => toggleModal("chat")} />
-
-      <TopBar
-        coins={coins}
-        onOpenResources={() => toggleModal("resources")}
-        onOpenSettings={() => toggleModal("settings")}
-      />
-      <PetStage onOpenChat={() => toggleModal("chat")} />
-
-      {/* Capa Intermedia: Streak (nivel), centrada justo debajo de la
-          sombra del personaje. El botón de comida se quitó de aquí. */}
-      <div className="absolute inset-x-0 bottom-[34.7%] z-10 flex items-center justify-center px-6">
-        <LevelBar xp={xp} xpToNext={xpToNext} animateFill={streakJustIncreased} />
+      {/* Barra Superior (Header). Medidas de referencia: círculo 40x40px
+          en cada esquina (top=1.9%, left/right=4.1%), píldora 70x40px
+          debajo de cada uno con 8px de separación (top=7.46%). */}
+      <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
+        <div className="flex flex-col items-start gap-2">
+          {/* Settings */}
+          <div className={`h-10 w-10 rounded-full ${PLACEHOLDER}`} />
+          {/* Usuarios */}
+          <div className={`h-10 w-[70px] rounded-full ${PLACEHOLDER}`} />
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          {/* Perfil */}
+          <div className={`h-10 w-10 rounded-full ${PLACEHOLDER}`} />
+          {/* Tokens */}
+          <div className={`h-10 w-[70px] rounded-full ${PLACEHOLDER}`} />
+        </div>
       </div>
 
-      {/* Capa Inferior: navegación de 3 cápsulas en abanico, con
-          "Personalizar escenario" apilada justo debajo, sobre el margen
-          de zona segura del dispositivo. */}
-      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+28px)]">
-        <BottomNav activeModal={activeModal} onSelect={toggleModal} />
-        <ThemeBar onOpen={() => toggleModal("theme")} />
+      {/* Zona Central: caja "Chat Pet", centrada sobre la mascota.
+          Medida de referencia: 118x48px, top=28.67%. */}
+      <div className="absolute inset-x-0 top-[28.67%] z-10 flex justify-center px-6">
+        <div className={`h-[48px] w-[118px] rounded-2xl ${PLACEHOLDER}`} />
       </div>
 
-      {activeModal === "chat" && <ChatModal onClose={closeModal} />}
-      {activeModal === "resources" && <ResourcesModal onClose={closeModal} />}
-      {activeModal === "settings" && <SettingsModal onClose={closeModal} />}
-      {activeModal === "characters" && <WardrobeModal onClose={closeModal} />}
-      {activeModal === "habits" && <HabitsModal onClose={closeModal} />}
-      {activeModal === "shop" && <ShopModal onClose={closeModal} />}
-      {activeModal === "food" && (
-        <FoodDrawer onClose={closeModal} onFeed={feed} />
-      )}
-      {activeModal === "theme" && <ThemeDrawer onClose={closeModal} />}
+      {/* Fila sin nombrar en el pedido de Fase 1: píldora ancha (235x40px)
+          + círculo chico (39x40px) a su derecha con 9px de separación,
+          centrados como grupo, top=66.35% — justo arriba del dock. Se
+          deja como contenedor vacío a la espera de que se defina su
+          función/contenido en una fase posterior. */}
+      <div className="absolute inset-x-0 top-[66.35%] z-10 flex items-center justify-center gap-[9px] px-6">
+        <div className={`h-10 w-[235px] rounded-full ${PLACEHOLDER}`} />
+        <div className={`h-10 w-[39px] rounded-full ${PLACEHOLDER}`} />
+      </div>
+
+      {/* Barra Inferior (Dock). Fondo del dock: ancho completo, desde
+          top=88.63% hasta el borde inferior. Botón circular principal
+          ("Home"): 84x84px, centrado horizontalmente, top=83.18% — monta
+          sobre el borde superior del dock (por eso z-30, un nivel por
+          encima del fondo del dock). */}
+      <div className={`absolute inset-x-0 bottom-0 top-[88.63%] z-20 ${PLACEHOLDER}`} />
+      <div className="absolute inset-x-0 top-[83.18%] z-30 flex justify-center">
+        <div className={`h-[84px] w-[84px] rounded-full ${PLACEHOLDER}`} />
+      </div>
     </div>
   );
 }
