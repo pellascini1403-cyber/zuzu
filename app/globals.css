@@ -24,3 +24,30 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* FASE 4 — acabado "Liquid Glass" global, reutilizado por todos los
+   contenedores/botones de la maqueta (Settings, Perfil, Usuarios,
+   Tokens, Racha, Home, y los costados planos del Dock). Es un cambio de
+   sistema de diseño genuinamente global (igual que la carga de Poppins
+   en su momento) — por eso vive acá y no repetido por componente.
+   Las formas orgánicas hechas con <path> de SVG (burbuja "Chat Pet",
+   panel del Dock con la muesca) NO pueden usar esta clase tal cual:
+   box-shadow sigue el rectángulo del elemento, no el contorno real de
+   un path cóncavo/con cola, así que para esas dos se usa el equivalente
+   nativo de SVG (filter: drop-shadow + un stroke con gradiente para el
+   bisel) — ver MainLayout.jsx. */
+.liquid-glass-btn {
+  background: rgba(255, 255, 255, 0.08);
+  /* Solo la propiedad estándar: declarar backdrop-filter y
+     -webkit-backdrop-filter juntas hace que el bundler de Tailwind v4
+     (Lightning CSS) descarte la estándar del CSS compilado y deje solo
+     la con prefijo — confirmado inspeccionando la salida compilada
+     (.next/.../app_globals_css_*.css) y con getComputedStyle en el
+     navegador real (backdropFilter volvía "none"). Y ese navegador
+     tampoco reconoce -webkit-backdrop-filter (CSS.supports lo confirma),
+     así que la única línea que efectivamente renderiza es esta. */
+  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.4),
+    0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
