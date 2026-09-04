@@ -265,6 +265,7 @@ const STORE_SHEET_TEXT =
   "Aquí podrás canjear monedas por comida, ropa, accesorios y skins para Zuzu. Próximamente.";
 
 const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
+const GLASS_BEVEL_WHITE_GRADIENT_ID = "glass-bevel-white";
 const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
 const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 
@@ -287,38 +288,53 @@ const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 // `.liquid-glass-btn`, que deja ver el marco solo como el anillo de
 // ~6px alrededor.
 //
-// PROFUNDIDAD DEL OJAL Y EL CORDÓN — el cordón debe pasar POR DETRÁS
-// del marco (para que la parte que cruza el anillo de cristal salga
-// desenfocada por su backdrop-filter) y el ojal debe ser un agujero
-// real (no un círculo relleno) por el que se ve/asoma la punta del
-// cordón sin ningún desenfoque encima. Orden de pintado, de atrás
-// hacia adelante, todo dentro de un mismo <div> ancla (mismas
-// coordenadas left/top/bottom/right que antes tenía el propio marco,
-// para no tener que recalcular nada):
-//   1. Cordón (<svg>, solo trazo — una curva abierta no se hace con
-//      CSS): al fondo del todo. Al quedar detrás del marco, la parte
-//      que el marco cubre se ve a través de su backdrop-filter
-//      (desenfocada); la parte que cae fuera de la tarjeta (el rulo de
-//      arriba) queda nítida, tal como en el boceto.
-//   2. Marco (<div>, `.liquid-glass-btn`): encima del cordón. Lleva un
-//      `mask-image` (radial-gradient sólido con un corte duro, no un
-//      degradado real: transparente adentro del radio del ojal, opaco
-//      inmediatamente después) que le recorta un agujero circular
-//      exacto en (38.5, 38.5) — con la máscara, el propio
+// FÍSICA DEL HILO Y EL OJAL — un hilo real, enhebrado por un agujero
+// real, no una curva plana flotando encima de la tarjeta ni un blur.
+// El lazo se separa en DOS trazos que comparten los mismos dos
+// extremos —el ojal (38.5, 38.5) y un pico (4, -2), justo por fuera
+// del círculo de la esquina redondeada (centro (20,20), radio 20)— y
+// solo se diferencian en dónde caen en el orden de pintado:
+//   - Hebra TRASERA: sus curvas de control se dejaron a propósito
+//     DENTRO del círculo de la esquina (verificado en Python: llega a
+//     ~3.6px de su centro) y se pinta ANTES que el marco/relleno, así
+//     que la tarjeta la tapa de verdad en todo ese tramo —oclusión
+//     real, no desenfoque— y solo vuelve a verse dentro del agujero
+//     del ojal o una vez que sale al aire libre cerca del pico.
+//   - Hebra FRONTAL: mismos extremos, pero sus curvas de control se
+//     empujan hacia AFUERA del círculo de la esquina (verificado: se
+//     mantiene a >=20.8px de su centro en todo el trazo, siempre por
+//     fuera) y se pinta DESPUÉS de todo —marco, relleno y anillo del
+//     ojal incluidos— así que nunca queda tapada: "rodea la esquina
+//     por fuera" en vez de meterse detrás.
+// Entre ambas queda el hueco en forma de lente que arma el lazo
+// completo al verlas juntas — compacto y pegado a la esquina, sin
+// alcanzar el cluster de botones de la cabecera (Usuarios/Perfil).
+// Orden de pintado, de atrás hacia adelante, todo dentro de un mismo
+// <div> ancla (mismas coordenadas left/top/bottom/right que antes
+// tenía el propio marco, para no tener que recalcular nada):
+//   1. Hebra trasera del hilo (ver arriba).
+//   2. Marco (<div>, `.liquid-glass-btn`): encima de la hebra trasera.
+//      Lleva un `mask-image` (radial-gradient sólido con un corte
+//      duro, no un degradado real: transparente adentro del radio del
+//      ojal, opaco inmediatamente después) que le recorta un agujero
+//      circular exacto en (38.5, 38.5) — con la máscara, el propio
 //      backdrop-filter del marco NO se aplica ahí (no hay caja que
-//      filtre), así que el cordón se ve a través sin filtro alguno.
+//      filtre), así que se ve lo que haya detrás sin filtro alguno.
 //   3. Relleno gris, hijo del marco, con el mismo truco de
 //      mask-image — mismo agujero, pero centrado en (32.5, 32.5)
 //      porque el relleno ya está inset FRAME_WIDTH (6px) respecto al
 //      marco, así que su propio origen local está corrido esos 6px.
 //      Sin este segundo agujero el gris opaco taparía el del marco.
-//   4. Anillo del ojal: encima de todo, un <circle> de SVG (fill=none,
-//      con el mismo stroke en gradiente + <feDropShadow> que ya usan
-//      la burbuja/dock para simular el bisel/sombra de refracción de
-//      un Liquid Glass sobre una forma que backdrop-filter no puede
-//      seguir de forma confiable) — es decir, un trazo, no una caja
-//      con backdrop-filter, así que no vuelve a desenfocar el agujero
-//      que las máscaras de los pasos 2-3 dejaron limpio.
+//   4. Anillo del ojal: encima del relleno, un <circle> de SVG
+//      (fill=none, con la variante solo-blanco del bisel de
+//      GLASS_BEVEL_WHITE_GRADIENT_ID + el mismo <feDropShadow> que ya
+//      usan la burbuja/dock para el relieve/sombra de refracción de un
+//      Liquid Glass sobre una forma que backdrop-filter no puede
+//      seguir de forma confiable) — un trazo, no una caja con
+//      backdrop-filter, así que no vuelve a desenfocar el agujero que
+//      las máscaras de los pasos 2-3 dejaron limpio.
+//   5. Hebra frontal del hilo (ver arriba): lo último, para que nunca
+//      quede tapada por nada de lo anterior.
 //
 // Fondo oscurecido + deslizamiento: el backdrop y la propia tarjeta
 // (ahora el <div> ancla completo: cordón + marco + ojal, para que se
@@ -367,44 +383,29 @@ function StoreSheet({ open, onClose }) {
           transform: open ? "translateY(0)" : "translateY(100vh)",
         }}
       >
-        {/* Cordón: al fondo, para que el marco lo desenfoque al pasar
-            por detrás — ver comentario grande de arriba. <svg> sin
-            escalar (viewBox en px reales; agrandado de 60x80 a 120x140
-            para que entre el asa completa, bastante más grande que el
-            intento anterior).
-            Asa ovalada continua e inclinada, no un garabato/rulo chico:
-            una <ellipse> real (no una <path> a mano — un óvalo cerrado
-            de verdad, sin coserlo a ojo con curvas bezier) con el ojal
-            (38.5, 38.5 real = 60,84 en el viewBox propio) como uno de
-            los dos vértices de su eje mayor y un punto bien por encima
-            y a la izquierda de la esquina de la tarjeta (medido sobre
-            el boceto de referencia) como el otro — de ahí salen el
-            centro (20.75, 42.25), el radio mayor (57.3) y el ángulo de
-            inclinación (46.8°) de abajo. Al ser una elipse cerrada,
-            "sale" del ojal por una hebra y "entra" por la otra —ambos
-            vértices del eje menor (las dos hebras cruzando cerca de la
-            esquina) caen fuera de la tarjeta, verificado— formando la
-            asa de una sola pieza que pide el boceto, sin acercarse a
-            mano cada punto de control. Grosor fino (2px, blanco sólido)
-            en vez del hilo de 4px del intento anterior: esto es un
-            hilo, no una cinta. */}
+        {/* Cordón TRASERO (hebra de atrás): se pinta ANTES que el
+            marco/relleno de la tarjeta, así que donde su trazo cae
+            dentro de la silueta de la tarjeta (el círculo de la
+            esquina redondeada, centro (20,20) radio 20 en coordenadas
+            de la tarjeta) queda tapado por el gris opaco/el marco —
+            "atraviesa hacia atrás" de verdad, no un blur, una
+            oclusión real. Solo vuelve a verse dentro del agujero del
+            ojal (el propio mask-image de la tarjeta) y una vez que su
+            curva sale otra vez al aire libre cerca del pico (4, -2).
+            Verificado en Python (muestreando la curva): se mete hasta
+            ~3.6px del centro de la esquina, bien adentro del radio 20.
+            <svg> sin escalar, viewBox 0 0 80 70 con origen corrido
+            -30/-15 respecto a la tarjeta (así entran las coordenadas
+            negativas del lazo sin tener que usar un viewBox con
+            offset). */}
         <svg
-          viewBox="0 0 120 140"
-          width="120"
-          height="140"
+          viewBox="0 0 80 70"
+          width="80"
+          height="70"
           className="pointer-events-none absolute"
-          style={{ left: OJAL_CENTER - 60, top: OJAL_CENTER - 84, overflow: "visible" }}
+          style={{ left: -30, top: -15, overflow: "visible" }}
         >
-          <ellipse
-            cx="20.75"
-            cy="42.25"
-            rx="57.3"
-            ry="16"
-            transform="rotate(46.8 20.75 42.25)"
-            fill="none"
-            stroke="white"
-            strokeWidth="2"
-          />
+          <path d="M68.5 53.5C60 39 44 24 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
         </svg>
         {/* Marco: `.liquid-glass-btn` con la geometría completa de la
             etiqueta + el agujero del ojal recortado vía mask-image. */}
@@ -446,15 +447,14 @@ function StoreSheet({ open, onClose }) {
         </div>
         {/* Anillo del ojal: un trazo de SVG, no una caja con
             backdrop-filter — así no vuelve a desenfocar el agujero que
-            las dos máscaras de arriba dejaron limpio. Antes usaba el
-            mismo bisel de 3 paradas (blanco->transparente->negro) de la
-            burbuja/dock, pero ese tramo NEGRO del gradiente, mezclado
-            sobre lo que se ve a través del agujero (el fondo de prueba
-            rosa/magenta detrás de la pita), terminaba leyéndose como un
-            anillo rojizo/violeta — justo lo que se pidió evitar. Un
-            trazo blanco brillante liso (sin negro) + la misma sombra de
-            refracción (neutra, no mezcla color) da el "borde brillante
-            fino" de cristal sin ese artefacto de color. */}
+            las dos máscaras de arriba dejaron limpio. Usa la variante
+            solo-blanco del bisel (GLASS_BEVEL_WHITE_GRADIENT_ID, sin la
+            parada negra del bisel normal): ese negro, mezclado sobre lo
+            que se ve a través del agujero, terminaba leyéndose como un
+            anillo rojizo/violeta — justo lo que se pidió evitar. Variar
+            solo la opacidad del blanco da el mismo relieve (brillante
+            arriba-izquierda, más tenue abajo-derecha) + la misma sombra
+            de refracción, sin aportar ningún color propio. */}
         <svg
           viewBox={`0 0 ${OJAL_RADIUS * 2} ${OJAL_RADIUS * 2}`}
           width={OJAL_RADIUS * 2}
@@ -467,10 +467,29 @@ function StoreSheet({ open, onClose }) {
             cy={OJAL_RADIUS}
             r={OJAL_RADIUS - 1.25}
             fill="none"
-            stroke="rgba(255,255,255,0.9)"
+            stroke={`url(#${GLASS_BEVEL_WHITE_GRADIENT_ID})`}
             strokeWidth="2"
             filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
           />
+        </svg>
+        {/* Cordón FRONTAL (hebra de adelante): mismos extremos que la
+            trasera (ojal -> pico), pero con las curvas de control
+            empujadas hacia AFUERA del círculo de la esquina —
+            verificado en Python, se mantiene a >=20.8px de su centro en
+            todo el trazo, o sea SIEMPRE por fuera de la tarjeta— y
+            pintada DESPUÉS de todo (marco, relleno y anillo del ojal
+            incluidos), así que nunca queda tapada: "rodea la esquina
+            exterior" en vez de meterse por detrás. Entre esta hebra y
+            la trasera queda el hueco/lente que arma la asa completa al
+            verlas juntas. */}
+        <svg
+          viewBox="0 0 80 70"
+          width="80"
+          height="70"
+          className="pointer-events-none absolute"
+          style={{ left: -30, top: -15, overflow: "visible" }}
+        >
+          <path d="M68.5 53.5C38 65 4 37 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>
     </>
@@ -546,6 +565,19 @@ export default function MainLayout() {
             <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
             <stop offset="50%" stopColor="rgba(255,255,255,0)" />
             <stop offset="100%" stopColor="rgba(0,0,0,0.5)" />
+          </linearGradient>
+          {/* Variante solo-blanco (sin la parada negra de arriba) para
+              el anillo del ojal de StoreSheet: ese trazo se ve encima
+              de un agujero real (mask-image), así que cualquier negro
+              en el gradiente se mezcla con lo que sea que haya detrás
+              del agujero y podía leerse como un tinte rojizo/violeta si
+              el fondo era cálido. Variar solo la opacidad del blanco da
+              el mismo relieve (brillante arriba-izquierda, más tenue
+              abajo-derecha) sin aportar ningún color propio. */}
+          <linearGradient id={GLASS_BEVEL_WHITE_GRADIENT_ID} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,1)" />
+            <stop offset="50%" stopColor="rgba(255,255,255,0.55)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.25)" />
           </linearGradient>
           {/* <feDropShadow> nativo en vez de la propiedad CSS
               filter: drop-shadow(...): esa depende de que el motor de
