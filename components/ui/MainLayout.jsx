@@ -10,6 +10,16 @@ import { UI_TEXT_STYLE } from "@/lib/typography";
 // da el separador de miles con puntos.
 const TOKEN_COUNT = 1000000;
 
+// Placeholder de jugadores vinculados a esta mascota (1 o 2) — todavía
+// sin fuente de datos real (Fase 3) ni fotos subidas. `photoUrl: null`
+// es el estado por defecto: cae a las iniciales sobre el degradado
+// rosa (color muestreado de la imagen de referencia, rgb(248,180,224))
+// hasta que haya una URL real que mostrar.
+const DEFAULT_USERS = [
+  { id: "u1", initial: "M", photoUrl: null },
+  { id: "u2", initial: "A", photoUrl: null },
+];
+
 // FASE 4 — Estilo visual "Liquid Glass" (ver .liquid-glass-btn en
 // app/globals.css). Se aplicó a los 9 contenedores maquetados en Fase 1
 // (Settings, Perfil, Usuarios, Tokens, Chat Pet, Racha, Inventario, Home
@@ -220,8 +230,36 @@ export default function MainLayout() {
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
           </div>
-          {/* Usuarios: sin ícono provisto todavía. */}
-          <div className="liquid-glass-btn h-10 w-[70px] rounded-full" />
+          {/* Usuarios: 1 o 2 jugadores, superpuestos (-space-x-2) cuando
+              son 2; un solo círculo centrado cuando es 1 (el `flex
+              justify-center` del contenedor lo resuelve solo, sin
+              condicional aparte). Cada avatar ya tiene la capa lista
+              para una foto real: si `photoUrl` viene cargado, ocupa el
+              círculo completo (object-cover, recortado por el propio
+              overflow-hidden redondeado); si no, cae a las iniciales
+              sobre el degradado rosa — el placeholder por defecto hasta
+              que el usuario suba su foto. */}
+          <div className="liquid-glass-btn flex h-10 w-[70px] items-center justify-center rounded-full">
+            <div className="flex -space-x-2">
+              {DEFAULT_USERS.slice(0, 2).map((user) => (
+                <span
+                  key={user.id}
+                  className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white/80 bg-gradient-to-b from-[#ffd6f2] to-[#f8b4e0]"
+                >
+                  {user.photoUrl ? (
+                    <img
+                      src={user.photoUrl}
+                      alt=""
+                      draggable={false}
+                      className="h-full w-full select-none object-cover"
+                    />
+                  ) : (
+                    <span className={`text-xs ${UI_TEXT_STYLE}`}>{user.initial}</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="flex flex-col items-end gap-2">
           {/* Configuración */}
