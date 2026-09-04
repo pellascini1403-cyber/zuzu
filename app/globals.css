@@ -34,8 +34,11 @@ body {
    panel del Dock con la muesca) NO pueden usar esta clase tal cual:
    box-shadow sigue el rectángulo del elemento, no el contorno real de
    un path cóncavo/con cola, así que para esas dos se usa el equivalente
-   nativo de SVG (filter: drop-shadow + un stroke con gradiente para el
-   bisel) — ver MainLayout.jsx. */
+   nativo de SVG (filter: drop-shadow + un stroke con gradiente de 3
+   paradas — blanco arriba-izquierda, negro abajo-derecha — para simular
+   las dos sombras inset) — ver MainLayout.jsx. Misma fuente de luz fija
+   arriba-izquierda en ambos casos: el inset blanco/negro de acá y el
+   degradado de 3 paradas del SVG usan el mismo eje diagonal 0%→100%. */
 .liquid-glass-btn {
   background: rgba(255, 255, 255, 0.08);
   /* Solo la propiedad estándar: declarar backdrop-filter y
@@ -47,7 +50,10 @@ body {
      tampoco reconoce -webkit-backdrop-filter (CSS.supports lo confirma),
      así que la única línea que efectivamente renderiza es esta. */
   backdrop-filter: blur(16px) saturate(180%);
+  /* Contrapunto de refracción: inset -1px -1px oscuro abajo-derecha,
+     sumado al inset 1px 1px blanco arriba-izquierda que ya había. */
   box-shadow:
-    inset 1px 1px 1px rgba(255, 255, 255, 0.4),
-    0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    inset 1px 1px 2px rgba(255, 255, 255, 0.5),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.3);
 }

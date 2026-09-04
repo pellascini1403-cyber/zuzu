@@ -12,13 +12,15 @@
 //   - Formas orgánicas hechas con <path> de SVG (burbuja "Chat Pet",
 //     panel del Dock con la muesca): box-shadow NO sigue el contorno
 //     real de un path cóncavo, así que usan el equivalente nativo de
-//     SVG — fill translúcido, `filter: drop-shadow(...)` (sí seguye la
+//     SVG — fill translúcido, `filter: drop-shadow(...)` (sí sigue la
 //     silueta real, a diferencia de box-shadow) para la sombra exterior,
-//     y un `stroke` con el gradiente GLASS_BEVEL_GRADIENT_ID para el
-//     bisel superior-izquierdo (el mismo degradado, aplicado como trazo
-//     en vez de inset shadow). Verificado aislado antes de integrar:
-//     misma técnica que ya se usó para resolver los arcos/costuras del
-//     dock y la cola de la burbuja en fases anteriores.
+//     y un `stroke` con el gradiente GLASS_BEVEL_GRADIENT_ID (3 paradas:
+//     blanco arriba-izquierda → transparente → negro abajo-derecha) para
+//     simular a la vez el bisel de luz Y su contrapunto de sombra/
+//     refracción, como trazo en vez de los dos inset shadow que usa
+//     .liquid-glass-btn. Verificado aislado antes de integrar: misma
+//     técnica que ya se usó para resolver los arcos/costuras del dock y
+//     la cola de la burbuja en fases anteriores.
 //
 // Medidas/posiciones: sin cambios respecto a Fase 1 (ver historial de
 // commits) — este paso es solo estilo visual.
@@ -47,14 +49,18 @@ const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
 export default function MainLayout() {
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-white">
-      {/* Definición compartida del degradado del bisel (blanco 60% en la
-          esquina superior-izquierda, desvanecido a transparente hacia
-          abajo-derecha), reutilizada por la burbuja y el panel del Dock. */}
+      {/* Definición compartida del degradado del bisel: blanco 50% en la
+          esquina superior-izquierda (el brillo), transparente a mitad de
+          camino, negro 50% en la esquina inferior-derecha (el
+          contrapunto de sombra/refracción) — misma fuente de luz fija
+          arriba-izquierda que el inset blanco/negro de .liquid-glass-btn
+          en globals.css. Reutilizada por la burbuja y el panel del Dock. */}
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id={GLASS_BEVEL_GRADIENT_ID} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.6)" />
+            <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
             <stop offset="50%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="100%" stopColor="rgba(0,0,0,0.5)" />
           </linearGradient>
         </defs>
       </svg>
