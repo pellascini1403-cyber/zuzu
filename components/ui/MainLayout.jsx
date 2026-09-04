@@ -24,49 +24,37 @@
 // nada más se posiciona relativo a ella.
 const PLACEHOLDER = "bg-black/10";
 
-// Muesca del dock — la hendidura cóncava clásica de iOS. Historial de los
-// dos errores previos, para no repetirlos:
-//   1. mask-image con un círculo más grande: dejaba un hueco/"moat" entre
-//      el botón y el borde del recorte.
-//   2. Arcos de transición (fillet) con el centro POR ENCIMA de la línea
-//      del dock: eso hacía que el borde SUBIERA antes de encontrarse con
-//      el botón — la "deformación hacia arriba". La curva correcta tiene
-//      el centro del fillet POR DEBAJO de la línea, así el borde BAJA
-//      hacia adentro del material y el botón encaja en la hendidura.
+// Panel/pestaña inferior (Dock) — corrección de capas: el botón Home NO
+// forma parte de esta estructura. Antes el panel y el botón compartían
+// radio (con solo 1px de diferencia) y un mismo grupo de opacidad para
+// que sus bordes se disimularan al tocarse — eso era justamente la
+// "fusión" que había que eliminar. Ahora son dos objetos CSS totalmente
+// separados: el panel tiene una muesca cóncava con un radio DE VERDAD
+// más grande que el del botón (40px vs. 30px, 10px de margen limpio en
+// todo el contorno), así que el botón queda flotando libre dentro del
+// hueco sin tocar el borde de la muesca en ningún punto — no hace falta
+// ningún truco de subpíxel porque no hay ningún borde compartido.
 //
-// Geometría (resuelta analíticamente, sistema de referencia 390x844):
-// botón R=42px centrado en x=195/y=744; borde plano del dock en y=748.03;
-// fillet de radio 18px tangente a la vez a la línea plana y al círculo del
-// botón (sin hueco ni salto); esquinas superiores externas de 20px. La
-// hendidura baja 37.97px por debajo de la línea del dock y el botón
-// sobresale 46px por encima.
-//
-// El dock se arma en 3 piezas (costado izquierdo plano, panel central con
-// la hendidura, costado derecho plano) + el botón, TODAS dentro de un
-// grupo con opacity-10 y pintadas en negro opaco. Ese detalle importa:
-// dos formas traslúcidas que se solapan no se funden, se OSCURECEN
-// (alpha compositing), y si en cambio se las hace apenas tocar, cualquier
-// desajuste de subpíxel deja una costura de 1px. Con la transparencia
-// aplicada una sola vez al grupo, las piezas pueden solaparse sin
-// artefactos — por eso los costados se meten 5px por debajo del panel
-// central. Además el panel central tiene ancho FIJO (no se estira con el
-// viewport), así la hendidura calza exacto con el botón en cualquier
-// ancho de pantalla; sólo los costados planos escalan.
-// El grupo arranca en el borde superior del botón (top=83.18%) y de ahí
-// para abajo todo se mide en px fijos: así la relación botón/hendidura/
-// dock no depende de la altura del dispositivo.
-const DOCK_GROUP_TOP = "83.18%"; // borde superior del botón = 702px/844
-const DOCK_BAR_OFFSET = "46px"; // del borde del botón al borde plano del dock (748.03-702)
-const DOCK_NOTCH_WIDTH = 130; // ancho fijo del panel central, en px
-const DOCK_SIDE_WIDTH = "calc(50% - 60px)"; // 5px de solape bajo el panel central
-// Coordenadas locales del panel: x = global - 130, y = global - 748.03. El
-// arco de la hendidura usa radio 41 (1px menos que el botón) a propósito:
-// con radios idénticos los dos bordes coinciden exacto y el antialiasing
-// de cada uno no llega a sumar cobertura completa, dejando un hilo blanco
-// visible; con 1px de menos el botón pisa ese borde y, al estar todo en
-// el mismo grupo de opacidad, el solape no oscurece nada.
+// Geometría del panel (sistema de referencia 390x844, centrado en
+// x=195/y=744 — el mismo punto donde flota el centro del botón): borde
+// plano en y=748.03px (88.63%), muesca de radio 40px con fillet de 16px
+// tangente a la línea plana, esquinas superiores externas de 20px. Sus 3
+// piezas (costado izquierdo, panel central con la muesca, costado
+// derecho) sí van agrupadas con opacity-10 + negro opaco — eso es
+// solamente para que el panel no tenga costuras CONSIGO MISMO; el grupo
+// no incluye al botón.
+const DOCK_TOP = "88.63%"; // borde plano del panel = 748.03px/844
+const DOCK_NOTCH_WIDTH = 150; // ancho fijo del panel central, en px
+const DOCK_SIDE_WIDTH = "calc(50% - 70px)"; // 5px de solape bajo el panel central
 const DOCK_NOTCH_PATH =
-  "M0,0 L10.27,0 A18,18 0 0 1 26.97,11.28 A41,41 0 0 0 103.03,11.28 A18,18 0 0 1 119.73,0 L130,0 L130,1000 L0,1000 Z";
+  "M0,0 L22.7,0 A16,16 0 0 1 37.65,10.28 A40,40 0 0 0 112.35,10.28 A16,16 0 0 1 127.3,0 L150,0 L150,1000 L0,1000 Z";
+
+// Botón Home — elemento circular independiente, flotando en el hueco del
+// panel (no forma parte de su estructura ni comparte grupo de opacidad).
+// Tamaño exacto pedido: 60x60px. Centrado en el mismo punto (x=195/y=744)
+// que usa la geometría del panel para calcular la muesca, así que top
+// = (744-30)px = 714px/844 = 84.60%.
+const HOME_BUTTON_TOP = "84.60%";
 
 export default function MainLayout() {
   return (
@@ -112,35 +100,35 @@ export default function MainLayout() {
         <div className={`h-10 w-[39px] rounded-full ${PLACEHOLDER}`} />
       </div>
 
-      {/* Barra Inferior (Dock) + botón Home. Todo el grupo va en negro
-          opaco con opacity-10 (ver comentario de la geometría arriba):
-          costados planos con las esquinas superiores externas
-          redondeadas, panel central con la hendidura cóncava, y el botón
-          circular encajado en el centro de esa hendidura, sobresaliendo
-          por arriba. */}
-      <div
-        className="absolute inset-x-0 bottom-0 z-20 opacity-10"
-        style={{ top: DOCK_GROUP_TOP }}
-      >
+      {/* Panel/pestaña inferior (Dock): costados planos con las esquinas
+          superiores externas redondeadas + panel central con la muesca
+          cóncava (10px de margen limpio alrededor de donde flotará el
+          botón — ver comentario de la geometría arriba). Es una capa de
+          fondo, separada del botón; va en negro opaco + opacity-10 SOLO
+          para que sus propias 3 piezas no tengan costuras entre sí. */}
+      <div className="absolute inset-x-0 bottom-0 z-20 opacity-10" style={{ top: DOCK_TOP }}>
         <div
-          className="absolute bottom-0 left-0 rounded-tl-[20px] bg-black"
-          style={{ top: DOCK_BAR_OFFSET, width: DOCK_SIDE_WIDTH }}
+          className="absolute inset-y-0 left-0 rounded-tl-[20px] bg-black"
+          style={{ width: DOCK_SIDE_WIDTH }}
         />
         <div
-          className="absolute bottom-0 right-0 rounded-tr-[20px] bg-black"
-          style={{ top: DOCK_BAR_OFFSET, width: DOCK_SIDE_WIDTH }}
+          className="absolute inset-y-0 right-0 rounded-tr-[20px] bg-black"
+          style={{ width: DOCK_SIDE_WIDTH }}
         />
         <svg
           viewBox={`0 0 ${DOCK_NOTCH_WIDTH} 1000`}
           width={DOCK_NOTCH_WIDTH}
           height={1000}
-          className="absolute left-1/2 -translate-x-1/2"
-          style={{ top: DOCK_BAR_OFFSET }}
+          className="absolute left-1/2 top-0 -translate-x-1/2"
         >
           <path d={DOCK_NOTCH_PATH} fill="black" />
         </svg>
-        {/* Botón Home: 84x84px, encajado en el centro de la hendidura. */}
-        <div className="absolute left-1/2 top-0 h-[84px] w-[84px] -translate-x-1/2 rounded-full bg-black" />
+      </div>
+
+      {/* Botón Home: círculo independiente (60x60px), sin compartir capa,
+          grupo ni radio con el panel — flota libre en su hueco. */}
+      <div className="absolute inset-x-0 z-30 flex justify-center" style={{ top: HOME_BUTTON_TOP }}>
+        <div className={`h-[60px] w-[60px] rounded-full ${PLACEHOLDER}`} />
       </div>
     </div>
   );
