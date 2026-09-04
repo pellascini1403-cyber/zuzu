@@ -369,35 +369,41 @@ function StoreSheet({ open, onClose }) {
       >
         {/* Cordón: al fondo, para que el marco lo desenfoque al pasar
             por detrás — ver comentario grande de arriba. <svg> sin
-            escalar (viewBox en px reales). Grosor y color subidos (2px
-            rgba(255,255,255,0.85) -> 4px white sólido) para que se
-            note nítido y sólido, no un hilo débil.
-            Tramo recto "M44 70 L44 25" a propósito, no una curva: en
-            coordenadas de la tarjeta (restar 5.5/25.5 al x/y del propio
-            viewBox) va de (38.5, 44.5) —dentro del agujero del ojal,
-            centrado en (38.5, 38.5)— a (38.5, -0.5) —ya por encima del
-            borde superior—, cruzando en línea recta el anillo del
-            marco a x=38.5, un x bien alejado (>20) de la esquina
-            redondeada superior-izquierda para no cruzar por la parte
-            curva (ahí el "grosor" del anillo varía con el radio y el
-            cruce quedaba casi tangencial, demasiado corto para notarse
-            desenfocado). El resto de la curva (el rulo decorativo) es
-            el mismo dibujo original, solo desplazado en Y para arrancar
-            en ese mismo punto (44,25) en vez de (44,55) — queda entero
-            por encima de la tarjeta, sin un segundo cruce. */}
+            escalar (viewBox en px reales; agrandado de 60x80 a 120x140
+            para que entre el asa completa, bastante más grande que el
+            intento anterior).
+            Asa ovalada continua e inclinada, no un garabato/rulo chico:
+            una <ellipse> real (no una <path> a mano — un óvalo cerrado
+            de verdad, sin coserlo a ojo con curvas bezier) con el ojal
+            (38.5, 38.5 real = 60,84 en el viewBox propio) como uno de
+            los dos vértices de su eje mayor y un punto bien por encima
+            y a la izquierda de la esquina de la tarjeta (medido sobre
+            el boceto de referencia) como el otro — de ahí salen el
+            centro (20.75, 42.25), el radio mayor (57.3) y el ángulo de
+            inclinación (46.8°) de abajo. Al ser una elipse cerrada,
+            "sale" del ojal por una hebra y "entra" por la otra —ambos
+            vértices del eje menor (las dos hebras cruzando cerca de la
+            esquina) caen fuera de la tarjeta, verificado— formando la
+            asa de una sola pieza que pide el boceto, sin acercarse a
+            mano cada punto de control. Grosor fino (2px, blanco sólido)
+            en vez del hilo de 4px del intento anterior: esto es un
+            hilo, no una cinta. */}
         <svg
-          viewBox="0 0 60 80"
-          width="60"
-          height="80"
+          viewBox="0 0 120 140"
+          width="120"
+          height="140"
           className="pointer-events-none absolute"
-          style={{ left: OJAL_CENTER - 44, top: OJAL_CENTER - 64, overflow: "visible" }}
+          style={{ left: OJAL_CENTER - 60, top: OJAL_CENTER - 84, overflow: "visible" }}
         >
-          <path
-            d="M44 70L44 25C22 21 8 4 13 -13C17 -26 33 -28 35 -16C37 -5 24 -2 20 -10"
+          <ellipse
+            cx="20.75"
+            cy="42.25"
+            rx="57.3"
+            ry="16"
+            transform="rotate(46.8 20.75 42.25)"
             fill="none"
             stroke="white"
-            strokeWidth="4"
-            strokeLinecap="round"
+            strokeWidth="2"
           />
         </svg>
         {/* Marco: `.liquid-glass-btn` con la geometría completa de la
@@ -440,10 +446,15 @@ function StoreSheet({ open, onClose }) {
         </div>
         {/* Anillo del ojal: un trazo de SVG, no una caja con
             backdrop-filter — así no vuelve a desenfocar el agujero que
-            las dos máscaras de arriba dejaron limpio. Mismo bisel
-            (gradiente blanco->transparente->negro) + sombra de
-            refracción que ya usan la burbuja/dock para el Liquid Glass
-            sobre formas que backdrop-filter no puede seguir. */}
+            las dos máscaras de arriba dejaron limpio. Antes usaba el
+            mismo bisel de 3 paradas (blanco->transparente->negro) de la
+            burbuja/dock, pero ese tramo NEGRO del gradiente, mezclado
+            sobre lo que se ve a través del agujero (el fondo de prueba
+            rosa/magenta detrás de la pita), terminaba leyéndose como un
+            anillo rojizo/violeta — justo lo que se pidió evitar. Un
+            trazo blanco brillante liso (sin negro) + la misma sombra de
+            refracción (neutra, no mezcla color) da el "borde brillante
+            fino" de cristal sin ese artefacto de color. */}
         <svg
           viewBox={`0 0 ${OJAL_RADIUS * 2} ${OJAL_RADIUS * 2}`}
           width={OJAL_RADIUS * 2}
@@ -456,8 +467,8 @@ function StoreSheet({ open, onClose }) {
             cy={OJAL_RADIUS}
             r={OJAL_RADIUS - 1.25}
             fill="none"
-            stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
-            strokeWidth="2.5"
+            stroke="rgba(255,255,255,0.9)"
+            strokeWidth="2"
             filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
           />
         </svg>
