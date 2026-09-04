@@ -194,19 +194,47 @@ export default function MainLayout() {
 
       {/* Barra Superior (Header). Medidas de referencia: círculo 40x40px
           en cada esquina (top=1.9%, left/right=4.1%), píldora 70x40px
-          debajo de cada uno con 8px de separación (top=7.46%). */}
+          debajo de cada uno con 8px de separación (top=7.46%). Posición
+          confirmada con el usuario (invertía la de Fase 1): Perfil a la
+          izquierda, Configuración + Tokens a la derecha. Los 3 PNGs
+          (settings/profile/tokens-icon.png) venían con el mismo margen
+          transparente enorme que otros assets de este generador — se
+          recortaron al bounding box real del canal alfa (+2%) antes de
+          guardarlos. object-fit: contain conserva su proporción nativa
+          (ninguno de los 3 es cuadrado) dentro del círculo/píldora. */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
         <div className="flex flex-col items-start gap-2">
-          {/* Settings */}
-          <div className="liquid-glass-btn h-10 w-10 rounded-full" />
-          {/* Usuarios */}
+          {/* Perfil */}
+          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
+            <img
+              src="/nav/profile-icon.png"
+              alt=""
+              draggable={false}
+              className="pointer-events-none h-6 w-6 select-none object-contain"
+            />
+          </div>
+          {/* Usuarios: sin ícono provisto todavía. */}
           <div className="liquid-glass-btn h-10 w-[70px] rounded-full" />
         </div>
         <div className="flex flex-col items-end gap-2">
-          {/* Perfil */}
-          <div className="liquid-glass-btn h-10 w-10 rounded-full" />
+          {/* Configuración */}
+          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
+            <img
+              src="/nav/settings-icon.png"
+              alt=""
+              draggable={false}
+              className="pointer-events-none h-6 w-6 select-none object-contain"
+            />
+          </div>
           {/* Tokens */}
-          <div className="liquid-glass-btn h-10 w-[70px] rounded-full" />
+          <div className="liquid-glass-btn flex h-10 w-[70px] items-center justify-center rounded-full">
+            <img
+              src="/nav/tokens-icon.png"
+              alt=""
+              draggable={false}
+              className="pointer-events-none h-7 w-7 select-none object-contain"
+            />
+          </div>
         </div>
       </div>
 
