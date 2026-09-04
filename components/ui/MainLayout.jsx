@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { UI_TEXT_STYLE } from "@/lib/typography";
+
 // FASE 4 — Estilo visual "Liquid Glass" (ver .liquid-glass-btn en
 // app/globals.css). Se aplicó a los 9 contenedores maquetados en Fase 1
 // (Settings, Perfil, Usuarios, Tokens, Chat Pet, Racha, Inventario, Home
@@ -54,19 +59,67 @@ const CHAT_BUBBLE_PATH =
 // de vidrio esa unión ya no alcanza (necesitamos fill translúcido real +
 // drop-shadow + bisel, no un simple negro plano), así que el panel
 // entero — costados, esquinas redondeadas de 20px y la muesca — se
-// unificó en un solo <path> (mismos arcos/fillet ya validados en
-// DOCK_NOTCH_PATH, con las esquinas exteriores agregadas al mismo path
-// en vez de en divs aparte). Verificado aislado: sin costuras. Ancho
+// unificó en un solo <path>. Verificado aislado: sin costuras. Ancho
 // fijo de 390px (ver comentario más arriba); alto 300px — de sobra para
 // cubrir el borde inferior real de cualquier pantalla razonable, el
 // resto lo recorta el overflow-hidden del contenedor raíz.
-const DOCK_PATH =
-  "M0,20 A20,20 0 0 1 20,0 L142.7,0 A16,16 0 0 1 157.65,11.28 A40,40 0 0 0 232.35,11.28 A16,16 0 0 1 247.3,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z";
+//
+// ESTADOS ENCENDIDO/APAGADO — la muesca ya no está fija al centro: hay
+// un <path> distinto por cada una de las 3 pestañas (Store/Habits/
+// Pets), con el mismo radio/fillet ya validados (R=40, fillet=16) pero
+// centrados en la posición horizontal de cada una (cx=88/195/302 — dos
+// tercios simétricos del ancho, con margen suficiente para que la
+// muesca de las pestañas extremas no choque contra el redondeo de las
+// esquinas del dock). Verificados los 3 aislados antes de integrar.
+const DOCK_PATHS = {
+  store:
+    "M0,20 A20,20 0 0 1 20,0 L35.70,0 A16,16 0 0 1 50.65,10.28 A40,40 0 0 0 125.35,10.28 A16,16 0 0 1 140.30,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z",
+  habits:
+    "M0,20 A20,20 0 0 1 20,0 L142.70,0 A16,16 0 0 1 157.65,10.28 A40,40 0 0 0 232.35,10.28 A16,16 0 0 1 247.30,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z",
+  pets:
+    "M0,20 A20,20 0 0 1 20,0 L249.70,0 A16,16 0 0 1 264.65,10.28 A40,40 0 0 0 339.35,10.28 A16,16 0 0 1 354.30,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z",
+};
 const DOCK_TOP = "88.63%"; // borde plano del panel = 748.03px/844
 
-// Botón Home — sin cambios de geometría (60x60px, independiente del
-// panel, 10px de margen limpio en toda la muesca).
-const HOME_BUTTON_TOP = "84.60%";
+// Botón flotante activo — mismo cy (744) para las 3 pestañas, la
+// muesca/burbuja solo se mueve en X. 60x60px, 10px de margen limpio.
+const ACTIVE_BUBBLE_TOP = "84.60%";
+// Grupo ícono+label de una pestaña inactiva, dentro del cuerpo plano
+// del dock (18px debajo del borde superior: (748.03+18)/844).
+const INACTIVE_ITEM_TOP = "90.76%";
+
+function StoreIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none">
+      <path d="M8 8V6a4 4 0 0 1 8 0v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <rect x="4" y="8" width="16" height="12" rx="2" fill="white" />
+    </svg>
+  );
+}
+function HabitsIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="white">
+      <path d="M12 3.5 3 11h2.5v8h5v-5.5h3V19h5v-8H21L12 3.5Z" />
+    </svg>
+  );
+}
+function PetsIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="white">
+      <circle cx="12" cy="14" r="7" />
+      <path d="M5 9 7 4 10 8Z" />
+      <path d="M19 9 17 4 14 8Z" />
+      <circle cx="9" cy="14" r="1" fill="black" />
+      <circle cx="15" cy="14" r="1" fill="black" />
+    </svg>
+  );
+}
+
+const NAV_ITEMS = [
+  { key: "store", label: "Store", cx: 88, Icon: StoreIcon },
+  { key: "habits", label: "Habits", cx: 195, Icon: HabitsIcon },
+  { key: "pets", label: "Pets", cx: 302, Icon: PetsIcon },
+];
 
 const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
 const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
@@ -92,6 +145,8 @@ const QA_TEST_BACKGROUND = `
 `;
 
 export default function MainLayout() {
+  const [activeTab, setActiveTab] = useState("habits");
+
   return (
     <div
       className="relative h-[100dvh] w-full overflow-hidden bg-white"
@@ -197,17 +252,19 @@ export default function MainLayout() {
 
       {/* Panel/pestaña inferior (Dock): esquinas superiores redondeadas
           y la muesca cóncava que deja 10px de margen limpio alrededor
-          de donde flota el botón Home — sin fusionarse con él. Mismo
-          patrón que la burbuja: un <div> con clip-path (fill + backdrop-
-          blur reales) debajo, un <svg> (solo trazo del bisel + sombra)
-          encima — ancho fijo 390px centrado (ver comentario arriba). */}
+          de la pestaña activa — sin fusionarse con ella. Mismo patrón
+          que la burbuja: un <div> con clip-path (fill + backdrop-blur
+          reales) debajo, un <svg> (solo trazo del bisel + sombra)
+          encima — ancho fijo 390px centrado. El path de ambos cambia
+          según `activeTab` para que la muesca siga a la pestaña activa
+          (DOCK_PATHS arriba). */}
       <div
         className="absolute left-1/2 z-20 -translate-x-1/2"
         style={{
           top: DOCK_TOP,
           width: 390,
           height: 300,
-          clipPath: `path("${DOCK_PATH}")`,
+          clipPath: `path("${DOCK_PATHS[activeTab]}")`,
           isolation: "isolate",
           background: "rgba(255,255,255,0.12)",
           backdropFilter: "blur(25px) saturate(200%)",
@@ -222,7 +279,7 @@ export default function MainLayout() {
         style={{ top: DOCK_TOP, overflow: "visible" }}
       >
         <path
-          d={DOCK_PATH}
+          d={DOCK_PATHS[activeTab]}
           fill="none"
           stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
           strokeWidth="1.5"
@@ -230,11 +287,42 @@ export default function MainLayout() {
         />
       </svg>
 
-      {/* Botón Home: círculo independiente (60x60px), sin compartir capa
-          ni radio con el panel — flota libre en su hueco. */}
-      <div className="absolute inset-x-0 z-30 flex justify-center" style={{ top: HOME_BUTTON_TOP }}>
-        <div className="liquid-glass-btn h-[60px] w-[60px] rounded-full" />
-      </div>
+      {/* Store / Habits / Pets — estados Encendido/Apagado:
+          - Encendido (activo): el ícono sube y queda encuadrado en la
+            burbuja circular flotante (.liquid-glass-btn, 60x60px, misma
+            que usaba el botón Home suelto); el label desaparece.
+          - Apagado (inactivo): ícono+label planos, dentro del cuerpo
+            del dock, sin burbuja alrededor.
+          Un solo <button> por pestaña; el contenido (bubble vs.
+          ícono+label) cambia según sea la pestaña activa o no. Clic
+          para probar los 3 estados — cambia solo `activeTab` (estado
+          local), no abre modales ni navega: eso es Fase 3. */}
+      {NAV_ITEMS.map((item) => {
+        const isActive = item.key === activeTab;
+        const Icon = item.Icon;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setActiveTab(item.key)}
+            aria-label={item.label}
+            aria-pressed={isActive}
+            className="absolute z-30 -translate-x-1/2"
+            style={{ left: item.cx, top: isActive ? ACTIVE_BUBBLE_TOP : INACTIVE_ITEM_TOP }}
+          >
+            {isActive ? (
+              <span className="liquid-glass-btn flex h-[60px] w-[60px] items-center justify-center rounded-full">
+                <Icon className="h-7 w-7" />
+              </span>
+            ) : (
+              <span className="flex flex-col items-center gap-1">
+                <Icon className="h-6 w-6" />
+                <span className={`text-xs ${UI_TEXT_STYLE}`}>{item.label}</span>
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
