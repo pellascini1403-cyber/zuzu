@@ -290,29 +290,28 @@ const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 //
 // FÍSICA DEL HILO Y EL OJAL — un hilo real, enhebrado por un agujero
 // real, no una curva plana flotando encima de la tarjeta ni un blur.
-// El lazo se separa en DOS trazos que comparten los mismos dos
-// extremos —el ojal (38.5, 38.5) y un pico (4, -2), justo por fuera
-// del círculo de la esquina redondeada (centro (20,20), radio 20)— y
-// solo se diferencian en dónde caen en el orden de pintado:
-//   - Hebra TRASERA: sus curvas de control se dejaron a propósito
-//     DENTRO del círculo de la esquina (verificado en Python: llega a
-//     ~3.6px de su centro) y se pinta ANTES que el marco/relleno, así
-//     que la tarjeta la tapa de verdad en todo ese tramo —oclusión
-//     real, no desenfoque— y solo vuelve a verse dentro del agujero
-//     del ojal o una vez que sale al aire libre cerca del pico.
-//   - Hebra FRONTAL: mismos extremos, pero sus curvas de control se
-//     empujan hacia AFUERA del círculo de la esquina (verificado: se
-//     mantiene a >=20.8px de su centro en todo el trazo, siempre por
-//     fuera) y se pinta DESPUÉS de todo —marco, relleno y anillo del
-//     ojal incluidos— así que nunca queda tapada: "rodea la esquina
-//     por fuera" en vez de meterse detrás.
-// Entre ambas queda el hueco en forma de lente que arma el lazo
-// completo al verlas juntas — compacto y pegado a la esquina, sin
-// alcanzar el cluster de botones de la cabecera (Usuarios/Perfil).
+// El hilo es UN SOLO asset (public/nav/store-thread.png, provisto por
+// el usuario — ver THREAD_* más abajo para la geometría exacta) con
+// las dos puntas ya dibujadas juntas; se separa en capa trasera/
+// frontal recortando ese mismo PNG dos veces con `clip-path` (uno se
+// queda solo con la punta izquierda, el otro con el resto: el arco de
+// arriba + la punta derecha), y esos dos recortes se diferencian solo
+// en dónde caen en el orden de pintado:
+//   - Hilo TRASERO (punta izquierda): se pinta ANTES que el
+//     marco/relleno, así que la tarjeta lo tapa de verdad en todo el
+//     tramo que cae dentro de su silueta —oclusión real, no
+//     desenfoque— y solo vuelve a verse dentro del agujero del ojal o
+//     si asoma al aire libre antes de la esquina.
+//   - Hilo FRONTAL (arco superior + punta derecha): se pinta DESPUÉS
+//     de todo —marco, relleno y anillo del ojal incluidos— así que
+//     nunca queda tapado: pasa por encima/al frente del cartón,
+//     cruzando su esquina sin que la tape nada.
+// Compacto y pegado a la esquina (65px de ancho), sin alcanzar el
+// cluster de botones de la cabecera (Usuarios/Perfil).
 // Orden de pintado, de atrás hacia adelante, todo dentro de un mismo
 // <div> ancla (mismas coordenadas left/top/bottom/right que antes
 // tenía el propio marco, para no tener que recalcular nada):
-//   1. Hebra trasera del hilo (ver arriba).
+//   1. Hilo trasero (ver arriba).
 //   2. Marco (<div>, `.liquid-glass-btn`): encima de la hebra trasera.
 //      Lleva un `mask-image` (radial-gradient sólido con un corte
 //      duro, no un degradado real: transparente adentro del radio del
@@ -333,8 +332,8 @@ const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 //      seguir de forma confiable) — un trazo, no una caja con
 //      backdrop-filter, así que no vuelve a desenfocar el agujero que
 //      las máscaras de los pasos 2-3 dejaron limpio.
-//   5. Hebra frontal del hilo (ver arriba): lo último, para que nunca
-//      quede tapada por nada de lo anterior.
+//   5. Hilo frontal (ver arriba): lo último, para que nunca quede
+//      tapado por nada de lo anterior.
 //
 // Fondo oscurecido + deslizamiento: el backdrop y la propia tarjeta
 // (ahora el <div> ancla completo: cordón + marco + ojal, para que se
@@ -350,13 +349,56 @@ const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 // que esté en reposo sí, sin depender de su geometría interna.
 const FRAME_WIDTH = 6;
 const OJAL_CENTER = 38.5;
-const OJAL_RADIUS = 9.5;
+// Subido de 9.5 a 17: el PNG del hilo (ver THREAD_* abajo) trae sus dos
+// puntas ya fijas a ~185px de distancia entre sí en el propio archivo
+// (347x356) — no hay forma de que ambas coincidan en el mismo píxel
+// con una sola imagen rígida (solo escala + posición, sin deformarla).
+// Ancladas por el punto medio entre las dos, cada punta queda a
+// ~17.3px de ese centro (cuenta en el comentario de THREAD_* de más
+// abajo) — un ojal de radio 9.5 las dejaba visiblemente sueltas; a 17
+// las alcanza a "atrapar" dentro de su propio anillo.
+const OJAL_RADIUS = 17;
 // Corte duro (transparente -> opaco de un salto, sin degradado real)
 // en vez de un radial-gradient "suave": un agujero tiene un borde
 // neto, no un desvanecido.
 function ojalMask(center) {
   return `radial-gradient(circle at ${center}px ${center}px, transparent ${OJAL_RADIUS}px, black ${OJAL_RADIUS + 0.5}px)`;
 }
+
+// Asset provisto por el usuario (public/nav/store-thread.png, recortado
+// a su bounding box de alfa: 347x356 nativos) en vez de las dos <path>
+// dibujadas a mano de un intento anterior — evita errores de cálculo
+// en el SVG, tal como se pidió. Es UNA sola imagen con las dos hebras
+// ya dibujadas juntas (arco superior + las dos puntas abiertas abajo);
+// separarla en capa trasera/frontal se hace con `clip-path` sobre dos
+// <img> del mismo archivo, no con dos archivos distintos.
+//
+// Geometría (todo medido sobre el PNG nativo, 347x356):
+// - Punta izquierda (la que va detrás): (129, 334).
+// - Punta derecha (la que va al frente): (313, 353).
+// - Corte entre hebras: un rectángulo inferior-izquierdo x:[0,180]
+//   y:[180,356] contiene la punta izquierda y el tramo que baja hacia
+//   ella sin tocar en ningún punto al tramo derecho (verificado: a esa
+//   altura el brazo derecho ya está en x>=280) — como % del propio PNG,
+//   x=180/347=51.9%, y=180/356=50.6%.
+// - Tamaño final: 65px de ancho (alto 65*356/347 para conservar la
+//   proporción nativa — el `object-contain` de los <img> de abajo no
+//   distorsiona, ya viene con el aspect-ratio correcto). A esta escala
+//   (0.1873) el punto medio entre las dos puntas cae en (41.4, 64.4) —
+//   ese es el punto que se ancla al centro del ojal (38.5, 38.5), así
+//   que cada punta individual queda a ~17.3px de ahí (de donde sale el
+//   OJAL_RADIUS de arriba).
+const THREAD_SRC = "/nav/store-thread.png";
+const THREAD_WIDTH = 65;
+const THREAD_HEIGHT = 66.7;
+const THREAD_LEFT = OJAL_CENTER - 41.4;
+const THREAD_TOP = OJAL_CENTER - 64.4;
+// Trasera: conserva SOLO el rectángulo inferior-izquierdo (la punta que
+// va detrás de la tarjeta). Frontal: el resto (arco superior + punta
+// derecha) — un polígono en L en vez de un segundo `inset`, porque
+// CSS no tiene un modo "todo menos este rectángulo" para `inset()`.
+const THREAD_BACK_CLIP = "inset(50.6% 48.1% 0% 0%)";
+const THREAD_FRONT_CLIP = "polygon(0% 0%, 100% 0%, 100% 100%, 51.9% 100%, 51.9% 50.6%, 0% 50.6%)";
 
 function StoreSheet({ open, onClose }) {
   return (
@@ -383,33 +425,29 @@ function StoreSheet({ open, onClose }) {
           transform: open ? "translateY(0)" : "translateY(100vh)",
         }}
       >
-        {/* Cordón TRASERO (hebra de atrás, el tramo semicircular de la
-            izquierda): se pinta ANTES que el marco/relleno de la
-            tarjeta, así que donde su trazo cae dentro de la silueta de
-            la tarjeta (el círculo de la esquina redondeada, centro
-            (20,20) radio 20 en coordenadas de la tarjeta) queda tapado
-            por el gris opaco/el marco — "atraviesa hacia atrás" de
-            verdad, oclusión real, no un blur. Solo vuelve a verse
-            dentro del agujero del ojal (el propio mask-image de la
-            tarjeta) y una vez que su curva sale otra vez al aire libre
-            hacia el pico (34, 13), donde se junta con la hebra frontal
-            (ver más abajo) cerrando la asa. Antes esta era la hebra que
-            se pintaba AL FRENTE (de ahí el aviso de corregirlo: el
-            tramo de la izquierda debía ir detrás, no adelante) — mismo
-            trazo de siempre, ahora en la posición de pintado correcta.
-            <svg> sin escalar, viewBox 0 0 80 70 con origen corrido
-            -30/-15 respecto a la tarjeta (así entran las coordenadas
-            negativas del lazo sin tener que usar un viewBox con
-            offset). */}
-        <svg
-          viewBox="0 0 80 70"
-          width="80"
-          height="70"
-          className="pointer-events-none absolute"
-          style={{ left: -30, top: -15, overflow: "visible" }}
-        >
-          <path d="M68.5 53.5C38 65 4 37 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
-        </svg>
+        {/* Hilo TRASERO (punta izquierda del PNG, recortada vía
+            clip-path — ver THREAD_* arriba): se pinta ANTES que el
+            marco/relleno de la tarjeta, así que donde cae dentro de su
+            silueta (el círculo de la esquina redondeada, centro (20,20)
+            radio 20 en coordenadas de la tarjeta) queda tapado por el
+            gris opaco/el marco — "atraviesa hacia atrás" de verdad,
+            oclusión real, no un blur. Solo vuelve a verse dentro del
+            agujero del ojal (el propio mask-image de la tarjeta) o si
+            asoma al aire libre antes de llegar a la esquina. */}
+        <img
+          src={THREAD_SRC}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute select-none object-contain"
+          style={{
+            left: THREAD_LEFT,
+            top: THREAD_TOP,
+            width: THREAD_WIDTH,
+            height: THREAD_HEIGHT,
+            clipPath: THREAD_BACK_CLIP,
+            WebkitClipPath: THREAD_BACK_CLIP,
+          }}
+        />
         {/* Marco: `.liquid-glass-btn` con la geometría completa de la
             etiqueta + el agujero del ojal recortado vía mask-image. */}
         <div
@@ -475,32 +513,28 @@ function StoreSheet({ open, onClose }) {
             filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
           />
         </svg>
-        {/* Cordón FRONTAL (hebra de adelante): mismos extremos que la
-            trasera (ojal -> pico, 34 13), pero un solo arco liso —una
-            <path> cuadrática, un único punto de control, así que es
-            imposible que salga con forma de "S" o gancho, a diferencia
-            de la cúbica de dos controles de la hebra trasera— que sube
-            en diagonal desde el ojal. Se pinta DESPUÉS de todo (marco,
-            relleno y anillo del ojal incluidos), así que nunca queda
-            tapada: pasa POR ENCIMA/AL FRENTE del cartón, cruzando su
-            esquina sin que la tape nada (no hace falta que rodee por
-            fuera de la silueta de la tarjeta — al ir siempre al frente,
-            "encima" alcanza para leerse como el tramo que pasa por
-            delante). Entre esta hebra y la trasera queda el
-            hueco/lente que arma la asa completa al verlas juntas; las
-            dos arrancan del mismo punto exacto (el ojal) para que el
-            anillo de cristal del ojal (dibujado encima de la trasera
-            pero debajo de esta) tape la unión y no se note el ángulo
-            entre ambas. */}
-        <svg
-          viewBox="0 0 80 70"
-          width="80"
-          height="70"
-          className="pointer-events-none absolute"
-          style={{ left: -30, top: -15, overflow: "visible" }}
-        >
-          <path d="M68.5 53.5Q25 35 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
-        </svg>
+        {/* Hilo FRONTAL (el resto del mismo PNG — arco superior + punta
+            derecha, ver THREAD_FRONT_CLIP arriba): se pinta DESPUÉS de
+            todo (marco, relleno y anillo del ojal incluidos), así que
+            nunca queda tapado — pasa POR ENCIMA/AL FRENTE del cartón,
+            cruzando su esquina sin que la tape nada. Mismo <img>, mismo
+            left/top/width/height que el trasero: al ser la misma
+            imagen con el mismo recorte de posición, arco y punta caen
+            exactamente donde deben sin recalcular nada aparte. */}
+        <img
+          src={THREAD_SRC}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute select-none object-contain"
+          style={{
+            left: THREAD_LEFT,
+            top: THREAD_TOP,
+            width: THREAD_WIDTH,
+            height: THREAD_HEIGHT,
+            clipPath: THREAD_FRONT_CLIP,
+            WebkitClipPath: THREAD_FRONT_CLIP,
+          }}
+        />
       </div>
     </>
   );
