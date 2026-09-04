@@ -22,21 +22,26 @@
 //     es justo el tipo de cosa que varía entre motores de renderizado)
 //     para la sombra exterior.
 //
-//     El relleno + backdrop-blur de esas dos formas se resuelven
-//     distinto según si el tamaño es fijo o responsive:
-//       - Burbuja "Chat Pet" (tamaño fijo, 140x51.33px): un <div> real
-//         con `clip-path: path(...)` + `background` + `backdrop-filter`
-//         + `isolation: isolate` — backdrop-filter sobre un <path> de
-//         SVG puro es menos confiable entre navegadores que sobre un
-//         elemento HTML normal recortado con clip-path (mismo tipo de
-//         problema que ya resolvimos con feDropShadow vs. filter CSS).
-//         El SVG queda solo para el trazo del bisel y la sombra, encima
-//         de ese div.
-//       - Panel del Dock (ancho responsive, se estira con el viewport):
-//         clip-path necesita coordenadas en px fijos, así que no es
-//         directamente aplicable sin volver el dock de ancho fijo — se
-//         mantiene el fill/backdrop-filter sobre el <path>, con los
-//         valores de blur reforzados (25px/200%, igual que el resto).
+//     El relleno + backdrop-blur de esas dos formas usa un <div> real
+//     con `clip-path: path(...)` + `background` + `backdrop-filter` +
+//     `isolation: isolate` — backdrop-filter sobre un <path> de SVG
+//     puro resultó no ser confiable en todos los casos (mismo tipo de
+//     problema que ya resolvimos con feDropShadow vs. filter CSS: en el
+//     panel del Dock, aplicarlo directo al <path> lo dejaba sin blur
+//     visible pese a estar declarado y computado correctamente). El SVG
+//     queda solo para el trazo del bisel y la sombra, apilado encima de
+//     ese div.
+//
+//     clip-path: path(...) usa coordenadas en px fijos — no hay forma
+//     de que se extienda con un ancho de viewport variable sin JS. Por
+//     eso el panel del Dock (antes 100% de ancho, estirado con
+//     preserveAspectRatio="none") pasa a un ancho de referencia fijo de
+//     390px, centrado — el mismo ancho contra el que se midió TODA la
+//     geometría desde la Fase 1. En los anchos de dispositivo típicos
+//     (~360-430px) el desvío es mínimo; si hace falta que cubra el
+//     ancho exacto de cada pantalla, la alternativa es medir el ancho
+//     real por JS (ResizeObserver) y regenerar el path — no se hizo acá
+//     para no introducir esa complejidad sin que se pida explícitamente.
 //
 // Medidas/posiciones: sin cambios respecto a Fase 1 (ver historial de
 // commits) — este paso es solo estilo visual.
@@ -51,9 +56,12 @@ const CHAT_BUBBLE_PATH =
 // entero — costados, esquinas redondeadas de 20px y la muesca — se
 // unificó en un solo <path> (mismos arcos/fillet ya validados en
 // DOCK_NOTCH_PATH, con las esquinas exteriores agregadas al mismo path
-// en vez de en divs aparte). Verificado aislado: sin costuras.
+// en vez de en divs aparte). Verificado aislado: sin costuras. Ancho
+// fijo de 390px (ver comentario más arriba); alto 300px — de sobra para
+// cubrir el borde inferior real de cualquier pantalla razonable, el
+// resto lo recorta el overflow-hidden del contenedor raíz.
 const DOCK_PATH =
-  "M0,20 A20,20 0 0 1 20,0 L142.7,0 A16,16 0 0 1 157.65,11.28 A40,40 0 0 0 232.35,11.28 A16,16 0 0 1 247.3,0 L370,0 A20,20 0 0 1 390,20 L390,1000 L0,1000 Z";
+  "M0,20 A20,20 0 0 1 20,0 L142.7,0 A16,16 0 0 1 157.65,11.28 A40,40 0 0 0 232.35,11.28 A16,16 0 0 1 247.3,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z";
 const DOCK_TOP = "88.63%"; // borde plano del panel = 748.03px/844
 
 // Botón Home — sin cambios de geometría (60x60px, independiente del
@@ -187,27 +195,38 @@ export default function MainLayout() {
         <div className="liquid-glass-btn h-10 w-[39px] rounded-full" />
       </div>
 
-      {/* Panel/pestaña inferior (Dock): una sola pieza (ver DOCK_PATH
-          arriba) con esquinas superiores redondeadas y la muesca cóncava
-          que deja 10px de margen limpio alrededor de donde flota el
-          botón Home — sin fusionarse con él. */}
+      {/* Panel/pestaña inferior (Dock): esquinas superiores redondeadas
+          y la muesca cóncava que deja 10px de margen limpio alrededor
+          de donde flota el botón Home — sin fusionarse con él. Mismo
+          patrón que la burbuja: un <div> con clip-path (fill + backdrop-
+          blur reales) debajo, un <svg> (solo trazo del bisel + sombra)
+          encima — ancho fijo 390px centrado (ver comentario arriba). */}
+      <div
+        className="absolute left-1/2 z-20 -translate-x-1/2"
+        style={{
+          top: DOCK_TOP,
+          width: 390,
+          height: 300,
+          clipPath: `path("${DOCK_PATH}")`,
+          isolation: "isolate",
+          background: "rgba(255,255,255,0.12)",
+          backdropFilter: "blur(25px) saturate(200%)",
+          WebkitBackdropFilter: "blur(25px) saturate(200%)",
+        }}
+      />
       <svg
-        viewBox="0 0 390 1000"
-        preserveAspectRatio="none"
-        className="absolute inset-x-0 z-20 h-[1000px] w-full"
+        viewBox="0 0 390 300"
+        width="390"
+        height="300"
+        className="absolute left-1/2 z-20 -translate-x-1/2"
         style={{ top: DOCK_TOP, overflow: "visible" }}
       >
         <path
           d={DOCK_PATH}
-          fill="rgba(255,255,255,0.12)"
+          fill="none"
           stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
           strokeWidth="1.5"
           filter={`url(#${DOCK_SHADOW_FILTER_ID})`}
-          style={{
-            isolation: "isolate",
-            backdropFilter: "blur(25px) saturate(200%)",
-            WebkitBackdropFilter: "blur(25px) saturate(200%)",
-          }}
         />
       </svg>
 
