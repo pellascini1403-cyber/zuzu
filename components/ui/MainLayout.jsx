@@ -54,9 +54,31 @@ const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
 const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
 const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 
+// FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
+// transparencia del Liquid Glass; NO es el fondo final de la app (eso
+// sigue sin definirse). Un degradado liso no sirve para esto: el blur
+// no se nota si no hay detalle de alta frecuencia detrás para
+// suavizar, así que son varios blobs radiales de colores saturados con
+// el borde bien marcado (transición de solo 1% entre color y
+// transparente) — un "wallpaper" con formas, no un gradiente continuo.
+// Reemplazar/quitar cuando se defina el fondo real de la app.
+const QA_TEST_BACKGROUND = `
+  radial-gradient(circle at 18% 12%, #ff2d78 0%, #ff2d78 17%, transparent 18%),
+  radial-gradient(circle at 82% 8%, #00e5ff 0%, #00e5ff 14%, transparent 15%),
+  radial-gradient(circle at 12% 52%, #ffb020 0%, #ffb020 19%, transparent 20%),
+  radial-gradient(circle at 88% 46%, #7c3aed 0%, #7c3aed 21%, transparent 22%),
+  radial-gradient(circle at 38% 82%, #22d3a5 0%, #22d3a5 17%, transparent 18%),
+  radial-gradient(circle at 92% 88%, #ff2d78 0%, #ff2d78 15%, transparent 16%),
+  radial-gradient(circle at 55% 35%, #fde047 0%, #fde047 12%, transparent 13%),
+  linear-gradient(135deg, #1a1a2e, #16213e)
+`;
+
 export default function MainLayout() {
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-white">
+    <div
+      className="relative h-[100dvh] w-full overflow-hidden bg-white"
+      style={{ background: QA_TEST_BACKGROUND }}
+    >
       {/* Definición compartida del degradado del bisel: blanco 50% en la
           esquina superior-izquierda (el brillo), transparente a mitad de
           camino, negro 50% en la esquina inferior-derecha (el
