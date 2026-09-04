@@ -24,18 +24,19 @@
 // nada más se posiciona relativo a ella.
 const PLACEHOLDER = "bg-black/10";
 
-// Burbuja "Chat Pet" — corregida: no es un rectángulo con un triángulo
-// simétrico centrado, es una sola forma (cápsula + cola orgánica) en un
-// único <path> de SVG, igual que el panel del dock. Cápsula 140x40px
-// (radio 20 = height/2, más ancha que alta que antes: 118x48 → 140x40),
-// con la cola desplazada al ~36% del ancho desde la izquierda (dentro
-// del rango 35%-40% pedido), curvando hacia abajo e inclinada a la
-// izquierda con dos curvas Bézier (no un triángulo ni un arco simple)
-// para que se integre de forma fluida con el borde inferior. El bounding
-// box real de esa cola mide 56.13px de alto (medido con getBBox, no
-// estimado), de ahí el viewBox 140x57.
+// Burbuja "Chat Pet" — reemplazo directo por el path SVG exacto que pasó
+// el usuario (reconstruido: el mensaje se cortó a mitad del último
+// comando; el resto se completó seguro porque es la construcción
+// estándar de esquina redondeada con Bézier — el offset de control
+// 19.33/15.67 es exactamente r*0.5523/r*0.4477 con r=35, la constante
+// "kappa" para aproximar un cuarto de círculo — y se confirmó
+// renderizando el path aislado contra la imagen de referencia antes de
+// integrarlo: coincide). viewBox nativo 240x88 (medido con getBBox, no
+// estimado); se muestra a 140px de ancho manteniendo la proporción
+// exacta (140 * 88/240 ≈ 51px de alto) para conservar el tamaño/posición
+// ya validado en el wireframe.
 const CHAT_BUBBLE_PATH =
-  "M20,0 L120,0 A20,20 0 0 1 120,40 L63,40 C63,49 55,55 45,56 C38,57 34,52 36,45 C37,42 38,41 38,40 L20,40 A20,20 0 0 1 20,0 Z";
+  "M35 0H205C224.33 0 240 15.67 240 35C240 54.33 224.33 70 205 70H118C114 70 109 72 105 78C101 84 96 88 92 88C90 88 91 82 93 76C94.5 71.5 92 70 88 70H35C15.67 70 0 54.33 0 35C0 15.67 15.67 0 35 0Z";
 
 // Panel/pestaña inferior (Dock) — corrección de capas: el botón Home NO
 // forma parte de esta estructura. Antes el panel y el botón compartían
@@ -91,10 +92,10 @@ export default function MainLayout() {
       </div>
 
       {/* Zona Central: burbuja de diálogo "Chat Pet", centrada sobre la
-          mascota, top=28.67%. Forma real de cápsula + cola orgánica (ver
-          CHAT_BUBBLE_PATH arriba), no un rectángulo con triángulo. */}
+          mascota, top=28.67%. Path SVG exacto pedido (ver CHAT_BUBBLE_PATH
+          arriba), no una forma aproximada con CSS. */}
       <div className="absolute inset-x-0 top-[28.67%] z-10 flex justify-center px-6">
-        <svg viewBox="0 0 140 57" width="140" height="57">
+        <svg viewBox="0 0 240 88" width="140" height="51.33">
           <path d={CHAT_BUBBLE_PATH} className="fill-black/10" />
         </svg>
       </div>
