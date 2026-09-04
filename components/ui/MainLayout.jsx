@@ -24,6 +24,19 @@
 // nada más se posiciona relativo a ella.
 const PLACEHOLDER = "bg-black/10";
 
+// Burbuja "Chat Pet" — corregida: no es un rectángulo con un triángulo
+// simétrico centrado, es una sola forma (cápsula + cola orgánica) en un
+// único <path> de SVG, igual que el panel del dock. Cápsula 140x40px
+// (radio 20 = height/2, más ancha que alta que antes: 118x48 → 140x40),
+// con la cola desplazada al ~36% del ancho desde la izquierda (dentro
+// del rango 35%-40% pedido), curvando hacia abajo e inclinada a la
+// izquierda con dos curvas Bézier (no un triángulo ni un arco simple)
+// para que se integre de forma fluida con el borde inferior. El bounding
+// box real de esa cola mide 56.13px de alto (medido con getBBox, no
+// estimado), de ahí el viewBox 140x57.
+const CHAT_BUBBLE_PATH =
+  "M20,0 L120,0 A20,20 0 0 1 120,40 L63,40 C63,49 55,55 45,56 C38,57 34,52 36,45 C37,42 38,41 38,40 L20,40 A20,20 0 0 1 20,0 Z";
+
 // Panel/pestaña inferior (Dock) — corrección de capas: el botón Home NO
 // forma parte de esta estructura. Antes el panel y el botón compartían
 // radio (con solo 1px de diferencia) y un mismo grupo de opacidad para
@@ -78,17 +91,12 @@ export default function MainLayout() {
       </div>
 
       {/* Zona Central: burbuja de diálogo "Chat Pet", centrada sobre la
-          mascota. Medida de referencia: 118x48px, top=28.67% — corregida
-          para incluir el pico/puntero triangular apuntando hacia abajo
-          (hacia el modelo 3D), no una píldora plana. El pico es el truco
-          clásico de borde CSS (div de 0x0 con borde transparente a los
-          costados y borde sólido arriba); -mt-px lo pega al cuerpo de la
-          burbuja sin dejar costura. */}
+          mascota, top=28.67%. Forma real de cápsula + cola orgánica (ver
+          CHAT_BUBBLE_PATH arriba), no un rectángulo con triángulo. */}
       <div className="absolute inset-x-0 top-[28.67%] z-10 flex justify-center px-6">
-        <div className="relative">
-          <div className={`h-[48px] w-[118px] rounded-2xl ${PLACEHOLDER}`} />
-          <div className="absolute left-1/2 top-full -mt-px h-0 w-0 -translate-x-1/2 border-x-[7px] border-t-[8px] border-x-transparent border-t-black/10" />
-        </div>
+        <svg viewBox="0 0 140 57" width="140" height="57">
+          <path d={CHAT_BUBBLE_PATH} className="fill-black/10" />
+        </svg>
       </div>
 
       {/* Racha/Inventario: píldora ancha (235x40px) + círculo chico
