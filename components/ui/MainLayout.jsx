@@ -256,54 +256,72 @@ const NAV_ITEMS = [
   { key: "pets", label: "Pets", cx: 302, Icon: PetsIcon },
 ];
 
-// Texto de relleno de cada hoja — mismo tono/contenido que los modales
-// blancos huérfanos de components/modals/ (Shop/Habits/WardrobeModal,
-// sin usar desde el reset de Fase 1: seguían el sistema de diseño
-// anterior, tarjeta blanca opaca en vez de Liquid Glass), reutilizado acá
-// porque sigue siendo la descripción correcta de cada sección — todavía
-// sin fuente de datos real (eso es Fase 3, más allá de abrir/cerrar).
-const SHEET_CONTENT = {
-  store:
-    "Aquí podrás canjear monedas por comida, ropa, accesorios y skins para Zuzu. Próximamente.",
-  habits:
-    "Aquí verás tu lista de micro-hábitos diarios y ganarás recompensas al completarlos. Próximamente.",
-  pets: "Aquí podrás cambiar la ropa y los accesorios de Zuzu, y elegir entre los personajes 3D disponibles. Próximamente.",
-};
+// Mismo tono/contenido que ShopModal.jsx (huérfano desde el reset de
+// Fase 1: seguía el sistema de diseño anterior, tarjeta blanca opaca en
+// vez de Liquid Glass) — sigue siendo la descripción correcta de la
+// sección, todavía sin fuente de datos real (Fase 3, más allá de abrir/
+// cerrar).
+const STORE_SHEET_TEXT =
+  "Aquí podrás canjear monedas por comida, ropa, accesorios y skins para Zuzu. Próximamente.";
 
 const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
 const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
 const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 
-// TagSheet: hoja modal con forma de "etiqueta de tienda" (boceto
-// provisto por el usuario) — esquinas inferiores y superior-izquierda
-// con radio estándar (20px), superior-derecha hiperredondeada (80px), +
-// el ojal decorativo con su cordón en la esquina superior izquierda.
-// Medida directo sobre el boceto de referencia (lienzo 390x844, misma
-// proporción que nuestro viewport): caja en left=11%/right=11.3%/
-// top=16.7%/bottom=18.6%, ojal centrado a (38.5, 38.5) del propio
+// StoreSheet: hoja modal con forma de "etiqueta de tienda" (boceto
+// provisto por el usuario) — EXCLUSIVA de la pestaña Store, no un
+// patrón genérico reusado por Habits/Pets (esas dos vuelven a su
+// comportamiento de antes: tocarlas solo cambia `activeTab`, sin abrir
+// ninguna hoja — ver handleTabClick en MainLayout).
+//
+// Geometría medida directo sobre el boceto de referencia (lienzo
+// 390x844, misma proporción que nuestro viewport): caja en
+// left=11%/right=11.3%/top=16.7%/bottom=18.6%, esquinas inferiores y
+// superior-izquierda con radio estándar (20px), superior-derecha
+// hiperredondeada (80px), ojal centrado a (38.5, 38.5) del propio
 // borde superior-izquierdo de la tarjeta.
 //
-// A diferencia de la burbuja/dock (formas cóncavas que necesitan
-// SVG+clip-path — ver comentario grande de FASE 4 más abajo), esto
-// sigue siendo un simple rectángulo con radio distinto por esquina:
-// CSS border-radius nativo alcanza y box-shadow lo sigue solo, así que
-// `.liquid-glass-btn` se aplica directo al <div>, sin el truco del
-// <div>+clip-path+<svg> de trazo aparte.
-//
-// El ojal + cordón sí necesitan un <svg> (una curva abierta no se hace
-// con CSS): un solo <svg>, circle (ojal) + path (cordón), posicionado
-// para que se superponga al borde superior de la tarjeta sin
-// recortarse — la tarjeta no lleva overflow-hidden a propósito.
+// MARCO vs. RELLENO — a diferencia del primer intento (toda la tarjeta
+// en `.liquid-glass-btn`, cuerpo incluido), el pedido es un marco de
+// cristal alrededor de un relleno gris sólido y plano (como en el
+// boceto), con el efecto Liquid Glass reservado solo al contorno
+// exterior y al ojal:
+//   - <div> exterior: `.liquid-glass-btn` de punta a punta (fondo
+//     translúcido + blur + bisel/sombra de refracción) con la
+//     geometría de la etiqueta completa.
+//   - <div> interior, inset FRAME_WIDTH (6px) parejo por los 4 lados,
+//     con el mismo radio por esquina menos ese inset: fondo gris
+//     sólido (#7f7f7f, muestreado directo del boceto) opaco, SIN
+//     `.liquid-glass-btn` — es lo que queda visible en el centro,
+//     dejando solo un anillo de ~6px del <div> exterior asomando como
+//     marco alrededor.
+//   - Ojal: ya no es un <circle> relleno dentro del SVG del cordón,
+//     sino su propio <span> circular con `.liquid-glass-btn` (mismo
+//     criterio que el marco: efecto de cristal real, no solo un trazo
+//     blanco). El cordón sigue siendo un trazo blanco simple —una
+//     curva abierta no se puede hacer con CSS, así que necesita su
+//     propio <svg>, pero sin el <circle> que antes llevaba dentro.
+//   - Ojal, cordón, label y contenido son hijos DIRECTOS del <div>
+//     exterior (no del interior gris) para que sus coordenadas —ya
+//     medidas contra la esquina superior-izquierda real de la
+//     etiqueta— no cambien; alcanza con que vengan DESPUÉS del <div>
+//     interior en el JSX para quedar apilados encima suyo (mismo
+//     stacking context, sin z-index aparte).
 //
 // Fondo oscurecido + deslizamiento: el backdrop y la propia tarjeta
 // quedan siempre montados (nunca `{open && ...}`) para poder animar
 // tanto la entrada como la salida con una simple `transition` de
 // Tailwind — desmontar en `open=false` mataría la animación de salida.
-// Cerrada, la tarjeta se traslada 130% hacia abajo (de sobra para
-// salir del todo de la pantalla, cola incluida) y el backdrop baja su
-// opacidad a 0 + pointer-events:none (para no bloquear el resto de la
-// UI mientras está invisible).
-function TagSheet({ label, open, onClose, children }) {
+// Cerrada, la tarjeta se traslada `translateY(100vh)` — no un % de su
+// propia altura (100%/130%, probado y descartado): la tarjeta ya
+// arranca con un hueco debajo (bottom: 18.6%, para dejar ver el Dock)
+// y el cordón del ojal sobresale por encima de su borde superior, así
+// que un % de su propia altura no alcanzaba a sacarla del todo de la
+// pantalla — 100vh desde donde sea que esté en reposo sí, sin depender
+// de su geometría interna.
+const FRAME_WIDTH = 6;
+
+function StoreSheet({ open, onClose }) {
   return (
     <>
       <div
@@ -315,7 +333,7 @@ function TagSheet({ label, open, onClose, children }) {
       />
       <div
         role="dialog"
-        aria-label={label}
+        aria-label="Store"
         aria-hidden={!open}
         className={`liquid-glass-btn absolute z-50 transition-transform duration-300 ease-out ${
           open ? "" : "pointer-events-none"
@@ -329,23 +347,26 @@ function TagSheet({ label, open, onClose, children }) {
           borderTopRightRadius: 80,
           borderBottomLeftRadius: 20,
           borderBottomRightRadius: 20,
-          // 100vh y no un % de la propia tarjeta (100%/130% de altura
-          // propia, probado y descartado): la tarjeta ya arranca con un
-          // hueco debajo (bottom: 18.6%, para dejar ver el Dock) y el
-          // cordón del ojal sobresale ~25px por encima de su borde
-          // superior — un % de su propia altura solo cubre esa altura,
-          // no ese hueco ni el cordón, así que la tarjeta cerrada seguía
-          // asomando por el borde inferior real de la pantalla. 100vh
-          // desde su posición de reposo (donde sea que esté esa
-          // posición) es de sobra para salir por completo de cualquier
-          // viewport, sin depender de su geometría interna.
           transform: open ? "translateY(0)" : "translateY(100vh)",
         }}
       >
-        {/* Ojal + cordón: un solo <svg>, sin escalar (viewBox en px
-            reales), posicionado para que el centro del ojal caiga
-            exactamente en (38.5, 38.5) — offset = punto real menos el
-            ancla del ojal dentro del propio viewBox (44, 64). */}
+        {/* Relleno: gris sólido y plano, sin cristal — el marco de
+            arriba queda visible solo como el anillo de FRAME_WIDTH que
+            rodea a este <div>. */}
+        <div
+          className="absolute bg-[#7f7f7f]"
+          style={{
+            inset: FRAME_WIDTH,
+            borderTopLeftRadius: 20 - FRAME_WIDTH,
+            borderTopRightRadius: 80 - FRAME_WIDTH,
+            borderBottomLeftRadius: 20 - FRAME_WIDTH,
+            borderBottomRightRadius: 20 - FRAME_WIDTH,
+          }}
+        />
+        {/* Cordón: un solo <svg>, sin escalar (viewBox en px reales),
+            posicionado para que su extremo inferior caiga exactamente
+            sobre el centro del ojal (38.5, 38.5) — offset = punto real
+            menos ese extremo dentro del propio viewBox (44, 64). */}
         <svg
           viewBox="0 0 60 80"
           width="60"
@@ -360,23 +381,21 @@ function TagSheet({ label, open, onClose, children }) {
             strokeWidth="2"
             strokeLinecap="round"
           />
-          <circle
-            cx="44"
-            cy="64"
-            r="9.5"
-            fill="rgba(255,255,255,0.1)"
-            stroke="white"
-            strokeWidth="2.5"
-          />
         </svg>
+        {/* Ojal: círculo real con el efecto Liquid Glass (no un trazo
+            SVG suelto), centrado en (38.5, 38.5). */}
+        <span
+          className="liquid-glass-btn absolute rounded-full"
+          style={{ left: 38.5 - 9.5, top: 38.5 - 9.5, width: 19, height: 19 }}
+        />
         <span
           className={`absolute text-base ${UI_TEXT_STYLE}`}
           style={{ left: 38.5 + 9.5 + 8, top: 38.5, transform: "translateY(-50%)" }}
         >
-          {label}
+          Store
         </span>
-        <div className="h-full overflow-y-auto pt-[70px] pb-6 pl-6 pr-6">
-          <p className={`text-center text-sm ${UI_TEXT_STYLE}`}>{children}</p>
+        <div className="relative h-full overflow-y-auto pt-[70px] pb-6 pl-6 pr-6">
+          <p className={`text-center text-sm ${UI_TEXT_STYLE}`}>{STORE_SHEET_TEXT}</p>
         </div>
       </div>
     </>
@@ -411,19 +430,22 @@ export default function MainLayout() {
   // el día que haga falta.
   const [petMessage] = useState("¡Hello!");
   // Independiente de `activeTab` (que sigue gobernando solo la muesca/
-  // burbuja elevada del Dock): controla si la hoja (TagSheet) de la
-  // pestaña activa está desplegada. Tocar una pestaña ya activa con la
-  // hoja abierta la cierra (toggle); tocar cualquier otra la abre en esa
-  // pestaña — ver handleTabClick más abajo.
+  // burbuja elevada del Dock): controla si StoreSheet está desplegada.
+  // Exclusiva de la pestaña Store — Habits/Pets solo cambian
+  // `activeTab`, igual que antes de que existiera la hoja (ver
+  // handleTabClick abajo).
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const activeTabConfig = NAV_ITEMS.find((item) => item.key === activeTab);
-
   function handleTabClick(key) {
-    if (key === activeTab && isSheetOpen) {
+    if (key !== "store") {
+      setActiveTab(key);
+      setIsSheetOpen(false);
+      return;
+    }
+    if (activeTab === "store" && isSheetOpen) {
       setIsSheetOpen(false);
     } else {
-      setActiveTab(key);
+      setActiveTab("store");
       setIsSheetOpen(true);
     }
   }
@@ -632,13 +654,14 @@ export default function MainLayout() {
           - Apagado (inactivo): ícono+label planos, dentro del cuerpo
             del dock, sin burbuja alrededor.
           Un solo <button> por pestaña; el contenido (bubble vs.
-          ícono+label) cambia según sea la pestaña activa o no. Clic
-          abre/cierra la hoja (TagSheet) de esa pestaña — ver
-          handleTabClick más arriba. z-45: por encima del backdrop de
-          TagSheet (z-40, cubre toda la pantalla) para poder tocar otra
-          pestaña y cambiar de hoja sin tener que cerrar la actual
-          primero — pero por debajo de la propia hoja (z-50), que de
-          todos modos no llega a superponerse visualmente con el Dock. */}
+          ícono+label) cambia según sea la pestaña activa o no. Clic en
+          Store abre/cierra StoreSheet; clic en Habits/Pets solo cambia
+          `activeTab`, sin abrir nada — ver handleTabClick más arriba.
+          z-45: por encima del backdrop de StoreSheet (z-40, cubre toda
+          la pantalla) para poder tocar Habits/Pets y salir de Store sin
+          tener que cerrar la hoja primero — pero por debajo de la
+          propia hoja (z-50), que de todos modos no llega a
+          superponerse visualmente con el Dock. */}
       {NAV_ITEMS.map((item) => {
         const isActive = item.key === activeTab;
         const Icon = item.Icon;
@@ -666,12 +689,11 @@ export default function MainLayout() {
         );
       })}
 
-      {/* Hoja de la pestaña activa (Store/Habits/Pets) + fondo
-          oscurecido — ver TagSheet más arriba. Siempre montada (nunca
-          `{isSheetOpen && ...}`) para poder animar también la salida. */}
-      <TagSheet label={activeTabConfig.label} open={isSheetOpen} onClose={() => setIsSheetOpen(false)}>
-        {SHEET_CONTENT[activeTab]}
-      </TagSheet>
+      {/* Hoja de Store + fondo oscurecido — ver StoreSheet más arriba.
+          Exclusiva de esta pestaña (Habits/Pets no la usan). Siempre
+          montada (nunca `{isSheetOpen && ...}`) para poder animar
+          también la salida. */}
+      <StoreSheet open={isSheetOpen} onClose={() => setIsSheetOpen(false)} />
     </div>
   );
 }
