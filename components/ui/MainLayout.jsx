@@ -88,12 +88,24 @@ const ACTIVE_BUBBLE_TOP = "84.60%";
 // del dock (18px debajo del borde superior: (748.03+18)/844).
 const INACTIVE_ITEM_TOP = "90.76%";
 
+// Store y Pets: PNGs provistos por el usuario (public/nav/store-icon.png,
+// pets-icon.png). Igual que otros assets de este generador en turnos
+// anteriores, venían en un lienzo enorme (2560x1440) con el contenido
+// real ocupando solo ~21% del ancho — se recortaron al bounding box real
+// del canal alfa (+2% de margen) antes de guardarlos, si no el ícono se
+// habría visto minúsculo dentro del botón. Object-fit: contain preserva
+// su proporción nativa (564x586 y 580x496 respectivamente, no son
+// cuadrados) dentro del box cuadrado h-6/h-7 que ya usaban los íconos
+// placeholder — mismo tamaño/posición que tenían antes, solo cambia el
+// contenido gráfico.
 function StoreIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none">
-      <path d="M8 8V6a4 4 0 0 1 8 0v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-      <rect x="4" y="8" width="16" height="12" rx="2" fill="white" />
-    </svg>
+    <img
+      src="/nav/store-icon.png"
+      alt=""
+      draggable={false}
+      className={`${className} pointer-events-none select-none object-contain`}
+    />
   );
 }
 function HabitsIcon({ className }) {
@@ -105,13 +117,12 @@ function HabitsIcon({ className }) {
 }
 function PetsIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="white">
-      <circle cx="12" cy="14" r="7" />
-      <path d="M5 9 7 4 10 8Z" />
-      <path d="M19 9 17 4 14 8Z" />
-      <circle cx="9" cy="14" r="1" fill="black" />
-      <circle cx="15" cy="14" r="1" fill="black" />
-    </svg>
+    <img
+      src="/nav/pets-icon.png"
+      alt=""
+      draggable={false}
+      className={`${className} pointer-events-none select-none object-contain`}
+    />
   );
 }
 
