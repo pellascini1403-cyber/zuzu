@@ -383,17 +383,20 @@ function StoreSheet({ open, onClose }) {
           transform: open ? "translateY(0)" : "translateY(100vh)",
         }}
       >
-        {/* Cordón TRASERO (hebra de atrás): se pinta ANTES que el
-            marco/relleno de la tarjeta, así que donde su trazo cae
-            dentro de la silueta de la tarjeta (el círculo de la
-            esquina redondeada, centro (20,20) radio 20 en coordenadas
-            de la tarjeta) queda tapado por el gris opaco/el marco —
-            "atraviesa hacia atrás" de verdad, no un blur, una
-            oclusión real. Solo vuelve a verse dentro del agujero del
-            ojal (el propio mask-image de la tarjeta) y una vez que su
-            curva sale otra vez al aire libre cerca del pico (4, -2).
-            Verificado en Python (muestreando la curva): se mete hasta
-            ~3.6px del centro de la esquina, bien adentro del radio 20.
+        {/* Cordón TRASERO (hebra de atrás, el tramo semicircular de la
+            izquierda): se pinta ANTES que el marco/relleno de la
+            tarjeta, así que donde su trazo cae dentro de la silueta de
+            la tarjeta (el círculo de la esquina redondeada, centro
+            (20,20) radio 20 en coordenadas de la tarjeta) queda tapado
+            por el gris opaco/el marco — "atraviesa hacia atrás" de
+            verdad, oclusión real, no un blur. Solo vuelve a verse
+            dentro del agujero del ojal (el propio mask-image de la
+            tarjeta) y una vez que su curva sale otra vez al aire libre
+            hacia el pico (34, 13), donde se junta con la hebra frontal
+            (ver más abajo) cerrando la asa. Antes esta era la hebra que
+            se pintaba AL FRENTE (de ahí el aviso de corregirlo: el
+            tramo de la izquierda debía ir detrás, no adelante) — mismo
+            trazo de siempre, ahora en la posición de pintado correcta.
             <svg> sin escalar, viewBox 0 0 80 70 con origen corrido
             -30/-15 respecto a la tarjeta (así entran las coordenadas
             negativas del lazo sin tener que usar un viewBox con
@@ -405,7 +408,7 @@ function StoreSheet({ open, onClose }) {
           className="pointer-events-none absolute"
           style={{ left: -30, top: -15, overflow: "visible" }}
         >
-          <path d="M68.5 53.5C60 39 44 24 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
+          <path d="M68.5 53.5C38 65 4 37 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
         </svg>
         {/* Marco: `.liquid-glass-btn` con la geometría completa de la
             etiqueta + el agujero del ojal recortado vía mask-image. */}
@@ -473,15 +476,22 @@ function StoreSheet({ open, onClose }) {
           />
         </svg>
         {/* Cordón FRONTAL (hebra de adelante): mismos extremos que la
-            trasera (ojal -> pico), pero con las curvas de control
-            empujadas hacia AFUERA del círculo de la esquina —
-            verificado en Python, se mantiene a >=20.8px de su centro en
-            todo el trazo, o sea SIEMPRE por fuera de la tarjeta— y
-            pintada DESPUÉS de todo (marco, relleno y anillo del ojal
-            incluidos), así que nunca queda tapada: "rodea la esquina
-            exterior" en vez de meterse por detrás. Entre esta hebra y
-            la trasera queda el hueco/lente que arma la asa completa al
-            verlas juntas. */}
+            trasera (ojal -> pico, 34 13), pero un solo arco liso —una
+            <path> cuadrática, un único punto de control, así que es
+            imposible que salga con forma de "S" o gancho, a diferencia
+            de la cúbica de dos controles de la hebra trasera— que sube
+            en diagonal desde el ojal. Se pinta DESPUÉS de todo (marco,
+            relleno y anillo del ojal incluidos), así que nunca queda
+            tapada: pasa POR ENCIMA/AL FRENTE del cartón, cruzando su
+            esquina sin que la tape nada (no hace falta que rodee por
+            fuera de la silueta de la tarjeta — al ir siempre al frente,
+            "encima" alcanza para leerse como el tramo que pasa por
+            delante). Entre esta hebra y la trasera queda el
+            hueco/lente que arma la asa completa al verlas juntas; las
+            dos arrancan del mismo punto exacto (el ojal) para que el
+            anillo de cristal del ojal (dibujado encima de la trasera
+            pero debajo de esta) tape la unión y no se note el ángulo
+            entre ambas. */}
         <svg
           viewBox="0 0 80 70"
           width="80"
@@ -489,7 +499,7 @@ function StoreSheet({ open, onClose }) {
           className="pointer-events-none absolute"
           style={{ left: -30, top: -15, overflow: "visible" }}
         >
-          <path d="M68.5 53.5C38 65 4 37 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
+          <path d="M68.5 53.5Q25 35 34 13" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>
     </>
