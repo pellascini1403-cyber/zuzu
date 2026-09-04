@@ -12,15 +12,21 @@
 //   - Formas orgánicas hechas con <path> de SVG (burbuja "Chat Pet",
 //     panel del Dock con la muesca): box-shadow NO sigue el contorno
 //     real de un path cóncavo, así que usan el equivalente nativo de
-//     SVG — fill translúcido, `filter: drop-shadow(...)` (sí sigue la
-//     silueta real, a diferencia de box-shadow) para la sombra exterior,
-//     y un `stroke` con el gradiente GLASS_BEVEL_GRADIENT_ID (3 paradas:
-//     blanco arriba-izquierda → transparente → negro abajo-derecha) para
-//     simular a la vez el bisel de luz Y su contrapunto de sombra/
-//     refracción, como trazo en vez de los dos inset shadow que usa
-//     .liquid-glass-btn. Verificado aislado antes de integrar: misma
-//     técnica que ya se usó para resolver los arcos/costuras del dock y
-//     la cola de la burbuja en fases anteriores.
+//     SVG — fill translúcido, un <filter> de SVG con <feDropShadow>
+//     (atributo `filter="url(#...)"`, NO la propiedad CSS
+//     `filter: drop-shadow(...)`: esa depende de que el navegador deje
+//     "escapar" el efecto del viewport del <svg> vía overflow:visible, y
+//     es justo el tipo de cosa que varía entre motores de renderizado;
+//     <feDropShadow> con una región de filtro explícita (x/y/width/
+//     height ampliados) es la forma nativa y confiable de conseguir lo
+//     mismo) para la sombra exterior, y un `stroke` con el gradiente
+//     GLASS_BEVEL_GRADIENT_ID (3 paradas: blanco arriba-izquierda →
+//     transparente → negro abajo-derecha) para simular a la vez el
+//     bisel de luz Y su contrapunto de sombra/refracción, como trazo en
+//     vez de los dos inset shadow que usa .liquid-glass-btn. Verificado
+//     aislado antes de integrar: misma técnica que ya se usó para
+//     resolver los arcos/costuras del dock y la cola de la burbuja en
+//     fases anteriores.
 //
 // Medidas/posiciones: sin cambios respecto a Fase 1 (ver historial de
 // commits) — este paso es solo estilo visual.
@@ -45,6 +51,8 @@ const DOCK_TOP = "88.63%"; // borde plano del panel = 748.03px/844
 const HOME_BUTTON_TOP = "84.60%";
 
 const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
+const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
+const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 
 export default function MainLayout() {
   return (
@@ -62,6 +70,19 @@ export default function MainLayout() {
             <stop offset="50%" stopColor="rgba(255,255,255,0)" />
             <stop offset="100%" stopColor="rgba(0,0,0,0.5)" />
           </linearGradient>
+          {/* <feDropShadow> nativo en vez de la propiedad CSS
+              filter: drop-shadow(...): esa depende de que el motor de
+              renderizado deje "escapar" el efecto del viewport del
+              <svg> (vía overflow:visible), algo que varía entre
+              navegadores. Con una región de filtro explícita (x/y/
+              width/height ampliados al 300%/-100%) el efecto siempre
+              tiene espacio de sobra y no depende de ese comportamiento. */}
+          <filter id={CHAT_BUBBLE_SHADOW_FILTER_ID} x="-100%" y="-100%" width="300%" height="300%">
+            <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#000000" floodOpacity="0.4" />
+          </filter>
+          <filter id={DOCK_SHADOW_FILTER_ID} x="-100%" y="-100%" width="300%" height="300%">
+            <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#000000" floodOpacity="0.37" />
+          </filter>
         </defs>
       </svg>
 
@@ -92,10 +113,10 @@ export default function MainLayout() {
             fill="rgba(255,255,255,0.08)"
             stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
             strokeWidth="1.5"
+            filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
             style={{
               backdropFilter: "blur(16px) saturate(180%)",
               WebkitBackdropFilter: "blur(16px) saturate(180%)",
-              filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.37))",
             }}
           />
         </svg>
@@ -125,10 +146,10 @@ export default function MainLayout() {
           fill="rgba(255,255,255,0.08)"
           stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
           strokeWidth="1.5"
+          filter={`url(#${DOCK_SHADOW_FILTER_ID})`}
           style={{
             backdropFilter: "blur(16px) saturate(180%)",
             WebkitBackdropFilter: "blur(16px) saturate(180%)",
-            filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.37))",
           }}
         />
       </svg>
