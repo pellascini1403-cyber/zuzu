@@ -99,6 +99,84 @@ function PlayerAvatar({ player }) {
 const CHAT_BUBBLE_PATH =
   "M35 0H205C224.33 0 240 15.67 240 35C240 54.33 224.33 70 205 70H118C114 70 109 72 105 78C101 84 96 88 92 88C90 88 91 82 93 76C94.5 71.5 92 70 88 70H35C15.67 70 0 54.33 0 35C0 15.67 15.67 0 35 0Z";
 
+// Nombre único (no genérico, para no pisar ningún @keyframes de otro
+// componente si en algún momento se declara otro inline como este) del
+// keyframe que anima la entrada del mensaje de la burbuja. Es una
+// `animation`, no una `transition`: una transition no dispara sola al
+// montar, y remontar el <span> del mensaje (vía key={message} en
+// ChatBubble) en cada cambio de texto sí — así el mismo efecto cubre
+// tanto un mensaje nuevo como la apertura inicial de la app, sin JS
+// aparte para diferenciar los dos casos.
+const CHAT_BUBBLE_ANIMATION_NAME = "zuzu-bubble-message-in";
+const CHAT_BUBBLE_KEYFRAMES = `
+  @keyframes ${CHAT_BUBBLE_ANIMATION_NAME} {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+`;
+
+// Burbuja de diálogo "Chat Pet": el mensaje llega por prop (`message`,
+// con default "¡Hello!" en MainLayout más abajo) en vez de vivir
+// hardcodeado en el JSX — así, cuando haya diálogo real (reacciones a
+// hábitos, IA, etc. — Fase 3), alimentarlo es solo pasar un `message`
+// distinto, sin tocar este componente.
+// El texto vive DENTRO del mismo <div> que ya dibuja el fill/blur de la
+// cápsula+cola (clip-path + backdrop-filter — ver comentario grande de
+// FASE 4 más abajo), así queda recortado a esa silueta como cualquier
+// otro contenido; un <div> interno de solo 70 de los 88px de alto del
+// path lo centra en la zona de la cápsula, sin invadir la cola (que no
+// tiene espacio para texto). Ese <div> exterior ya lleva
+// `transform: scale(140/240)` para ir de las coordenadas nativas del
+// path a su tamaño real en pantalla, así que el tamaño de fuente
+// también se escribe en esas coordenadas nativas (22px) y termina
+// rindiendo a ~13px reales — mismo criterio que el resto de la geometría
+// de esta burbuja.
+function ChatBubble({ message }) {
+  return (
+    <div className="relative" style={{ width: 140, height: 51.33 }}>
+      <div
+        className="absolute left-0 top-0"
+        style={{
+          width: 240,
+          height: 88,
+          transform: `scale(${140 / 240})`,
+          transformOrigin: "top left",
+          clipPath: `path("${CHAT_BUBBLE_PATH}")`,
+          isolation: "isolate",
+          background: "rgba(255,255,255,0.12)",
+          backdropFilter: "blur(25px) saturate(200%)",
+          WebkitBackdropFilter: "blur(25px) saturate(200%)",
+        }}
+      >
+        <div className="flex h-[70px] w-full items-center justify-center px-4">
+          <span
+            key={message}
+            style={{ fontSize: 22, lineHeight: 1.1, animation: `${CHAT_BUBBLE_ANIMATION_NAME} 280ms ease-out` }}
+            className={`text-center ${UI_TEXT_STYLE}`}
+          >
+            {message}
+          </span>
+        </div>
+      </div>
+      <svg
+        viewBox="0 0 240 88"
+        width="140"
+        height="51.33"
+        className="absolute inset-0"
+        style={{ overflow: "visible" }}
+      >
+        <path
+          d={CHAT_BUBBLE_PATH}
+          fill="none"
+          stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
+          strokeWidth="1.5"
+          filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
+        />
+      </svg>
+    </div>
+  );
+}
+
 // Panel del Dock: antes eran 3 piezas (2 costados + 1 SVG central)
 // unidas con el truco de "todo en un mismo grupo opacity-10 + negro
 // opaco" para que no aparecieran costuras entre ellas. Para el acabado
@@ -203,6 +281,12 @@ const QA_TEST_BACKGROUND = `
 
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState("habits");
+  // Sin setter usado todavía (no hay de dónde disparar un mensaje nuevo
+  // hasta que exista lógica de interacción real — Fase 3): dejar solo el
+  // valor evita una variable sin usar mientras el estado ya queda listo
+  // para crecer a `const [petMessage, setPetMessage] = useState(...)`
+  // el día que haga falta.
+  const [petMessage] = useState("¡Hello!");
   const { xp, xpToNext, streakJustIncreased } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
@@ -211,6 +295,8 @@ export default function MainLayout() {
       className="relative h-[100dvh] w-full overflow-hidden bg-white"
       style={{ background: QA_TEST_BACKGROUND }}
     >
+      <style>{CHAT_BUBBLE_KEYFRAMES}</style>
+
       {/* Definición compartida del degradado del bisel: blanco 50% en la
           esquina superior-izquierda (el brillo), transparente a mitad de
           camino, negro 50% en la esquina inferior-derecha (el
@@ -306,44 +392,11 @@ export default function MainLayout() {
 
       {/* Zona Central: burbuja de diálogo "Chat Pet", centrada sobre la
           mascota, top=28.67%. Contenedor de 140x51.33px (el tamaño ya
-          validado en fases anteriores): adentro, un <div> con
-          clip-path recortado a la silueta exacta de la cápsula+cola
-          (a su tamaño nativo 240x88, achicado con transform:scale al
-          tamaño real vía transform-origin top-left) resuelve el fill +
-          backdrop-blur; el SVG apilado encima (mismo tamaño, sin fill)
-          agrega el trazo del bisel y la sombra proyectada. */}
+          validado en fases anteriores) — ver ChatBubble más arriba para
+          el detalle de la geometría (clip-path + backdrop-blur + SVG de
+          bisel/sombra) y de cómo entra el texto. */}
       <div className="absolute inset-x-0 top-[28.67%] z-10 flex justify-center px-6">
-        <div className="relative" style={{ width: 140, height: 51.33 }}>
-          <div
-            className="absolute left-0 top-0"
-            style={{
-              width: 240,
-              height: 88,
-              transform: `scale(${140 / 240})`,
-              transformOrigin: "top left",
-              clipPath: `path("${CHAT_BUBBLE_PATH}")`,
-              isolation: "isolate",
-              background: "rgba(255,255,255,0.12)",
-              backdropFilter: "blur(25px) saturate(200%)",
-              WebkitBackdropFilter: "blur(25px) saturate(200%)",
-            }}
-          />
-          <svg
-            viewBox="0 0 240 88"
-            width="140"
-            height="51.33"
-            className="absolute inset-0"
-            style={{ overflow: "visible" }}
-          >
-            <path
-              d={CHAT_BUBBLE_PATH}
-              fill="none"
-              stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
-              strokeWidth="1.5"
-              filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
-            />
-          </svg>
-        </div>
+        <ChatBubble message={petMessage} />
       </div>
 
       {/* Racha/Objetos: píldora ancha (235x40px) + círculo chico (39x40px)
