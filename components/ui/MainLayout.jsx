@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { UI_TEXT_STYLE } from "@/lib/typography";
+import usePetStats from "@/hooks/usePetStats";
 
 // Placeholder del contador de tokens — todavía no hay una fuente de
 // datos real conectada (eso es Fase 3). Un valor alto a propósito, para
@@ -202,6 +203,8 @@ const QA_TEST_BACKGROUND = `
 
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState("habits");
+  const { xp, xpToNext, streakJustIncreased } = usePetStats();
+  const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
   return (
     <div
@@ -345,11 +348,49 @@ export default function MainLayout() {
 
       {/* Racha/Inventario: píldora ancha (235x40px) + círculo chico
           (39x40px) a su derecha con 9px de separación, centrados como
-          grupo, top=66.35% — justo arriba del dock. Contenido/ícono
-          llegan en Fase 2. */}
+          grupo, top=66.35% — justo arriba del dock.
+          Racha: llama rosa (public/nav/flame-pink.png) contenida por
+          completo dentro de la píldora (no desborda su borde — se probó
+          esa variante en una fase anterior del proyecto y se descartó a
+          favor de esta, más limpia) + barra de progreso rosa (gradiente
+          coral->pastel, sin violeta) + contador "xp/xpToNext" a la
+          derecha. `xp`/`xpToNext`/`streakJustIncreased` vienen de
+          usePetStats -> useStreak (racha diaria real persistida en
+          localStorage): el ancho del relleno solo anima cuando la racha
+          acaba de subir (día nuevo), no en cada recarga del mismo día.
+          Inventario: ícono de bolsa (bag-red.png) en el círculo chico —
+          sin lógica de apertura todavía, eso es Fase 3. */}
       <div className="absolute inset-x-0 top-[66.35%] z-10 flex items-center justify-center gap-[9px] px-6">
-        <div className="liquid-glass-btn h-10 w-[235px] rounded-full" />
-        <div className="liquid-glass-btn h-10 w-[39px] rounded-full" />
+        <div className="liquid-glass-btn flex h-10 w-[235px] items-center rounded-full pl-2 pr-3">
+          <img
+            src="/nav/flame-pink.png"
+            alt=""
+            draggable={false}
+            style={{ height: 28, width: 22 }}
+            className="pointer-events-none block shrink-0 select-none object-contain drop-shadow-[0_2px_4px_rgba(219,39,119,0.35)]"
+          />
+          <div className="relative ml-1.5 h-5 flex-1 overflow-hidden rounded-full bg-black/10">
+            <div
+              className={`relative h-full overflow-hidden rounded-full bg-gradient-to-r from-[#ff5c77] to-[#ffc2d6] shadow-[0_0_8px_rgba(255,105,180,0.6),inset_0_1px_2px_rgba(255,255,255,0.7)] ${
+                streakJustIncreased ? "transition-all duration-700 ease-out" : ""
+              }`}
+              style={{ width: `${streakProgress}%` }}
+            >
+              <div className="absolute inset-y-0 right-0 w-2/5 rounded-r-full bg-gradient-to-r from-transparent to-white/60" />
+            </div>
+          </div>
+          <span className={`ml-2 shrink-0 text-sm ${UI_TEXT_STYLE}`}>
+            {xp}/{xpToNext}
+          </span>
+        </div>
+        <div className="liquid-glass-btn flex h-10 w-[39px] items-center justify-center rounded-full">
+          <img
+            src="/nav/bag-red.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none h-6 w-6 select-none object-contain"
+          />
+        </div>
       </div>
 
       {/* Panel/pestaña inferior (Dock): esquinas superiores redondeadas
