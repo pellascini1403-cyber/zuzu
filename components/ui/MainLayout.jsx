@@ -11,14 +11,42 @@ import { UI_TEXT_STYLE } from "@/lib/typography";
 const TOKEN_COUNT = 1000000;
 
 // Placeholder de jugadores vinculados a esta mascota (1 o 2) — todavía
-// sin fuente de datos real (Fase 3) ni fotos subidas. `photoUrl: null`
-// es el estado por defecto: cae a las iniciales sobre el degradado
-// rosa (color muestreado de la imagen de referencia, rgb(248,180,224))
-// hasta que haya una URL real que mostrar.
-const DEFAULT_USERS = [
-  { id: "u1", initial: "M", photoUrl: null },
-  { id: "u2", initial: "A", photoUrl: null },
+// sin fuente de datos real (Fase 3) ni fotos subidas. `avatarUrl: null`
+// en los 2 es el estado por defecto: PlayerAvatar (abajo) cae a las
+// iniciales sobre el degradado rosa (color muestreado de la imagen de
+// referencia, rgb(248,180,224)) hasta que haya una URL real que
+// mostrar — nunca un ícono de otro botón de la app.
+const players = [
+  { id: "p1", name: "Jugador 1", initial: "M", avatarUrl: null },
+  { id: "p2", name: "Jugador 2", initial: "A", avatarUrl: null },
 ];
+
+// Aislado a propósito en su propio componente: PlayerAvatar es la ÚNICA
+// pieza de la app que lee `players`/`avatarUrl`, así que no hay forma de
+// que termine mostrando el ícono de otro botón (como pasó — según
+// reportó el usuario — con el ícono de Store, aunque no se encontró tal
+// referencia en el código commiteado; probablemente una captura de
+// verificación intermedia que se vio por separado). Cada avatar es su
+// propio <img> o su propio placeholder, sin compartir el `src` con
+// ningún otro componente de la interfaz.
+function PlayerAvatar({ player }) {
+  return (
+    <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white/80">
+      {player.avatarUrl ? (
+        <img
+          src={player.avatarUrl}
+          alt={player.name}
+          draggable={false}
+          className="h-full w-full select-none object-cover"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center bg-gradient-to-b from-[#ffd6f2] to-[#f8b4e0]">
+          <span className={`text-xs ${UI_TEXT_STYLE}`}>{player.initial}</span>
+        </span>
+      )}
+    </span>
+  );
+}
 
 // FASE 4 — Estilo visual "Liquid Glass" (ver .liquid-glass-btn en
 // app/globals.css). Se aplicó a los 9 contenedores maquetados en Fase 1
@@ -230,33 +258,14 @@ export default function MainLayout() {
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
           </div>
-          {/* Usuarios: 1 o 2 jugadores, superpuestos (-space-x-2) cuando
-              son 2; un solo círculo centrado cuando es 1 (el `flex
-              justify-center` del contenedor lo resuelve solo, sin
-              condicional aparte). Cada avatar ya tiene la capa lista
-              para una foto real: si `photoUrl` viene cargado, ocupa el
-              círculo completo (object-cover, recortado por el propio
-              overflow-hidden redondeado); si no, cae a las iniciales
-              sobre el degradado rosa — el placeholder por defecto hasta
-              que el usuario suba su foto. */}
+          {/* Usuarios: 1 o 2 jugadores (PlayerAvatar, arriba), superpuestos
+              (-space-x-2) cuando son 2; un solo círculo centrado cuando
+              es 1 (el `flex justify-center` del contenedor lo resuelve
+              solo, sin condicional aparte). */}
           <div className="liquid-glass-btn flex h-10 w-[70px] items-center justify-center rounded-full">
             <div className="flex -space-x-2">
-              {DEFAULT_USERS.slice(0, 2).map((user) => (
-                <span
-                  key={user.id}
-                  className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white/80 bg-gradient-to-b from-[#ffd6f2] to-[#f8b4e0]"
-                >
-                  {user.photoUrl ? (
-                    <img
-                      src={user.photoUrl}
-                      alt=""
-                      draggable={false}
-                      className="h-full w-full select-none object-cover"
-                    />
-                  ) : (
-                    <span className={`text-xs ${UI_TEXT_STYLE}`}>{user.initial}</span>
-                  )}
-                </span>
+              {players.slice(0, 2).map((player) => (
+                <PlayerAvatar key={player.id} player={player} />
               ))}
             </div>
           </div>
