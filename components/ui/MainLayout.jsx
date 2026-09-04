@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { UI_TEXT_STYLE } from "@/lib/typography";
 
+// Placeholder del contador de tokens — todavía no hay una fuente de
+// datos real conectada (eso es Fase 3). Un valor alto a propósito, para
+// poder probar el crecimiento hacia la izquierda de la píldora con una
+// cifra larga como la del pedido ("1.000.000"). .toLocaleString("es")
+// da el separador de miles con puntos.
+const TOKEN_COUNT = 1000000;
+
 // FASE 4 — Estilo visual "Liquid Glass" (ver .liquid-glass-btn en
 // app/globals.css). Se aplicó a los 9 contenedores maquetados en Fase 1
 // (Settings, Perfil, Usuarios, Tokens, Chat Pet, Racha, Inventario, Home
@@ -226,14 +233,23 @@ export default function MainLayout() {
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
           </div>
-          {/* Tokens */}
-          <div className="liquid-glass-btn flex h-10 w-[70px] items-center justify-center rounded-full">
+          {/* Tokens: ancho intrínseco (NO fijo) — el ícono va anclado a
+              la izquierda del contenido interno, el contador a la
+              derecha con su propio padding. El contenedor padre de esta
+              columna ya es flex-col items-end, así que el borde derecho
+              de la píldora queda anclado (alineado con Configuración,
+              arriba) sin código extra: si el contador crece, solo el
+              lado izquierdo de la píldora se mueve. whitespace-nowrap +
+              padding evita que una cifra larga rompa la forma de la
+              cápsula. */}
+          <div className="liquid-glass-btn flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-1 pr-3">
             <img
               src="/nav/tokens-icon.png"
               alt=""
               draggable={false}
-              className="pointer-events-none h-7 w-7 select-none object-contain"
+              className="pointer-events-none h-7 w-7 shrink-0 select-none object-contain"
             />
+            <span className={`text-sm ${UI_TEXT_STYLE}`}>{TOKEN_COUNT.toLocaleString("es")}</span>
           </div>
         </div>
       </div>
