@@ -554,13 +554,19 @@ function StoreSheet({ open, onClose }) {
 //
 // REGLA DE ORO: acá SOLO va el marco exterior en `.liquid-glass-btn`
 // (blur + bisel/sombra de refracción) — el `background` inline pisa el
-// de la clase con el degradado pedido (blanco arriba -> celeste abajo)
-// en vez de un tinte plano. Las tarjetas de CONTENIDO (el bloque de
-// nombre/bio en ProfileModal, cada grupo de filas en SettingsModal) NO
-// llevan esta clase: son planas, `bg-white`, con texto oscuro — el
-// padding chico de acá (`p-3`) es justamente el margen del degradado
-// que se ve alrededor de esas tarjetas planas, no espacio para
-// contenido propio.
+// de la clase con el degradado pedido (blanco arriba -> celeste abajo),
+// pero TRANSLÚCIDO (con alfa), no un color plano opaco: un fondo 100%
+// opaco tapa por completo el backdrop-filter (el blur queda debajo del
+// todo, invisible) — que fue justo el bug que reportó el usuario ("no
+// se nota el Liquid Glass"). Con alfa, el degradado se ve, pero el
+// fondo de colores de la app sigue asomando desenfocado A TRAVÉS de él
+// — el mismo principio que el marco de StoreSheet, solo que ahí el
+// tinte era blanco liso y acá es este degradado blanco->celeste.
+// Las tarjetas de CONTENIDO (el bloque de nombre/bio en ProfileModal,
+// cada grupo de filas en SettingsModal) NO llevan esta clase: son
+// planas, `bg-white` opaco de verdad, con texto oscuro — el padding
+// chico de acá (`p-3`) es el margen del degradado que se ve alrededor
+// de esas tarjetas planas, no espacio para contenido propio.
 function CenteredModal({ open, onClose, ariaLabel, children }) {
   return (
     <>
@@ -579,7 +585,7 @@ function CenteredModal({ open, onClose, ariaLabel, children }) {
           open ? "" : "pointer-events-none"
         }`}
         style={{
-          background: "linear-gradient(to bottom, #ffffff, #cbe3ef)",
+          background: "linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(179,214,235,0.55))",
           transform: `translate(-50%, -50%) scale(${open ? 1 : 0.85})`,
           opacity: open ? 1 : 0,
         }}
@@ -589,6 +595,27 @@ function CenteredModal({ open, onClose, ariaLabel, children }) {
     </>
   );
 }
+
+// GLASS_ON_LIGHT_STYLE: para los elementos marcados en rojo que caen
+// DENTRO de una tarjeta de contenido plana (blanca, opaca) — el avatar,
+// los 4 botones de Perfil, la bolita/switch/ícono de salir de
+// Configuración. Ahí `.liquid-glass-btn` solo (fondo blanco 12% +
+// blur) es indistinguible del bg-white que tiene detrás: no hay nada
+// de color detrás para que el blur muestre, así que "se pierde" contra
+// la tarjeta — el bug exacto que reportó el usuario ("la parte de
+// abajo del botón no debe ser blanca"). La solución no es blur (no hay
+// nada que desenfocar ahí adentro) sino relieve real: un tinte
+// celeste-gris (ni blanco puro ni transparente), un borde sólido
+// visible, y un bisel más marcado que el de la clase compartida
+// (pensada para verse sobre el fondo de colores de la app, no sobre
+// blanco liso) — mismo lenguaje visual (brillo arriba-izquierda,
+// sombra abajo-derecha) pero con valores que sí se notan sobre blanco.
+const GLASS_ON_LIGHT_STYLE = {
+  background: "rgba(186, 216, 235, 0.4)",
+  border: "1.5px solid rgba(255,255,255,0.85)",
+  boxShadow:
+    "inset 1.5px 1.5px 3px rgba(255,255,255,0.9), inset -2px -3px 5px rgba(0,60,90,0.22), 0 3px 8px rgba(0,40,70,0.18)",
+};
 
 function PencilIcon({ className }) {
   return (
@@ -660,7 +687,10 @@ function ProfileModal({ open, onClose, streak }) {
     <CenteredModal open={open} onClose={onClose} ariaLabel="Perfil">
       <div className="rounded-2xl bg-white p-4">
         <div className="flex items-center gap-4">
-          <span className="liquid-glass-btn flex h-16 w-16 shrink-0 items-center justify-center rounded-full p-[3px]">
+          <span
+            className="liquid-glass-btn flex h-16 w-16 shrink-0 items-center justify-center rounded-full p-[3px]"
+            style={GLASS_ON_LIGHT_STYLE}
+          >
             <span className="h-full w-full rounded-full bg-zinc-300" />
           </span>
           <span className="text-lg font-semibold text-zinc-900">Nombre</span>
@@ -673,6 +703,7 @@ function ProfileModal({ open, onClose, streak }) {
             type="button"
             aria-label={streak ? `Racha: ${streak}` : "Racha"}
             className="liquid-glass-btn flex h-10 items-center gap-2 rounded-full px-4"
+            style={GLASS_ON_LIGHT_STYLE}
           >
             <img
               src="/nav/flame-white.png"
@@ -683,13 +714,28 @@ function ProfileModal({ open, onClose, streak }) {
             />
             {streak > 0 && <span className="text-sm font-semibold text-zinc-900">{streak}</span>}
           </button>
-          <button type="button" aria-label="Editar perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <button
+            type="button"
+            aria-label="Editar perfil"
+            className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={GLASS_ON_LIGHT_STYLE}
+          >
             <PencilIcon className="h-4 w-4 text-zinc-800" />
           </button>
-          <button type="button" aria-label="Añadir" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <button
+            type="button"
+            aria-label="Añadir"
+            className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={GLASS_ON_LIGHT_STYLE}
+          >
             <PlusIcon className="h-4 w-4 text-zinc-800" />
           </button>
-          <button type="button" aria-label="Compartir perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <button
+            type="button"
+            aria-label="Compartir perfil"
+            className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={GLASS_ON_LIGHT_STYLE}
+          >
             <ShareIcon className="h-4 w-4 text-zinc-800" />
           </button>
         </div>
@@ -719,7 +765,7 @@ function SettingsRow({ label, control, onClick }) {
       onClick={onClick}
       className={`flex w-full items-center gap-3 px-4 py-3 text-left ${onClick ? "cursor-pointer" : ""}`}
     >
-      <span className="liquid-glass-btn h-5 w-5 shrink-0 rounded-full" />
+      <span className="liquid-glass-btn h-5 w-5 shrink-0 rounded-full" style={GLASS_ON_LIGHT_STYLE} />
       <span className="flex-1 text-sm font-medium text-zinc-900">{label}</span>
       {control}
     </Comp>
@@ -767,7 +813,7 @@ function SettingsModal({ open, onClose }) {
             label="Cerrar sesión"
             onClick={() => {}}
             control={
-              <span className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full">
+              <span className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full" style={GLASS_ON_LIGHT_STYLE}>
                 <LogoutIcon className="h-4 w-4 text-zinc-700" />
               </span>
             }
@@ -792,6 +838,7 @@ function ToggleSwitch({ checked, onChange }) {
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className="liquid-glass-btn relative h-6 w-11 shrink-0 rounded-full"
+      style={GLASS_ON_LIGHT_STYLE}
     >
       <span
         className={`absolute top-0.5 h-5 w-5 rounded-full bg-zinc-700 shadow transition-transform ${
