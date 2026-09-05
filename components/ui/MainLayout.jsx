@@ -540,6 +540,216 @@ function StoreSheet({ open, onClose }) {
   );
 }
 
+// CenteredModal: base compartida por ProfileModal y SettingsModal —
+// tarjeta centrada (no una hoja que se desliza desde abajo, como
+// StoreSheet) con transición de escala+opacidad. Igual que StoreSheet,
+// el backdrop y la tarjeta quedan siempre montados (nunca
+// `{open && ...}`) para poder animar también la salida.
+//
+// Texto oscuro, no UI_TEXT_STYLE: por convención ya documentada en
+// lib/typography.js, ese estilo (blanco + sombra) es solo para texto
+// que vive directo sobre el fondo dinámico o los botones de cristal —
+// "no se usa dentro... de los modales/drawers (tarjetas blancas
+// sólidas), donde el texto oscuro es lo que mantiene el contraste".
+// Por eso la tarjeta no es cristal transparente de punta a punta: es
+// `.liquid-glass-btn` (para el borde/bisel/blur) con un `background`
+// inline que pisa el de la clase (rgba(255,255,255,0.12) -> 0.8) —
+// blur+bisel de cristal reales, pero un tinte casi blanco en vez de
+// dejar pasar el fondo de colores, para que el texto oscuro tenga
+// contraste de verdad encima.
+function CenteredModal({ open, onClose, ariaLabel, children }) {
+  return (
+    <>
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        className={`absolute inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+      <div
+        role="dialog"
+        aria-label={ariaLabel}
+        aria-hidden={!open}
+        className={`liquid-glass-btn absolute left-1/2 top-1/2 z-50 w-[85%] max-w-sm rounded-3xl transition-[transform,opacity] duration-300 ease-out ${
+          open ? "" : "pointer-events-none"
+        }`}
+        style={{
+          background: "rgba(255,255,255,0.85)",
+          transform: `translate(-50%, -50%) scale(${open ? 1 : 0.85})`,
+          opacity: open ? 1 : 0,
+        }}
+      >
+        {/* z-10: sin esto, el <div> de contenido (que le sigue en el
+            DOM y no lleva su propio z-index) pinta encima y se roba el
+            click en esta esquina — el contenido de SettingsModal
+            arranca justo con una fila de ancho completo ahí mismo. */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-lg leading-none text-zinc-500 hover:bg-black/10"
+        >
+          ✕
+        </button>
+        <div className="max-h-[70vh] overflow-y-auto p-5 pt-6">{children}</div>
+      </div>
+    </>
+  );
+}
+
+function PencilIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+function PlusIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+function ShareIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 16V4M7 9l5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+    </svg>
+  );
+}
+function ChevronIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+function LogoutIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+  );
+}
+
+// ProfileModal: sin datos reales todavía (avatar/nombre/bio — Fase 3),
+// misma lógica que PlayerAvatar/SHEET_CONTENT: placeholders con la
+// estructura definitiva. Reutiliza el ícono de la llama de la Racha
+// (flame-white.png) en el botón ancho para no introducir un segundo
+// asset con el mismo significado.
+function ProfileModal({ open, onClose }) {
+  return (
+    <CenteredModal open={open} onClose={onClose} ariaLabel="Perfil">
+      <div className="flex items-center gap-4">
+        <span className="liquid-glass-btn h-16 w-16 shrink-0 rounded-full" style={{ background: "rgba(0,0,0,0.06)" }} />
+        <span className="text-lg font-semibold text-zinc-900">Nombre</span>
+      </div>
+      <p className="mt-4 text-sm text-zinc-600">
+        Escribo relatos cortos y fanfiction de mis fandoms favoritos.
+      </p>
+      <div className="mt-5 flex items-center gap-3">
+        <button type="button" className="liquid-glass-btn flex h-10 flex-1 items-center gap-2 rounded-full px-4">
+          <img src="/nav/flame-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-4 select-none object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]" />
+          <span className="text-sm font-semibold text-zinc-900">Racha</span>
+        </button>
+        <button type="button" aria-label="Editar perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <PencilIcon className="h-4 w-4 text-zinc-800" />
+        </button>
+        <button type="button" aria-label="Añadir" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <PlusIcon className="h-4 w-4 text-zinc-800" />
+        </button>
+        <button type="button" aria-label="Compartir perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <ShareIcon className="h-4 w-4 text-zinc-800" />
+        </button>
+      </div>
+    </CenteredModal>
+  );
+}
+
+// SettingsGroup/SettingsRow: una sola pieza reusada para las filas
+// sueltas (Pausar notificaciones/Configuración general/Cerrar sesión,
+// cada una en su propia tarjeta) y para los dos grupos de filas
+// (separadas por una línea divisoria, sin repetir el borde de cristal
+// entre ellas).
+function SettingsGroup({ children }) {
+  return <div className="liquid-glass-btn divide-y divide-black/10 rounded-2xl">{children}</div>;
+}
+function SettingsRow({ label, control, onClick }) {
+  const Comp = onClick ? "button" : "div";
+  return (
+    <Comp
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 px-4 py-3 text-left ${onClick ? "cursor-pointer" : ""}`}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full bg-zinc-300" />
+      <span className="flex-1 text-sm font-medium text-zinc-900">{label}</span>
+      {control}
+    </Comp>
+  );
+}
+
+// SettingsModal: switches con estado propio (pauseNotifications/
+// darkMode) — todavía sin conectar a nada real (Fase 3: silenciar
+// notificaciones de verdad, tema oscuro real de la app), solo para que
+// el toggle se vea y se sienta interactivo.
+function SettingsModal({ open, onClose }) {
+  const [pauseNotifications, setPauseNotifications] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  return (
+    <CenteredModal open={open} onClose={onClose} ariaLabel="Configuración">
+      <div className="flex flex-col gap-3">
+        <SettingsGroup>
+          <SettingsRow
+            label="Pausar notificaciones"
+            control={<ToggleSwitch checked={pauseNotifications} onChange={setPauseNotifications} />}
+          />
+        </SettingsGroup>
+        <SettingsGroup>
+          <SettingsRow label="Configuración general" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+        </SettingsGroup>
+        <SettingsGroup>
+          <SettingsRow label="Modo oscuro" control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />} />
+          <SettingsRow label="Idioma" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Mi contacto" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+        </SettingsGroup>
+        <SettingsGroup>
+          <SettingsRow label="Preguntas frecuentes" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Términos de servicio" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Política de usuario" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+        </SettingsGroup>
+        <SettingsGroup>
+          <SettingsRow label="Cerrar sesión" onClick={() => {}} control={<LogoutIcon className="h-4 w-4 text-zinc-500" />} />
+        </SettingsGroup>
+      </div>
+    </CenteredModal>
+  );
+}
+
+// ToggleSwitch: pista en vidrio (bg translúcido, igual criterio que el
+// resto del Liquid Glass) + perilla blanca sólida. Estado controlado
+// por quien lo usa (SettingsModal) — no guarda nada propio.
+function ToggleSwitch({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-emerald-500/80" : "bg-black/15"}`}
+    >
+      <span
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-[22px]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
 // sigue sin definirse). Un degradado liso no sirve para esto: el blur
@@ -573,6 +783,12 @@ export default function MainLayout() {
   // `activeTab`, igual que antes de que existiera la hoja (ver
   // handleTabClick abajo).
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // Perfil/Configuración: modales centrados, sin relación con
+  // activeTab/isSheetOpen ni con la Racha (usePetStats) — estado propio
+  // a propósito, para que abrirlos no reinicie ni interfiera con el
+  // Dock ni con ese componente.
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   function handleTabClick(key) {
     if (key !== "store") {
@@ -648,18 +864,31 @@ export default function MainLayout() {
           transparente enorme que otros assets de este generador — se
           recortaron al bounding box real del canal alfa (+2%) antes de
           guardarlos. object-fit: contain conserva su proporción nativa
-          (ninguno de los 3 es cuadrado) dentro del círculo/píldora. */}
-      <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
+          (ninguno de los 3 es cuadrado) dentro del círculo/píldora.
+          z-[45], no z-20 a secas: mismo motivo que los botones del
+          Dock — por encima del backdrop de StoreSheet (z-40, cubre
+          toda la pantalla) para poder abrir Perfil/Configuración
+          aunque la hoja de Store esté desplegada, sin tener que
+          cerrarla primero. */}
+      <div className="absolute inset-x-0 top-0 z-[45] flex items-start justify-between gap-2 p-4">
         <div className="flex flex-col items-start gap-2">
-          {/* Perfil */}
-          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
+          {/* Perfil: abre ProfileModal (ver más abajo) — tap en la
+              cápsula, no en un ícono de engranaje aparte como
+              Configuración, porque acá la cápsula ENTERA es el gatillo
+              (así lo pidió el usuario). */}
+          <button
+            type="button"
+            onClick={() => setIsProfileOpen(true)}
+            aria-label="Perfil"
+            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
+          >
             <img
               src="/nav/profile-icon.png"
               alt=""
               draggable={false}
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
-          </div>
+          </button>
           {/* Usuarios: 1 o 2 jugadores (PlayerAvatar, arriba), superpuestos
               (-space-x-2) cuando son 2; un solo círculo centrado cuando
               es 1 (el `flex justify-center` del contenedor lo resuelve
@@ -673,15 +902,20 @@ export default function MainLayout() {
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          {/* Configuración */}
-          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
+          {/* Configuración: abre SettingsModal (ver más abajo). */}
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(true)}
+            aria-label="Configuración"
+            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
+          >
             <img
               src="/nav/settings-icon.png"
               alt=""
               draggable={false}
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
-          </div>
+          </button>
           {/* Tokens: ancho intrínseco (NO fijo) — el ícono va anclado a
               la izquierda del contenido interno, el contador a la
               derecha con su propio padding. El contenedor padre de esta
@@ -845,6 +1079,12 @@ export default function MainLayout() {
           montada (nunca `{isSheetOpen && ...}`) para poder animar
           también la salida. */}
       <StoreSheet open={isSheetOpen} onClose={() => setIsSheetOpen(false)} />
+
+      {/* Perfil/Configuración: modales centrados (CenteredModal, ver
+          más arriba) — independientes de isSheetOpen/activeTab y de
+          usePetStats, así que abrirlos no toca el Dock ni la Racha. */}
+      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }
