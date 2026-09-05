@@ -546,17 +546,21 @@ function StoreSheet({ open, onClose }) {
 // el backdrop y la tarjeta quedan siempre montados (nunca
 // `{open && ...}`) para poder animar también la salida.
 //
-// Texto oscuro, no UI_TEXT_STYLE: por convención ya documentada en
-// lib/typography.js, ese estilo (blanco + sombra) es solo para texto
-// que vive directo sobre el fondo dinámico o los botones de cristal —
-// "no se usa dentro... de los modales/drawers (tarjetas blancas
-// sólidas), donde el texto oscuro es lo que mantiene el contraste".
-// Por eso la tarjeta no es cristal transparente de punta a punta: es
-// `.liquid-glass-btn` (para el borde/bisel/blur) con un `background`
-// inline que pisa el de la clase (rgba(255,255,255,0.12) -> 0.8) —
-// blur+bisel de cristal reales, pero un tinte casi blanco en vez de
-// dejar pasar el fondo de colores, para que el texto oscuro tenga
-// contraste de verdad encima.
+// Sin botón "X": el ÚNICO cierre es tocar el backdrop. Como el
+// backdrop y la tarjeta son hermanos (no la tarjeta anidada dentro del
+// backdrop), un click dentro de la tarjeta nunca llega al
+// `onClick` del backdrop — no hace falta un `stopPropagation` aparte
+// para que "tocar fuera" funcione.
+//
+// Cuerpo + borde, los dos en `.liquid-glass-btn` (blur real +
+// bisel/sombra de refracción), pero con un `background` inline que
+// pisa el de la clase: rgba(255,255,255,0.12) (el tinte blanco de
+// siempre) -> rgba(15,15,20,0.5) (neutro oscuro), para que la base sea
+// vidrio ahumado y no una tarjeta clara — coherente con la estética
+// del resto de la app (fondo dinámico + cristal blanco), así que el
+// contenido usa UI_TEXT_STYLE (blanco) igual que cualquier otro botón
+// de cristal, no el texto oscuro de los modales blancos antiguos de
+// components/modals/ (huérfanos desde el reset de Fase 1).
 function CenteredModal({ open, onClose, ariaLabel, children }) {
   return (
     <>
@@ -575,24 +579,12 @@ function CenteredModal({ open, onClose, ariaLabel, children }) {
           open ? "" : "pointer-events-none"
         }`}
         style={{
-          background: "rgba(255,255,255,0.85)",
+          background: "rgba(15,15,20,0.5)",
           transform: `translate(-50%, -50%) scale(${open ? 1 : 0.85})`,
           opacity: open ? 1 : 0,
         }}
       >
-        {/* z-10: sin esto, el <div> de contenido (que le sigue en el
-            DOM y no lleva su propio z-index) pinta encima y se roba el
-            click en esta esquina — el contenido de SettingsModal
-            arranca justo con una fila de ancho completo ahí mismo. */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar"
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-lg leading-none text-zinc-500 hover:bg-black/10"
-        >
-          ✕
-        </button>
-        <div className="max-h-[70vh] overflow-y-auto p-5 pt-6">{children}</div>
+        <div className="max-h-[70vh] overflow-y-auto p-5">{children}</div>
       </div>
     </>
   );
@@ -636,32 +628,46 @@ function LogoutIcon({ className }) {
 
 // ProfileModal: sin datos reales todavía (avatar/nombre/bio — Fase 3),
 // misma lógica que PlayerAvatar/SHEET_CONTENT: placeholders con la
-// estructura definitiva. Reutiliza el ícono de la llama de la Racha
-// (flame-white.png) en el botón ancho para no introducir un segundo
-// asset con el mismo significado.
-function ProfileModal({ open, onClose }) {
+// estructura definitiva. `streak` llega desde MainLayout (usePetStats,
+// la misma fuente que ya usa el componente de Racha) — nada de volver
+// a leer el hook acá para no duplicar la fuente de verdad.
+//
+// Botón de Racha: solo ícono + número, sin la palabra "Racha" — si
+// streak es 0 (o no hay valor todavía) se muestra únicamente el ícono,
+// sin "0" al lado, que se leería como un contador roto más que como
+// "sin racha aún".
+function ProfileModal({ open, onClose, streak }) {
   return (
     <CenteredModal open={open} onClose={onClose} ariaLabel="Perfil">
       <div className="flex items-center gap-4">
-        <span className="liquid-glass-btn h-16 w-16 shrink-0 rounded-full" style={{ background: "rgba(0,0,0,0.06)" }} />
-        <span className="text-lg font-semibold text-zinc-900">Nombre</span>
+        <span className="liquid-glass-btn h-16 w-16 shrink-0 rounded-full" />
+        <span className={`text-lg ${UI_TEXT_STYLE}`}>Nombre</span>
       </div>
-      <p className="mt-4 text-sm text-zinc-600">
+      <p className="mt-4 text-sm text-white/80">
         Escribo relatos cortos y fanfiction de mis fandoms favoritos.
       </p>
       <div className="mt-5 flex items-center gap-3">
-        <button type="button" className="liquid-glass-btn flex h-10 flex-1 items-center gap-2 rounded-full px-4">
-          <img src="/nav/flame-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-4 select-none object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]" />
-          <span className="text-sm font-semibold text-zinc-900">Racha</span>
+        <button
+          type="button"
+          aria-label={streak ? `Racha: ${streak}` : "Racha"}
+          className="liquid-glass-btn flex h-10 items-center gap-2 rounded-full px-4"
+        >
+          <img
+            src="/nav/flame-white.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none h-5 w-4 select-none object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+          />
+          {streak > 0 && <span className={`text-sm ${UI_TEXT_STYLE}`}>{streak}</span>}
         </button>
         <button type="button" aria-label="Editar perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-          <PencilIcon className="h-4 w-4 text-zinc-800" />
+          <PencilIcon className="h-4 w-4 text-white" />
         </button>
         <button type="button" aria-label="Añadir" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-          <PlusIcon className="h-4 w-4 text-zinc-800" />
+          <PlusIcon className="h-4 w-4 text-white" />
         </button>
         <button type="button" aria-label="Compartir perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-          <ShareIcon className="h-4 w-4 text-zinc-800" />
+          <ShareIcon className="h-4 w-4 text-white" />
         </button>
       </div>
     </CenteredModal>
@@ -674,7 +680,7 @@ function ProfileModal({ open, onClose }) {
 // (separadas por una línea divisoria, sin repetir el borde de cristal
 // entre ellas).
 function SettingsGroup({ children }) {
-  return <div className="liquid-glass-btn divide-y divide-black/10 rounded-2xl">{children}</div>;
+  return <div className="liquid-glass-btn divide-y divide-white/15 rounded-2xl">{children}</div>;
 }
 function SettingsRow({ label, control, onClick }) {
   const Comp = onClick ? "button" : "div";
@@ -684,8 +690,8 @@ function SettingsRow({ label, control, onClick }) {
       onClick={onClick}
       className={`flex w-full items-center gap-3 px-4 py-3 text-left ${onClick ? "cursor-pointer" : ""}`}
     >
-      <span className="h-2 w-2 shrink-0 rounded-full bg-zinc-300" />
-      <span className="flex-1 text-sm font-medium text-zinc-900">{label}</span>
+      <span className="h-2 w-2 shrink-0 rounded-full bg-white/40" />
+      <span className={`flex-1 text-sm ${UI_TEXT_STYLE}`}>{label}</span>
       {control}
     </Comp>
   );
@@ -709,20 +715,20 @@ function SettingsModal({ open, onClose }) {
           />
         </SettingsGroup>
         <SettingsGroup>
-          <SettingsRow label="Configuración general" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Configuración general" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
         </SettingsGroup>
         <SettingsGroup>
           <SettingsRow label="Modo oscuro" control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />} />
-          <SettingsRow label="Idioma" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-          <SettingsRow label="Mi contacto" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Idioma" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
+          <SettingsRow label="Mi contacto" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
         </SettingsGroup>
         <SettingsGroup>
-          <SettingsRow label="Preguntas frecuentes" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-          <SettingsRow label="Términos de servicio" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-          <SettingsRow label="Política de usuario" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Preguntas frecuentes" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
+          <SettingsRow label="Términos de servicio" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
+          <SettingsRow label="Política de usuario" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
         </SettingsGroup>
         <SettingsGroup>
-          <SettingsRow label="Cerrar sesión" onClick={() => {}} control={<LogoutIcon className="h-4 w-4 text-zinc-500" />} />
+          <SettingsRow label="Cerrar sesión" onClick={() => {}} control={<LogoutIcon className="h-4 w-4 text-white/60" />} />
         </SettingsGroup>
       </div>
     </CenteredModal>
@@ -730,8 +736,11 @@ function SettingsModal({ open, onClose }) {
 }
 
 // ToggleSwitch: pista en vidrio (bg translúcido, igual criterio que el
-// resto del Liquid Glass) + perilla blanca sólida. Estado controlado
-// por quien lo usa (SettingsModal) — no guarda nada propio.
+// resto del Liquid Glass) + perilla blanca sólida. Blanco puro/gris
+// neutro nada más (sin verde ni ningún otro acento de color): el
+// estado on/off se distingue por el brillo de la propia pista, no por
+// un tinte. Estado controlado por quien lo usa (SettingsModal) — no
+// guarda nada propio.
 function ToggleSwitch({ checked, onChange }) {
   return (
     <button
@@ -739,7 +748,7 @@ function ToggleSwitch({ checked, onChange }) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-emerald-500/80" : "bg-black/15"}`}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-white/70" : "bg-white/15"}`}
     >
       <span
         className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
@@ -1083,7 +1092,7 @@ export default function MainLayout() {
       {/* Perfil/Configuración: modales centrados (CenteredModal, ver
           más arriba) — independientes de isSheetOpen/activeTab y de
           usePetStats, así que abrirlos no toca el Dock ni la Racha. */}
-      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} streak={xp} />
       <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
