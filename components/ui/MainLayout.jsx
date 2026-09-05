@@ -256,150 +256,22 @@ const NAV_ITEMS = [
   { key: "pets", label: "Pets", cx: 302, Icon: PetsIcon },
 ];
 
-// Mismo tono/contenido que ShopModal.jsx (huérfano desde el reset de
-// Fase 1: seguía el sistema de diseño anterior, tarjeta blanca opaca en
-// vez de Liquid Glass) — sigue siendo la descripción correcta de la
-// sección, todavía sin fuente de datos real (Fase 3, más allá de abrir/
-// cerrar).
-const STORE_SHEET_TEXT =
-  "Aquí podrás canjear monedas por comida, ropa, accesorios y skins para Zuzu. Próximamente.";
-
 const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
-const GLASS_BEVEL_WHITE_GRADIENT_ID = "glass-bevel-white";
 const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
 const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 
-// StoreSheet: hoja modal con forma de "etiqueta de tienda" (boceto
-// provisto por el usuario) — EXCLUSIVA de la pestaña Store, no un
-// patrón genérico reusado por Habits/Pets (esas dos vuelven a su
-// comportamiento de antes: tocarlas solo cambia `activeTab`, sin abrir
-// ninguna hoja — ver handleTabClick en MainLayout).
-//
-// Geometría medida directo sobre el boceto de referencia (lienzo
-// 390x844, misma proporción que nuestro viewport): caja en
-// left=11%/right=11.3%/top=16.7%/bottom=18.6%, esquinas inferiores y
-// superior-izquierda con radio estándar (20px), superior-derecha
-// hiperredondeada (80px), ojal centrado a (38.5, 38.5) del propio
-// borde superior-izquierdo de la tarjeta.
-//
-// MARCO vs. RELLENO — el marco de cristal (<div> exterior) rodea un
-// relleno gris sólido y plano (<div> interior, inset FRAME_WIDTH=6px,
-// mismo radio por esquina menos ese inset): fondo #7f7f7f opaco, SIN
-// `.liquid-glass-btn`, que deja ver el marco solo como el anillo de
-// ~6px alrededor.
-//
-// FÍSICA DEL HILO Y EL OJAL — un hilo real, enhebrado por un agujero
-// real, no una curva plana flotando encima de la tarjeta ni un blur.
-// El hilo es UN SOLO asset (public/nav/store-thread.png, provisto por
-// el usuario — ver THREAD_* más abajo para la geometría exacta) con
-// las dos puntas ya dibujadas juntas; se separa en capa trasera/
-// frontal recortando ese mismo PNG dos veces con `clip-path` (uno se
-// queda solo con la punta izquierda, el otro con el resto: el arco de
-// arriba + la punta derecha), y esos dos recortes se diferencian solo
-// en dónde caen en el orden de pintado:
-//   - Hilo TRASERO (punta izquierda): se pinta ANTES que el
-//     marco/relleno, así que la tarjeta lo tapa de verdad en todo el
-//     tramo que cae dentro de su silueta —oclusión real, no
-//     desenfoque— y solo vuelve a verse dentro del agujero del ojal o
-//     si asoma al aire libre antes de la esquina.
-//   - Hilo FRONTAL (arco superior + punta derecha): se pinta DESPUÉS
-//     de todo —marco, relleno y anillo del ojal incluidos— así que
-//     nunca queda tapado: pasa por encima/al frente del cartón,
-//     cruzando su esquina sin que la tape nada.
-// Compacto y pegado a la esquina (65px de ancho), sin alcanzar el
-// cluster de botones de la cabecera (Usuarios/Perfil).
-// Orden de pintado, de atrás hacia adelante, todo dentro de un mismo
-// <div> ancla (mismas coordenadas left/top/bottom/right que antes
-// tenía el propio marco, para no tener que recalcular nada):
-//   1. Hilo trasero (ver arriba).
-//   2. Marco (<div>, `.liquid-glass-btn`): encima de la hebra trasera.
-//      Lleva un `mask-image` (radial-gradient sólido con un corte
-//      duro, no un degradado real: transparente adentro del radio del
-//      ojal, opaco inmediatamente después) que le recorta un agujero
-//      circular exacto en (38.5, 38.5) — con la máscara, el propio
-//      backdrop-filter del marco NO se aplica ahí (no hay caja que
-//      filtre), así que se ve lo que haya detrás sin filtro alguno.
-//   3. Relleno gris, hijo del marco, con el mismo truco de
-//      mask-image — mismo agujero, pero centrado en (32.5, 32.5)
-//      porque el relleno ya está inset FRAME_WIDTH (6px) respecto al
-//      marco, así que su propio origen local está corrido esos 6px.
-//      Sin este segundo agujero el gris opaco taparía el del marco.
-//   4. Anillo del ojal: encima del relleno, un <circle> de SVG
-//      (fill=none, con la variante solo-blanco del bisel de
-//      GLASS_BEVEL_WHITE_GRADIENT_ID + el mismo <feDropShadow> que ya
-//      usan la burbuja/dock para el relieve/sombra de refracción de un
-//      Liquid Glass sobre una forma que backdrop-filter no puede
-//      seguir de forma confiable) — un trazo, no una caja con
-//      backdrop-filter, así que no vuelve a desenfocar el agujero que
-//      las máscaras de los pasos 2-3 dejaron limpio.
-//   5. Hilo frontal (ver arriba): lo último, para que nunca quede
-//      tapado por nada de lo anterior.
-//
-// Fondo oscurecido + deslizamiento: el backdrop y la propia tarjeta
-// (ahora el <div> ancla completo: cordón + marco + ojal, para que se
-// desplacen juntos como una sola pieza) quedan siempre montados (nunca
-// `{open && ...}`) para poder animar tanto la entrada como la salida
-// con una simple `transition` de Tailwind — desmontar en `open=false`
-// mataría la animación de salida. Cerrada, se traslada
-// `translateY(100vh)` — no un % de la propia altura (100%/130%,
-// probado y descartado): la tarjeta ya arranca con un hueco debajo
-// (bottom: 18.6%, para dejar ver el Dock) y el cordón sobresale por
-// encima de su borde superior, así que un % de su propia altura no
-// alcanzaba a sacarla del todo de la pantalla — 100vh desde donde sea
-// que esté en reposo sí, sin depender de su geometría interna.
-const FRAME_WIDTH = 6;
-const OJAL_CENTER = 38.5;
-// Subido de 9.5 a 17: el PNG del hilo (ver THREAD_* abajo) trae sus dos
-// puntas ya fijas a ~185px de distancia entre sí en el propio archivo
-// (347x356) — no hay forma de que ambas coincidan en el mismo píxel
-// con una sola imagen rígida (solo escala + posición, sin deformarla).
-// Ancladas por el punto medio entre las dos, cada punta queda a
-// ~17.3px de ese centro (cuenta en el comentario de THREAD_* de más
-// abajo) — un ojal de radio 9.5 las dejaba visiblemente sueltas; a 17
-// las alcanza a "atrapar" dentro de su propio anillo.
-const OJAL_RADIUS = 17;
-// Corte duro (transparente -> opaco de un salto, sin degradado real)
-// en vez de un radial-gradient "suave": un agujero tiene un borde
-// neto, no un desvanecido.
-function ojalMask(center) {
-  return `radial-gradient(circle at ${center}px ${center}px, transparent ${OJAL_RADIUS}px, black ${OJAL_RADIUS + 0.5}px)`;
-}
+// RESET a pedido del usuario: todo el contenido/maquetación anterior
+// de Store/Perfil/Configuración (la etiqueta con ojal e hilo de Store,
+// las tarjetas de nombre/bio y de ajustes) se eliminó por completo
+// para reconstruirse desde cero con especificaciones nuevas. Lo único
+// que queda es el mecanismo de apertura/cierre — backdrop + transición
+// —, parte de la estructura base (navegación) que se pidió conservar,
+// no del contenido a rehacer. Los tres contenedores están vacíos a
+// propósito.
 
-// Asset provisto por el usuario (public/nav/store-thread.png, recortado
-// a su bounding box de alfa: 347x356 nativos) en vez de las dos <path>
-// dibujadas a mano de un intento anterior — evita errores de cálculo
-// en el SVG, tal como se pidió. Es UNA sola imagen con las dos hebras
-// ya dibujadas juntas (arco superior + las dos puntas abiertas abajo);
-// separarla en capa trasera/frontal se hace con `clip-path` sobre dos
-// <img> del mismo archivo, no con dos archivos distintos.
-//
-// Geometría (todo medido sobre el PNG nativo, 347x356):
-// - Punta izquierda (la que va detrás): (129, 334).
-// - Punta derecha (la que va al frente): (313, 353).
-// - Corte entre hebras: un rectángulo inferior-izquierdo x:[0,180]
-//   y:[180,356] contiene la punta izquierda y el tramo que baja hacia
-//   ella sin tocar en ningún punto al tramo derecho (verificado: a esa
-//   altura el brazo derecho ya está en x>=280) — como % del propio PNG,
-//   x=180/347=51.9%, y=180/356=50.6%.
-// - Tamaño final: 65px de ancho (alto 65*356/347 para conservar la
-//   proporción nativa — el `object-contain` de los <img> de abajo no
-//   distorsiona, ya viene con el aspect-ratio correcto). A esta escala
-//   (0.1873) el punto medio entre las dos puntas cae en (41.4, 64.4) —
-//   ese es el punto que se ancla al centro del ojal (38.5, 38.5), así
-//   que cada punta individual queda a ~17.3px de ahí (de donde sale el
-//   OJAL_RADIUS de arriba).
-const THREAD_SRC = "/nav/store-thread.png";
-const THREAD_WIDTH = 65;
-const THREAD_HEIGHT = 66.7;
-const THREAD_LEFT = OJAL_CENTER - 41.4;
-const THREAD_TOP = OJAL_CENTER - 64.4;
-// Trasera: conserva SOLO el rectángulo inferior-izquierdo (la punta que
-// va detrás de la tarjeta). Frontal: el resto (arco superior + punta
-// derecha) — un polígono en L en vez de un segundo `inset`, porque
-// CSS no tiene un modo "todo menos este rectángulo" para `inset()`.
-const THREAD_BACK_CLIP = "inset(50.6% 48.1% 0% 0%)";
-const THREAD_FRONT_CLIP = "polygon(0% 0%, 100% 0%, 100% 100%, 51.9% 100%, 51.9% 50.6%, 0% 50.6%)";
-
+// StoreSheet: hoja que se desliza desde abajo, exclusiva de la
+// pestaña Store (handleTabClick en MainLayout la abre/cierra; Habits/
+// Pets solo cambian `activeTab`, sin tocar esto).
 function StoreSheet({ open, onClose }) {
   return (
     <>
@@ -414,7 +286,7 @@ function StoreSheet({ open, onClose }) {
         role="dialog"
         aria-label="Store"
         aria-hidden={!open}
-        className={`absolute z-50 transition-transform duration-300 ease-out ${
+        className={`liquid-glass-btn absolute z-50 rounded-3xl transition-transform duration-300 ease-out ${
           open ? "" : "pointer-events-none"
         }`}
         style={{
@@ -424,149 +296,18 @@ function StoreSheet({ open, onClose }) {
           right: "11.3%",
           transform: open ? "translateY(0)" : "translateY(100vh)",
         }}
-      >
-        {/* Hilo TRASERO (punta izquierda del PNG, recortada vía
-            clip-path — ver THREAD_* arriba): se pinta ANTES que el
-            marco/relleno de la tarjeta, así que donde cae dentro de su
-            silueta (el círculo de la esquina redondeada, centro (20,20)
-            radio 20 en coordenadas de la tarjeta) queda tapado por el
-            gris opaco/el marco — "atraviesa hacia atrás" de verdad,
-            oclusión real, no un blur. Solo vuelve a verse dentro del
-            agujero del ojal (el propio mask-image de la tarjeta) o si
-            asoma al aire libre antes de llegar a la esquina. */}
-        <img
-          src={THREAD_SRC}
-          alt=""
-          draggable={false}
-          className="pointer-events-none absolute select-none object-contain"
-          style={{
-            left: THREAD_LEFT,
-            top: THREAD_TOP,
-            width: THREAD_WIDTH,
-            height: THREAD_HEIGHT,
-            clipPath: THREAD_BACK_CLIP,
-            WebkitClipPath: THREAD_BACK_CLIP,
-          }}
-        />
-        {/* Marco: `.liquid-glass-btn` con la geometría completa de la
-            etiqueta + el agujero del ojal recortado vía mask-image. */}
-        <div
-          className="liquid-glass-btn absolute inset-0"
-          style={{
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 80,
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            maskImage: ojalMask(OJAL_CENTER),
-            WebkitMaskImage: ojalMask(OJAL_CENTER),
-          }}
-        >
-          {/* Relleno: gris sólido y plano, sin cristal — mismo agujero
-              que el marco, pero centrado FRAME_WIDTH más cerca (este
-              <div> ya está inset esos 6px). */}
-          <div
-            className="absolute bg-[#7f7f7f]"
-            style={{
-              inset: FRAME_WIDTH,
-              borderTopLeftRadius: 20 - FRAME_WIDTH,
-              borderTopRightRadius: 80 - FRAME_WIDTH,
-              borderBottomLeftRadius: 20 - FRAME_WIDTH,
-              borderBottomRightRadius: 20 - FRAME_WIDTH,
-              maskImage: ojalMask(OJAL_CENTER - FRAME_WIDTH),
-              WebkitMaskImage: ojalMask(OJAL_CENTER - FRAME_WIDTH),
-            }}
-          />
-          <span
-            className={`absolute text-base ${UI_TEXT_STYLE}`}
-            style={{ left: OJAL_CENTER + OJAL_RADIUS + 8, top: OJAL_CENTER, transform: "translateY(-50%)" }}
-          >
-            Store
-          </span>
-          <div className="relative h-full overflow-y-auto pt-[70px] pb-6 pl-6 pr-6">
-            <p className={`text-center text-sm ${UI_TEXT_STYLE}`}>{STORE_SHEET_TEXT}</p>
-          </div>
-        </div>
-        {/* Anillo del ojal: un trazo de SVG, no una caja con
-            backdrop-filter — así no vuelve a desenfocar el agujero que
-            las dos máscaras de arriba dejaron limpio. Usa la variante
-            solo-blanco del bisel (GLASS_BEVEL_WHITE_GRADIENT_ID, sin la
-            parada negra del bisel normal): ese negro, mezclado sobre lo
-            que se ve a través del agujero, terminaba leyéndose como un
-            anillo rojizo/violeta — justo lo que se pidió evitar. Variar
-            solo la opacidad del blanco da el mismo relieve (brillante
-            arriba-izquierda, más tenue abajo-derecha) + la misma sombra
-            de refracción, sin aportar ningún color propio. */}
-        <svg
-          viewBox={`0 0 ${OJAL_RADIUS * 2} ${OJAL_RADIUS * 2}`}
-          width={OJAL_RADIUS * 2}
-          height={OJAL_RADIUS * 2}
-          className="pointer-events-none absolute"
-          style={{ left: OJAL_CENTER - OJAL_RADIUS, top: OJAL_CENTER - OJAL_RADIUS, overflow: "visible" }}
-        >
-          <circle
-            cx={OJAL_RADIUS}
-            cy={OJAL_RADIUS}
-            r={OJAL_RADIUS - 1.25}
-            fill="none"
-            stroke={`url(#${GLASS_BEVEL_WHITE_GRADIENT_ID})`}
-            strokeWidth="2"
-            filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
-          />
-        </svg>
-        {/* Hilo FRONTAL (el resto del mismo PNG — arco superior + punta
-            derecha, ver THREAD_FRONT_CLIP arriba): se pinta DESPUÉS de
-            todo (marco, relleno y anillo del ojal incluidos), así que
-            nunca queda tapado — pasa POR ENCIMA/AL FRENTE del cartón,
-            cruzando su esquina sin que la tape nada. Mismo <img>, mismo
-            left/top/width/height que el trasero: al ser la misma
-            imagen con el mismo recorte de posición, arco y punta caen
-            exactamente donde deben sin recalcular nada aparte. */}
-        <img
-          src={THREAD_SRC}
-          alt=""
-          draggable={false}
-          className="pointer-events-none absolute select-none object-contain"
-          style={{
-            left: THREAD_LEFT,
-            top: THREAD_TOP,
-            width: THREAD_WIDTH,
-            height: THREAD_HEIGHT,
-            clipPath: THREAD_FRONT_CLIP,
-            WebkitClipPath: THREAD_FRONT_CLIP,
-          }}
-        />
-      </div>
+      />
     </>
   );
 }
 
 // CenteredModal: base compartida por ProfileModal y SettingsModal —
 // tarjeta centrada (no una hoja que se desliza desde abajo, como
-// StoreSheet) con transición de escala+opacidad. Igual que StoreSheet,
-// el backdrop y la tarjeta quedan siempre montados (nunca
-// `{open && ...}`) para poder animar también la salida.
-//
-// Sin botón "X": el ÚNICO cierre es tocar el backdrop. Como el
-// backdrop y la tarjeta son hermanos (no la tarjeta anidada dentro del
-// backdrop), un click dentro de la tarjeta nunca llega al
-// `onClick` del backdrop — no hace falta un `stopPropagation` aparte
-// para que "tocar fuera" funcione.
-//
-// REGLA DE ORO: acá SOLO va el marco exterior en `.liquid-glass-btn`
-// (blur + bisel/sombra de refracción) — el `background` inline pisa el
-// de la clase con el degradado pedido (blanco arriba -> celeste abajo),
-// pero TRANSLÚCIDO (con alfa), no un color plano opaco: un fondo 100%
-// opaco tapa por completo el backdrop-filter (el blur queda debajo del
-// todo, invisible) — que fue justo el bug que reportó el usuario ("no
-// se nota el Liquid Glass"). Con alfa, el degradado se ve, pero el
-// fondo de colores de la app sigue asomando desenfocado A TRAVÉS de él
-// — el mismo principio que el marco de StoreSheet, solo que ahí el
-// tinte era blanco liso y acá es este degradado blanco->celeste.
-// Las tarjetas de CONTENIDO (el bloque de nombre/bio en ProfileModal,
-// cada grupo de filas en SettingsModal) NO llevan esta clase: son
-// planas, `bg-white` opaco de verdad, con texto oscuro — el padding
-// chico de acá (`p-3`) es el margen del degradado que se ve alrededor
-// de esas tarjetas planas, no espacio para contenido propio.
+// StoreSheet) con transición de escala+opacidad. Backdrop y tarjeta
+// quedan siempre montados (nunca `{open && ...}`) para poder animar
+// también la salida. Sin botón "X": el único cierre es tocar el
+// backdrop — la tarjeta es hermana suya, no anidada dentro, así que un
+// click en la tarjeta nunca le llega.
 function CenteredModal({ open, onClose, ariaLabel, children }) {
   return (
     <>
@@ -581,272 +322,29 @@ function CenteredModal({ open, onClose, ariaLabel, children }) {
         role="dialog"
         aria-label={ariaLabel}
         aria-hidden={!open}
-        className={`liquid-glass-btn absolute left-1/2 top-1/2 z-50 w-[85%] max-w-sm rounded-3xl transition-[transform,opacity] duration-300 ease-out ${
+        className={`liquid-glass-btn absolute left-1/2 top-1/2 z-50 min-h-[200px] w-[85%] max-w-sm rounded-3xl transition-[transform,opacity] duration-300 ease-out ${
           open ? "" : "pointer-events-none"
         }`}
         style={{
-          background: "linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(179,214,235,0.55))",
           transform: `translate(-50%, -50%) scale(${open ? 1 : 0.85})`,
           opacity: open ? 1 : 0,
         }}
       >
-        <div className="max-h-[70vh] overflow-y-auto p-3">{children}</div>
+        {children}
       </div>
     </>
   );
 }
 
-// GLASS_ON_LIGHT_STYLE: para los elementos marcados en rojo que caen
-// DENTRO de una tarjeta de contenido plana (blanca, opaca) — el avatar,
-// los 4 botones de Perfil, la bolita/switch/ícono de salir de
-// Configuración. Ahí `.liquid-glass-btn` solo (fondo blanco 12% +
-// blur) es indistinguible del bg-white que tiene detrás: no hay nada
-// de color detrás para que el blur muestre, así que "se pierde" contra
-// la tarjeta — el bug exacto que reportó el usuario ("la parte de
-// abajo del botón no debe ser blanca"). La solución no es blur (no hay
-// nada que desenfocar ahí adentro) sino relieve real: un tinte
-// celeste-gris (ni blanco puro ni transparente), un borde sólido
-// visible, y un bisel más marcado que el de la clase compartida
-// (pensada para verse sobre el fondo de colores de la app, no sobre
-// blanco liso) — mismo lenguaje visual (brillo arriba-izquierda,
-// sombra abajo-derecha) pero con valores que sí se notan sobre blanco.
-const GLASS_ON_LIGHT_STYLE = {
-  background: "rgba(186, 216, 235, 0.4)",
-  border: "1.5px solid rgba(255,255,255,0.85)",
-  boxShadow:
-    "inset 1.5px 1.5px 3px rgba(255,255,255,0.9), inset -2px -3px 5px rgba(0,60,90,0.22), 0 3px 8px rgba(0,40,70,0.18)",
-};
-
-function PencilIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  );
-}
-function PlusIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-function ShareIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 16V4M7 9l5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
-    </svg>
-  );
-}
-function ChevronIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-function LogoutIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-    </svg>
-  );
-}
-function GearIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-    </svg>
-  );
+// ProfileModal/SettingsModal: contenedores vacíos a propósito (ver
+// comentario de RESET más arriba) — listos para reconstruirse con las
+// próximas especificaciones.
+function ProfileModal({ open, onClose }) {
+  return <CenteredModal open={open} onClose={onClose} ariaLabel="Perfil" />;
 }
 
-// ProfileModal: sin datos reales todavía (avatar/nombre/bio — Fase 3),
-// misma lógica que PlayerAvatar/SHEET_CONTENT: placeholders con la
-// estructura definitiva. `streak` llega desde MainLayout (usePetStats,
-// la misma fuente que ya usa el componente de Racha) — nada de volver
-// a leer el hook acá para no duplicar la fuente de verdad.
-//
-// REGLA DE ORO aplicada acá: la tarjeta de nombre/bio es plana
-// (bg-white, texto oscuro, sin cristal) — lo único en
-// `.liquid-glass-btn` adentro son el BORDE circular del avatar (un
-// anillo de cristal con p-[3px] alrededor del círculo gris plano de la
-// foto, no el círculo entero) y los 4 botones de la fila inferior
-// (esos sí, enteros). Íconos oscuros (zinc-800) en esos botones: sobre
-// vidrio traslúcido y una tarjeta blanca detrás, un ícono blanco no se
-// vería — por eso también el flame-white.png de Racha lleva
-// `filter: brightness(0)`, que lo vuelve negro conservando su alfa
-// (mismo trazo, sin necesitar un segundo asset).
-//
-// Botón de Racha: solo ícono + número, sin la palabra "Racha" — si
-// streak es 0 (o no hay valor todavía) se muestra únicamente el ícono,
-// sin "0" al lado, que se leería como un contador roto más que como
-// "sin racha aún".
-function ProfileModal({ open, onClose, streak }) {
-  return (
-    <CenteredModal open={open} onClose={onClose} ariaLabel="Perfil">
-      <div className="rounded-2xl bg-white p-4">
-        <div className="flex items-center gap-4">
-          <span
-            className="liquid-glass-btn flex h-16 w-16 shrink-0 items-center justify-center rounded-full p-[3px]"
-            style={GLASS_ON_LIGHT_STYLE}
-          >
-            <span className="h-full w-full rounded-full bg-zinc-300" />
-          </span>
-          <span className="text-lg font-semibold text-zinc-900">Nombre</span>
-        </div>
-        <p className="mt-4 text-sm text-zinc-600">
-          Escribo relatos cortos y fanfiction de mis fandoms favoritos.
-        </p>
-        <div className="mt-4 flex items-center gap-3">
-          <button
-            type="button"
-            aria-label={streak ? `Racha: ${streak}` : "Racha"}
-            className="liquid-glass-btn flex h-10 items-center gap-2 rounded-full px-4"
-            style={GLASS_ON_LIGHT_STYLE}
-          >
-            <img
-              src="/nav/flame-white.png"
-              alt=""
-              draggable={false}
-              className="pointer-events-none h-5 w-4 select-none object-contain"
-              style={{ filter: "brightness(0)" }}
-            />
-            {streak > 0 && <span className="text-sm font-semibold text-zinc-900">{streak}</span>}
-          </button>
-          <button
-            type="button"
-            aria-label="Editar perfil"
-            className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={GLASS_ON_LIGHT_STYLE}
-          >
-            <PencilIcon className="h-4 w-4 text-zinc-800" />
-          </button>
-          <button
-            type="button"
-            aria-label="Añadir"
-            className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={GLASS_ON_LIGHT_STYLE}
-          >
-            <PlusIcon className="h-4 w-4 text-zinc-800" />
-          </button>
-          <button
-            type="button"
-            aria-label="Compartir perfil"
-            className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={GLASS_ON_LIGHT_STYLE}
-          >
-            <ShareIcon className="h-4 w-4 text-zinc-800" />
-          </button>
-        </div>
-      </div>
-    </CenteredModal>
-  );
-}
-
-// SettingsGroup/SettingsRow: una sola pieza reusada para las filas
-// sueltas (Pausar notificaciones/Configuración general/Cerrar sesión,
-// cada una en su propia tarjeta) y para los dos grupos de filas
-// (separadas por una línea divisoria). REGLA DE ORO: el grupo en sí es
-// plano (bg-white, sin cristal) — lo único en `.liquid-glass-btn`
-// dentro de una fila es la "bolita" al inicio (un círculo de cristal
-// chico, reemplaza el punto de color plano que había antes) y el
-// control de la derecha cuando es un switch o el ícono de salir
-// (envuelto en su propio círculo de cristal); las flechas (Chevron)
-// NO llevan cristal, quedan en gris neutro liso.
-function SettingsGroup({ children }) {
-  return <div className="divide-y divide-zinc-100 rounded-2xl bg-white">{children}</div>;
-}
-function SettingsRow({ label, control, onClick }) {
-  const Comp = onClick ? "button" : "div";
-  return (
-    <Comp
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      className={`flex w-full items-center gap-3 px-4 py-3 text-left ${onClick ? "cursor-pointer" : ""}`}
-    >
-      <span className="liquid-glass-btn h-5 w-5 shrink-0 rounded-full" style={GLASS_ON_LIGHT_STYLE} />
-      <span className="flex-1 text-sm font-medium text-zinc-900">{label}</span>
-      {control}
-    </Comp>
-  );
-}
-
-// SettingsModal: switches con estado propio (pauseNotifications/
-// darkMode) — todavía sin conectar a nada real (Fase 3: silenciar
-// notificaciones de verdad, tema oscuro real de la app), solo para que
-// el toggle se vea y se sienta interactivo. Encabezado (ícono +
-// "Configuración") en gris tenue, plano — no estaba marcado en rojo en
-// el boceto, así que no lleva cristal.
 function SettingsModal({ open, onClose }) {
-  const [pauseNotifications, setPauseNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-
-  return (
-    <CenteredModal open={open} onClose={onClose} ariaLabel="Configuración">
-      <div className="mb-2 flex items-center gap-2 px-1">
-        <GearIcon className="h-5 w-5 text-zinc-400" />
-        <span className="text-sm font-semibold text-zinc-400">Configuración</span>
-      </div>
-      <div className="flex flex-col gap-3">
-        <SettingsGroup>
-          <SettingsRow
-            label="Pausar notificaciones"
-            control={<ToggleSwitch checked={pauseNotifications} onChange={setPauseNotifications} />}
-          />
-        </SettingsGroup>
-        <SettingsGroup>
-          <SettingsRow label="Configuración general" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-        </SettingsGroup>
-        <SettingsGroup>
-          <SettingsRow label="Modo oscuro" control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />} />
-          <SettingsRow label="Idioma" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-          <SettingsRow label="Mi contacto" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-        </SettingsGroup>
-        <SettingsGroup>
-          <SettingsRow label="Preguntas frecuentes" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-          <SettingsRow label="Términos de servicio" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-          <SettingsRow label="Política de usuario" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
-        </SettingsGroup>
-        <SettingsGroup>
-          <SettingsRow
-            label="Cerrar sesión"
-            onClick={() => {}}
-            control={
-              <span className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full" style={GLASS_ON_LIGHT_STYLE}>
-                <LogoutIcon className="h-4 w-4 text-zinc-700" />
-              </span>
-            }
-          />
-        </SettingsGroup>
-      </div>
-    </CenteredModal>
-  );
-}
-
-// ToggleSwitch: la PISTA es la que lleva `.liquid-glass-btn` completo
-// (marcada en rojo en el boceto), siempre con el mismo aspecto de
-// cristal en los dos estados — la perilla sólida (gris oscuro) es la
-// que comunica encendido/apagado con su posición, como cualquier
-// switch nativo. Estado controlado por quien lo usa (SettingsModal) —
-// no guarda nada propio.
-function ToggleSwitch({ checked, onChange }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="liquid-glass-btn relative h-6 w-11 shrink-0 rounded-full"
-      style={GLASS_ON_LIGHT_STYLE}
-    >
-      <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-zinc-700 shadow transition-transform ${
-          checked ? "translate-x-[22px]" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
+  return <CenteredModal open={open} onClose={onClose} ariaLabel="Configuración" />;
 }
 
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
@@ -924,19 +422,6 @@ export default function MainLayout() {
             <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
             <stop offset="50%" stopColor="rgba(255,255,255,0)" />
             <stop offset="100%" stopColor="rgba(0,0,0,0.5)" />
-          </linearGradient>
-          {/* Variante solo-blanco (sin la parada negra de arriba) para
-              el anillo del ojal de StoreSheet: ese trazo se ve encima
-              de un agujero real (mask-image), así que cualquier negro
-              en el gradiente se mezcla con lo que sea que haya detrás
-              del agujero y podía leerse como un tinte rojizo/violeta si
-              el fondo era cálido. Variar solo la opacidad del blanco da
-              el mismo relieve (brillante arriba-izquierda, más tenue
-              abajo-derecha) sin aportar ningún color propio. */}
-          <linearGradient id={GLASS_BEVEL_WHITE_GRADIENT_ID} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,1)" />
-            <stop offset="50%" stopColor="rgba(255,255,255,0.55)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.25)" />
           </linearGradient>
           {/* <feDropShadow> nativo en vez de la propiedad CSS
               filter: drop-shadow(...): esa depende de que el motor de
@@ -1182,7 +667,7 @@ export default function MainLayout() {
       {/* Perfil/Configuración: modales centrados (CenteredModal, ver
           más arriba) — independientes de isSheetOpen/activeTab y de
           usePetStats, así que abrirlos no toca el Dock ni la Racha. */}
-      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} streak={xp} />
+      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
