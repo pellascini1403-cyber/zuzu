@@ -552,15 +552,15 @@ function StoreSheet({ open, onClose }) {
 // `onClick` del backdrop — no hace falta un `stopPropagation` aparte
 // para que "tocar fuera" funcione.
 //
-// Cuerpo + borde, los dos en `.liquid-glass-btn` (blur real +
-// bisel/sombra de refracción), pero con un `background` inline que
-// pisa el de la clase: rgba(255,255,255,0.12) (el tinte blanco de
-// siempre) -> rgba(15,15,20,0.5) (neutro oscuro), para que la base sea
-// vidrio ahumado y no una tarjeta clara — coherente con la estética
-// del resto de la app (fondo dinámico + cristal blanco), así que el
-// contenido usa UI_TEXT_STYLE (blanco) igual que cualquier otro botón
-// de cristal, no el texto oscuro de los modales blancos antiguos de
-// components/modals/ (huérfanos desde el reset de Fase 1).
+// REGLA DE ORO: acá SOLO va el marco exterior en `.liquid-glass-btn`
+// (blur + bisel/sombra de refracción) — el `background` inline pisa el
+// de la clase con el degradado pedido (blanco arriba -> celeste abajo)
+// en vez de un tinte plano. Las tarjetas de CONTENIDO (el bloque de
+// nombre/bio en ProfileModal, cada grupo de filas en SettingsModal) NO
+// llevan esta clase: son planas, `bg-white`, con texto oscuro — el
+// padding chico de acá (`p-3`) es justamente el margen del degradado
+// que se ve alrededor de esas tarjetas planas, no espacio para
+// contenido propio.
 function CenteredModal({ open, onClose, ariaLabel, children }) {
   return (
     <>
@@ -579,12 +579,12 @@ function CenteredModal({ open, onClose, ariaLabel, children }) {
           open ? "" : "pointer-events-none"
         }`}
         style={{
-          background: "rgba(15,15,20,0.5)",
+          background: "linear-gradient(to bottom, #ffffff, #cbe3ef)",
           transform: `translate(-50%, -50%) scale(${open ? 1 : 0.85})`,
           opacity: open ? 1 : 0,
         }}
       >
-        <div className="max-h-[70vh] overflow-y-auto p-5">{children}</div>
+        <div className="max-h-[70vh] overflow-y-auto p-3">{children}</div>
       </div>
     </>
   );
@@ -625,12 +625,31 @@ function LogoutIcon({ className }) {
     </svg>
   );
 }
+function GearIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+    </svg>
+  );
+}
 
 // ProfileModal: sin datos reales todavía (avatar/nombre/bio — Fase 3),
 // misma lógica que PlayerAvatar/SHEET_CONTENT: placeholders con la
 // estructura definitiva. `streak` llega desde MainLayout (usePetStats,
 // la misma fuente que ya usa el componente de Racha) — nada de volver
 // a leer el hook acá para no duplicar la fuente de verdad.
+//
+// REGLA DE ORO aplicada acá: la tarjeta de nombre/bio es plana
+// (bg-white, texto oscuro, sin cristal) — lo único en
+// `.liquid-glass-btn` adentro son el BORDE circular del avatar (un
+// anillo de cristal con p-[3px] alrededor del círculo gris plano de la
+// foto, no el círculo entero) y los 4 botones de la fila inferior
+// (esos sí, enteros). Íconos oscuros (zinc-800) en esos botones: sobre
+// vidrio traslúcido y una tarjeta blanca detrás, un ícono blanco no se
+// vería — por eso también el flame-white.png de Racha lleva
+// `filter: brightness(0)`, que lo vuelve negro conservando su alfa
+// (mismo trazo, sin necesitar un segundo asset).
 //
 // Botón de Racha: solo ícono + número, sin la palabra "Racha" — si
 // streak es 0 (o no hay valor todavía) se muestra únicamente el ícono,
@@ -639,36 +658,41 @@ function LogoutIcon({ className }) {
 function ProfileModal({ open, onClose, streak }) {
   return (
     <CenteredModal open={open} onClose={onClose} ariaLabel="Perfil">
-      <div className="flex items-center gap-4">
-        <span className="liquid-glass-btn h-16 w-16 shrink-0 rounded-full" />
-        <span className={`text-lg ${UI_TEXT_STYLE}`}>Nombre</span>
-      </div>
-      <p className="mt-4 text-sm text-white/80">
-        Escribo relatos cortos y fanfiction de mis fandoms favoritos.
-      </p>
-      <div className="mt-5 flex items-center gap-3">
-        <button
-          type="button"
-          aria-label={streak ? `Racha: ${streak}` : "Racha"}
-          className="liquid-glass-btn flex h-10 items-center gap-2 rounded-full px-4"
-        >
-          <img
-            src="/nav/flame-white.png"
-            alt=""
-            draggable={false}
-            className="pointer-events-none h-5 w-4 select-none object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
-          />
-          {streak > 0 && <span className={`text-sm ${UI_TEXT_STYLE}`}>{streak}</span>}
-        </button>
-        <button type="button" aria-label="Editar perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-          <PencilIcon className="h-4 w-4 text-white" />
-        </button>
-        <button type="button" aria-label="Añadir" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-          <PlusIcon className="h-4 w-4 text-white" />
-        </button>
-        <button type="button" aria-label="Compartir perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-          <ShareIcon className="h-4 w-4 text-white" />
-        </button>
+      <div className="rounded-2xl bg-white p-4">
+        <div className="flex items-center gap-4">
+          <span className="liquid-glass-btn flex h-16 w-16 shrink-0 items-center justify-center rounded-full p-[3px]">
+            <span className="h-full w-full rounded-full bg-zinc-300" />
+          </span>
+          <span className="text-lg font-semibold text-zinc-900">Nombre</span>
+        </div>
+        <p className="mt-4 text-sm text-zinc-600">
+          Escribo relatos cortos y fanfiction de mis fandoms favoritos.
+        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            aria-label={streak ? `Racha: ${streak}` : "Racha"}
+            className="liquid-glass-btn flex h-10 items-center gap-2 rounded-full px-4"
+          >
+            <img
+              src="/nav/flame-white.png"
+              alt=""
+              draggable={false}
+              className="pointer-events-none h-5 w-4 select-none object-contain"
+              style={{ filter: "brightness(0)" }}
+            />
+            {streak > 0 && <span className="text-sm font-semibold text-zinc-900">{streak}</span>}
+          </button>
+          <button type="button" aria-label="Editar perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+            <PencilIcon className="h-4 w-4 text-zinc-800" />
+          </button>
+          <button type="button" aria-label="Añadir" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+            <PlusIcon className="h-4 w-4 text-zinc-800" />
+          </button>
+          <button type="button" aria-label="Compartir perfil" className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+            <ShareIcon className="h-4 w-4 text-zinc-800" />
+          </button>
+        </div>
       </div>
     </CenteredModal>
   );
@@ -677,10 +701,15 @@ function ProfileModal({ open, onClose, streak }) {
 // SettingsGroup/SettingsRow: una sola pieza reusada para las filas
 // sueltas (Pausar notificaciones/Configuración general/Cerrar sesión,
 // cada una en su propia tarjeta) y para los dos grupos de filas
-// (separadas por una línea divisoria, sin repetir el borde de cristal
-// entre ellas).
+// (separadas por una línea divisoria). REGLA DE ORO: el grupo en sí es
+// plano (bg-white, sin cristal) — lo único en `.liquid-glass-btn`
+// dentro de una fila es la "bolita" al inicio (un círculo de cristal
+// chico, reemplaza el punto de color plano que había antes) y el
+// control de la derecha cuando es un switch o el ícono de salir
+// (envuelto en su propio círculo de cristal); las flechas (Chevron)
+// NO llevan cristal, quedan en gris neutro liso.
 function SettingsGroup({ children }) {
-  return <div className="liquid-glass-btn divide-y divide-white/15 rounded-2xl">{children}</div>;
+  return <div className="divide-y divide-zinc-100 rounded-2xl bg-white">{children}</div>;
 }
 function SettingsRow({ label, control, onClick }) {
   const Comp = onClick ? "button" : "div";
@@ -690,8 +719,8 @@ function SettingsRow({ label, control, onClick }) {
       onClick={onClick}
       className={`flex w-full items-center gap-3 px-4 py-3 text-left ${onClick ? "cursor-pointer" : ""}`}
     >
-      <span className="h-2 w-2 shrink-0 rounded-full bg-white/40" />
-      <span className={`flex-1 text-sm ${UI_TEXT_STYLE}`}>{label}</span>
+      <span className="liquid-glass-btn h-5 w-5 shrink-0 rounded-full" />
+      <span className="flex-1 text-sm font-medium text-zinc-900">{label}</span>
       {control}
     </Comp>
   );
@@ -700,13 +729,19 @@ function SettingsRow({ label, control, onClick }) {
 // SettingsModal: switches con estado propio (pauseNotifications/
 // darkMode) — todavía sin conectar a nada real (Fase 3: silenciar
 // notificaciones de verdad, tema oscuro real de la app), solo para que
-// el toggle se vea y se sienta interactivo.
+// el toggle se vea y se sienta interactivo. Encabezado (ícono +
+// "Configuración") en gris tenue, plano — no estaba marcado en rojo en
+// el boceto, así que no lleva cristal.
 function SettingsModal({ open, onClose }) {
   const [pauseNotifications, setPauseNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   return (
     <CenteredModal open={open} onClose={onClose} ariaLabel="Configuración">
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <GearIcon className="h-5 w-5 text-zinc-400" />
+        <span className="text-sm font-semibold text-zinc-400">Configuración</span>
+      </div>
       <div className="flex flex-col gap-3">
         <SettingsGroup>
           <SettingsRow
@@ -715,32 +750,40 @@ function SettingsModal({ open, onClose }) {
           />
         </SettingsGroup>
         <SettingsGroup>
-          <SettingsRow label="Configuración general" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
+          <SettingsRow label="Configuración general" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
         </SettingsGroup>
         <SettingsGroup>
           <SettingsRow label="Modo oscuro" control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />} />
-          <SettingsRow label="Idioma" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
-          <SettingsRow label="Mi contacto" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
+          <SettingsRow label="Idioma" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Mi contacto" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
         </SettingsGroup>
         <SettingsGroup>
-          <SettingsRow label="Preguntas frecuentes" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
-          <SettingsRow label="Términos de servicio" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
-          <SettingsRow label="Política de usuario" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-white/60" />} />
+          <SettingsRow label="Preguntas frecuentes" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Términos de servicio" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
+          <SettingsRow label="Política de usuario" onClick={() => {}} control={<ChevronIcon className="h-4 w-4 text-zinc-400" />} />
         </SettingsGroup>
         <SettingsGroup>
-          <SettingsRow label="Cerrar sesión" onClick={() => {}} control={<LogoutIcon className="h-4 w-4 text-white/60" />} />
+          <SettingsRow
+            label="Cerrar sesión"
+            onClick={() => {}}
+            control={
+              <span className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full">
+                <LogoutIcon className="h-4 w-4 text-zinc-700" />
+              </span>
+            }
+          />
         </SettingsGroup>
       </div>
     </CenteredModal>
   );
 }
 
-// ToggleSwitch: pista en vidrio (bg translúcido, igual criterio que el
-// resto del Liquid Glass) + perilla blanca sólida. Blanco puro/gris
-// neutro nada más (sin verde ni ningún otro acento de color): el
-// estado on/off se distingue por el brillo de la propia pista, no por
-// un tinte. Estado controlado por quien lo usa (SettingsModal) — no
-// guarda nada propio.
+// ToggleSwitch: la PISTA es la que lleva `.liquid-glass-btn` completo
+// (marcada en rojo en el boceto), siempre con el mismo aspecto de
+// cristal en los dos estados — la perilla sólida (gris oscuro) es la
+// que comunica encendido/apagado con su posición, como cualquier
+// switch nativo. Estado controlado por quien lo usa (SettingsModal) —
+// no guarda nada propio.
 function ToggleSwitch({ checked, onChange }) {
   return (
     <button
@@ -748,10 +791,10 @@ function ToggleSwitch({ checked, onChange }) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? "bg-white/70" : "bg-white/15"}`}
+      className="liquid-glass-btn relative h-6 w-11 shrink-0 rounded-full"
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-zinc-700 shadow transition-transform ${
           checked ? "translate-x-[22px]" : "translate-x-0.5"
         }`}
       />
