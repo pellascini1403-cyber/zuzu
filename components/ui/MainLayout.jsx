@@ -260,92 +260,11 @@ const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
 const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
 const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 
-// RESET a pedido del usuario: todo el contenido/maquetación anterior
-// de Store/Perfil/Configuración (la etiqueta con ojal e hilo de Store,
-// las tarjetas de nombre/bio y de ajustes) se eliminó por completo
-// para reconstruirse desde cero con especificaciones nuevas. Lo único
-// que queda es el mecanismo de apertura/cierre — backdrop + transición
-// —, parte de la estructura base (navegación) que se pidió conservar,
-// no del contenido a rehacer. Los tres contenedores están vacíos a
-// propósito.
-
-// StoreSheet: hoja que se desliza desde abajo, exclusiva de la
-// pestaña Store (handleTabClick en MainLayout la abre/cierra; Habits/
-// Pets solo cambian `activeTab`, sin tocar esto).
-function StoreSheet({ open, onClose }) {
-  return (
-    <>
-      <div
-        onClick={onClose}
-        aria-hidden="true"
-        className={`absolute inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      />
-      <div
-        role="dialog"
-        aria-label="Store"
-        aria-hidden={!open}
-        className={`liquid-glass-btn absolute z-50 rounded-3xl transition-transform duration-300 ease-out ${
-          open ? "" : "pointer-events-none"
-        }`}
-        style={{
-          top: "16.7%",
-          bottom: "18.6%",
-          left: "11%",
-          right: "11.3%",
-          transform: open ? "translateY(0)" : "translateY(100vh)",
-        }}
-      />
-    </>
-  );
-}
-
-// CenteredModal: base compartida por ProfileModal y SettingsModal —
-// tarjeta centrada (no una hoja que se desliza desde abajo, como
-// StoreSheet) con transición de escala+opacidad. Backdrop y tarjeta
-// quedan siempre montados (nunca `{open && ...}`) para poder animar
-// también la salida. Sin botón "X": el único cierre es tocar el
-// backdrop — la tarjeta es hermana suya, no anidada dentro, así que un
-// click en la tarjeta nunca le llega.
-function CenteredModal({ open, onClose, ariaLabel, children }) {
-  return (
-    <>
-      <div
-        onClick={onClose}
-        aria-hidden="true"
-        className={`absolute inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      />
-      <div
-        role="dialog"
-        aria-label={ariaLabel}
-        aria-hidden={!open}
-        className={`liquid-glass-btn absolute left-1/2 top-1/2 z-50 min-h-[200px] w-[85%] max-w-sm rounded-3xl transition-[transform,opacity] duration-300 ease-out ${
-          open ? "" : "pointer-events-none"
-        }`}
-        style={{
-          transform: `translate(-50%, -50%) scale(${open ? 1 : 0.85})`,
-          opacity: open ? 1 : 0,
-        }}
-      >
-        {children}
-      </div>
-    </>
-  );
-}
-
-// ProfileModal/SettingsModal: contenedores vacíos a propósito (ver
-// comentario de RESET más arriba) — listos para reconstruirse con las
-// próximas especificaciones.
-function ProfileModal({ open, onClose }) {
-  return <CenteredModal open={open} onClose={onClose} ariaLabel="Perfil" />;
-}
-
-function SettingsModal({ open, onClose }) {
-  return <CenteredModal open={open} onClose={onClose} ariaLabel="Configuración" />;
-}
+// Store/Perfil/Configuración: sin modal, sin backdrop, sin handler de
+// click — a pedido del usuario, ninguno de los 3 botones/pestañas hace
+// nada todavía. Quedan visibles (el ícono de Perfil/Configuración en
+// la cabecera, la pestaña Store del Dock) pero inertes hasta que se
+// definan las interfaces nuevas desde cero.
 
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
@@ -374,32 +293,6 @@ export default function MainLayout() {
   // para crecer a `const [petMessage, setPetMessage] = useState(...)`
   // el día que haga falta.
   const [petMessage] = useState("¡Hello!");
-  // Independiente de `activeTab` (que sigue gobernando solo la muesca/
-  // burbuja elevada del Dock): controla si StoreSheet está desplegada.
-  // Exclusiva de la pestaña Store — Habits/Pets solo cambian
-  // `activeTab`, igual que antes de que existiera la hoja (ver
-  // handleTabClick abajo).
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  // Perfil/Configuración: modales centrados, sin relación con
-  // activeTab/isSheetOpen ni con la Racha (usePetStats) — estado propio
-  // a propósito, para que abrirlos no reinicie ni interfiera con el
-  // Dock ni con ese componente.
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  function handleTabClick(key) {
-    if (key !== "store") {
-      setActiveTab(key);
-      setIsSheetOpen(false);
-      return;
-    }
-    if (activeTab === "store" && isSheetOpen) {
-      setIsSheetOpen(false);
-    } else {
-      setActiveTab("store");
-      setIsSheetOpen(true);
-    }
-  }
   const { xp, xpToNext, streakJustIncreased } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
@@ -449,30 +342,21 @@ export default function MainLayout() {
           recortaron al bounding box real del canal alfa (+2%) antes de
           guardarlos. object-fit: contain conserva su proporción nativa
           (ninguno de los 3 es cuadrado) dentro del círculo/píldora.
-          z-[45], no z-20 a secas: mismo motivo que los botones del
-          Dock — por encima del backdrop de StoreSheet (z-40, cubre
-          toda la pantalla) para poder abrir Perfil/Configuración
-          aunque la hoja de Store esté desplegada, sin tener que
-          cerrarla primero. */}
-      <div className="absolute inset-x-0 top-0 z-[45] flex items-start justify-between gap-2 p-4">
+          Perfil/Configuración: sin onClick a propósito — sin modal que
+          abrir todavía (ver comentario grande más abajo), quedan
+          visibles pero inertes hasta que se definan las interfaces
+          nuevas. */}
+      <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
         <div className="flex flex-col items-start gap-2">
-          {/* Perfil: abre ProfileModal (ver más abajo) — tap en la
-              cápsula, no en un ícono de engranaje aparte como
-              Configuración, porque acá la cápsula ENTERA es el gatillo
-              (así lo pidió el usuario). */}
-          <button
-            type="button"
-            onClick={() => setIsProfileOpen(true)}
-            aria-label="Perfil"
-            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
-          >
+          {/* Perfil */}
+          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
             <img
               src="/nav/profile-icon.png"
               alt=""
               draggable={false}
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
-          </button>
+          </div>
           {/* Usuarios: 1 o 2 jugadores (PlayerAvatar, arriba), superpuestos
               (-space-x-2) cuando son 2; un solo círculo centrado cuando
               es 1 (el `flex justify-center` del contenedor lo resuelve
@@ -486,20 +370,15 @@ export default function MainLayout() {
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          {/* Configuración: abre SettingsModal (ver más abajo). */}
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(true)}
-            aria-label="Configuración"
-            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
-          >
+          {/* Configuración */}
+          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
             <img
               src="/nav/settings-icon.png"
               alt=""
               draggable={false}
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
-          </button>
+          </div>
           {/* Tokens: ancho intrínseco (NO fijo) — el ícono va anclado a
               la izquierda del contenido interno, el contador a la
               derecha con su propio padding. El contenedor padre de esta
@@ -623,14 +502,10 @@ export default function MainLayout() {
           - Apagado (inactivo): ícono+label planos, dentro del cuerpo
             del dock, sin burbuja alrededor.
           Un solo <button> por pestaña; el contenido (bubble vs.
-          ícono+label) cambia según sea la pestaña activa o no. Clic en
-          Store abre/cierra StoreSheet; clic en Habits/Pets solo cambia
-          `activeTab`, sin abrir nada — ver handleTabClick más arriba.
-          z-45: por encima del backdrop de StoreSheet (z-40, cubre toda
-          la pantalla) para poder tocar Habits/Pets y salir de Store sin
-          tener que cerrar la hoja primero — pero por debajo de la
-          propia hoja (z-50), que de todos modos no llega a
-          superponerse visualmente con el Dock. */}
+          ícono+label) cambia según sea la pestaña activa o no. Store
+          queda SIN onClick a propósito (ver comentario grande más
+          abajo, junto a NAV_ITEMS) — Habits/Pets siguen cambiando
+          `activeTab` normalmente, eso nunca dependió de ningún modal. */}
       {NAV_ITEMS.map((item) => {
         const isActive = item.key === activeTab;
         const Icon = item.Icon;
@@ -638,10 +513,10 @@ export default function MainLayout() {
           <button
             key={item.key}
             type="button"
-            onClick={() => handleTabClick(item.key)}
+            onClick={item.key === "store" ? undefined : () => setActiveTab(item.key)}
             aria-label={item.label}
             aria-pressed={isActive}
-            className="absolute z-[45] -translate-x-1/2"
+            className="absolute z-30 -translate-x-1/2"
             style={{ left: item.cx, top: isActive ? ACTIVE_BUBBLE_TOP : INACTIVE_ITEM_TOP }}
           >
             {isActive ? (
@@ -657,18 +532,6 @@ export default function MainLayout() {
           </button>
         );
       })}
-
-      {/* Hoja de Store + fondo oscurecido — ver StoreSheet más arriba.
-          Exclusiva de esta pestaña (Habits/Pets no la usan). Siempre
-          montada (nunca `{isSheetOpen && ...}`) para poder animar
-          también la salida. */}
-      <StoreSheet open={isSheetOpen} onClose={() => setIsSheetOpen(false)} />
-
-      {/* Perfil/Configuración: modales centrados (CenteredModal, ver
-          más arriba) — independientes de isSheetOpen/activeTab y de
-          usePetStats, así que abrirlos no toca el Dock ni la Racha. */}
-      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
-      <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }
