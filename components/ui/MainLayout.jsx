@@ -815,87 +815,13 @@ function SettingsModal({ open, onClose }) {
   );
 }
 
-// GLASS_ACCENT_COLOR: los íconos de Cat/Token de la referencia no son
-// simples — tienen su PROPIO detalle marcado en rojo adentro (el trazo
-// "Z" del token, los ojos/nariz del gato), sobre un fondo blanco que no
-// está en rojo. A esa escala (unos pocos px de trazo) un backdrop-
-// filter real no se notaría ni si se pudiera aplicar, así que ese
-// detalle interno se redibuja con un color sólido representativo del
-// mismo tinte que PROFILE_GLASS_STYLE en vez de intentar un blur real
-// sobre un trazo de 2px — mismo espíritu ("rojo -> vidrio"), aplicado
-// de forma práctica a un detalle demasiado chico para que el blur
-// importe.
-const GLASS_ACCENT_COLOR = "#6ea3c4";
-
-// HangerIcon/CupIcon/CatIcon: el usuario probó una hoja de íconos
-// alternativa (percha triangular abierta, lupa+balde, "bandera" con
-// 3 puntos) y pidió deshacerla porque no era lo que buscaba — se
-// vuelve a la forma original (percha clásica con gancho, balde con
-// asa/pajita, cara de gato con ojos+nariz), confirmada contra la
-// nueva referencia que trazó exactamente estas 3 formas de nuevo.
-// Los 4 íconos de abajo (Hanger/Cup/Cat/Token) fueron retrazados a
-// mano midiendo pixel a pixel la hoja de referencia del usuario
-// (bounding boxes, radios de curva y ángulos, no una forma inventada
-// ni una librería de íconos genérica). Cada uno se verificó
-// renderizando el SVG aislado y comparándolo lado a lado contra el
-// recorte de la referencia antes de integrarlo acá.
-function HangerIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.6 7.6A2.6 2.6 0 1 1 12 6.3V8" />
-      <path d="M12 8 3 18.6a1 1 0 0 0 .68 2.2h16.64a1 1 0 0 0 .68-2.2Z" />
-    </svg>
-  );
-}
-function CupIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className}>
-      <path
-        d="M6.8 9.4A6.3 6.3 0 0 1 16.3 4.9L18.3 3.2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        fill="currentColor"
-        d="M6.8 9.4h10.4a.8.8 0 0 1 .8.9l-1 8.4a1.6 1.6 0 0 1-1.6 1.4H8.6A1.6 1.6 0 0 1 7 18.7l-1-8.4a.8.8 0 0 1 .8-.9Z"
-      />
-    </svg>
-  );
-}
-// CatIcon: los ojos y la boca son un HUECO real (negative space) que
-// deja ver lo que sea que haya detrás, no una forma de color encima
-// — igual que el resto de íconos de este archivo que usan <mask>
-// (Camera/Share/Gear/Logout más arriba) — porque en la referencia son
-// literalmente transparentes (se ve el fondo negro/blanco de la hoja
-// a través de ellos, no un acento de color).
-function CatIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className}>
-      <mask id="cat-icon-face">
-        <rect x="0" y="0" width="24" height="24" fill="#fff" />
-        <circle cx="10" cy="13.2" r="0.6" fill="#000" />
-        <circle cx="14" cy="13.2" r="0.6" fill="#000" />
-        <rect x="11.35" y="14.35" width="1.3" height="0.7" rx="0.35" fill="#000" />
-      </mask>
-      <path
-        fill="currentColor"
-        mask="url(#cat-icon-face)"
-        d="M7 4.5 10 8h4l3-3.5a.8.8 0 0 1 1.4.6V16a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V5.1a.8.8 0 0 1 1-.6Z"
-      />
-    </svg>
-  );
-}
-function TokenIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className}>
-      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="12" cy="12" r="6.6" fill="currentColor" />
-      <path d="M9.3 9.3h5.4L9.3 14.7h5.4" fill="none" stroke={GLASS_ACCENT_COLOR} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+// Hanger/Cup/Cat/Token: assets PNG provistos por el usuario
+// (public/nav/hanger-white.png, cup-white.png, cat-white.png,
+// token-white.png — recortados a su bounding box de alfa +2%, mismo
+// criterio que el resto de íconos en public/nav/), no íconos SVG
+// propios. A pedido explícito del usuario, dejaron de codificarse a
+// mano: se usan las imágenes exactas de su hoja de referencia vía
+// <img>, igual que flame-white.png o profile-icon.png más abajo.
 
 // StoreModal: layout medido pixel a pixel contra la imagen de
 // referencia (mismo MODAL_BOX/canvas que Profile/Settings). card1
@@ -950,7 +876,7 @@ function StoreModal({ open, onClose }) {
           className="liquid-glass-btn absolute flex items-center justify-center gap-1.5 rounded-full"
           style={{ left: "14.89%", top: "52.18%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
         >
-          <TokenIcon className="h-5 w-5 shrink-0 text-white" />
+          <img src="/nav/token-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 shrink-0 select-none object-contain" />
           <span className="text-sm font-bold text-white">150</span>
         </div>
         <div
@@ -972,25 +898,25 @@ function StoreModal({ open, onClose }) {
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "7.77%", top: "77.06%", width: "33.01%", height: "8.06%", ...PROFILE_GLASS_STYLE }}
         >
-          <HangerIcon className="h-5 w-5 text-white" />
+          <img src="/nav/hanger-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "44.44%", top: "77.41%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <CupIcon className="h-5 w-5 text-white" />
+          <img src="/nav/cup-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "61.17%", top: "77.41%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <CatIcon className="h-5 w-5 text-white" />
+          <img src="/nav/cat-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "78.21%", top: "77.41%", width: "13.38%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <TokenIcon className="h-5 w-5 text-white" />
+          <img src="/nav/token-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
       </div>
     </>
@@ -1063,19 +989,19 @@ function PetsModal({ open, onClose }) {
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "16.50%", top: "77.06%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
         >
-          <HangerIcon className="h-5 w-5 text-white" />
+          <img src="/nav/hanger-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "53.18%", top: "77.41%", width: "13.16%", height: "7.24%", ...PROFILE_GLASS_STYLE }}
         >
-          <CupIcon className="h-5 w-5 text-white" />
+          <img src="/nav/cup-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "69.90%", top: "77.41%", width: "13.16%", height: "7.24%", ...PROFILE_GLASS_STYLE }}
         >
-          <CatIcon className="h-5 w-5 text-white" />
+          <img src="/nav/cat-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
       </div>
     </>
