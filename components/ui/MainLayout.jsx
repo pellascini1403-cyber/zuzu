@@ -520,19 +520,35 @@ function ProfileModal({ open, onClose, streak }) {
   );
 }
 
+// Glifos de SettingsModal medidos contra la hoja de referencia del
+// usuario: los 9 son FORMAS RELLENAS en negro puro (currentColor), no
+// los trazos finos que tenían antes. Donde la referencia muestra un
+// "hueco" (aro del engranaje, check del escudo, ranura del logout) se
+// usa blanco/mask en vez de stroke, igual que en los íconos del modal
+// de Perfil.
 function BellIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1Z" />
     </svg>
   );
 }
 function GearIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+    <svg viewBox="0 0 24 24" className={className}>
+      <mask id="settings-gear-hole">
+        <rect x="0" y="0" width="24" height="24" fill="#fff" />
+        <circle cx="12" cy="12" r="3.1" fill="#000" />
+      </mask>
+      <g fill="currentColor" mask="url(#settings-gear-hole)">
+        <circle cx="12" cy="12" r="4.6" />
+        <circle cx="17.4" cy="12" r="4.3" />
+        <circle cx="14.7" cy="16.68" r="4.3" />
+        <circle cx="9.3" cy="16.68" r="4.3" />
+        <circle cx="6.6" cy="12" r="4.3" />
+        <circle cx="9.3" cy="7.32" r="4.3" />
+        <circle cx="14.7" cy="7.32" r="4.3" />
+      </g>
     </svg>
   );
 }
@@ -543,51 +559,75 @@ function MoonIcon({ className }) {
     </svg>
   );
 }
-function GlobeIcon({ className }) {
+// AaIcon: en la referencia, "Idioma" no usa un glifo vectorial sino el
+// texto literal "Aa" — se respeta tal cual en vez de inventar un
+// ícono de globo terráqueo.
+function AaIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" />
+    <span className={`inline-flex items-center justify-center text-[19px] font-medium leading-none ${className}`}>
+      Aa
+    </span>
+  );
+}
+// ZLogoIcon: la referencia usa el mismo isotipo (aro + disco + trazo
+// "Z") que TokenIcon en StoreModal, en monocromo, para "Mi contacto".
+function ZLogoIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className}>
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="12" cy="12" r="6.6" fill="currentColor" />
+      <path d="M9.3 9.3h5.4L9.3 14.7h5.4" fill="none" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
-function MailIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="m3.5 6 8.5 7 8.5-7" />
-    </svg>
-  );
-}
+// QuestionIcon: signo de interrogación suelto, sin círculo alrededor
+// (a diferencia de la versión anterior).
 function QuestionIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7" />
-      <path d="M12 17.2h.01" />
-    </svg>
+    <span className={`inline-flex items-center justify-center text-[22px] font-black leading-none ${className}`}>
+      ?
+    </span>
   );
 }
+// DocumentIcon ("Terms of service"): en la referencia no es una hoja
+// con líneas de texto sino un cuerpo rectangular con una sola ranura
+// horizontal y un asa/anilla en forma de "D" del lado derecho.
 function DocumentIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-      <path d="M9 12h6M9 16h6M9 8h2" />
+    <svg viewBox="0 0 24 24" className={className}>
+      <mask id="settings-doc-slot">
+        <rect x="0" y="0" width="24" height="24" fill="#fff" />
+        <rect x="4" y="16.6" width="12" height="1.3" fill="#000" />
+      </mask>
+      <rect x="4" y="2.5" width="12" height="19" rx="2.2" fill="currentColor" mask="url(#settings-doc-slot)" />
+      <path
+        d="M15.5 6.2c3.3.35 5.5 2.7 5.5 5.8s-2.2 5.45-5.5 5.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 function ShieldCheckIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6Z" />
-      <path d="m9 12 2 2 4-4" />
+    <svg viewBox="0 0 24 24" className={className}>
+      <path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5Z" />
+      <path d="m8.5 12.2 2.6 2.6 4.8-4.8" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 function LogoutIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    <svg viewBox="0 0 24 24" className={className}>
+      <mask id="settings-logout-notch">
+        <rect x="0" y="0" width="24" height="24" fill="#fff" />
+        <rect x="10" y="10.4" width="6" height="3.2" fill="#000" />
+      </mask>
+      <rect x="3" y="4" width="13" height="16" rx="4" fill="currentColor" mask="url(#settings-logout-notch)" />
+      <path d="M10 12h9.5M16 8.3 20 12l-4 3.7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -690,7 +730,7 @@ function SettingsModal({ open, onClose }) {
           className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
           style={{ left: "3.13%", right: "3.24%", top: "13.29%", height: "7.65%" }}
         >
-          <BellIcon className="h-5 w-5 shrink-0 text-zinc-900" />
+          <BellIcon className="h-6 w-6 shrink-0 text-black" />
           <span className="flex-1 text-sm font-semibold text-zinc-900">Pause notifications</span>
           <ToggleSwitch checked={pauseNotifications} onChange={setPauseNotifications} />
         </div>
@@ -700,7 +740,7 @@ function SettingsModal({ open, onClose }) {
           className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
           style={{ left: "3.13%", right: "3.24%", top: "23.00%", height: "7.65%" }}
         >
-          <GearIcon className="h-5 w-5 shrink-0 text-zinc-900" />
+          <GearIcon className="h-6 w-6 shrink-0 text-black" />
           <span className="flex-1 text-sm font-semibold text-zinc-900">General Settings</span>
           <ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />
         </div>
@@ -711,17 +751,17 @@ function SettingsModal({ open, onClose }) {
           style={{ left: "3.13%", right: "3.24%", top: "32.65%", height: "23.41%" }}
         >
           <SettingsRow
-            icon={<MoonIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            icon={<MoonIcon className="h-6 w-6 shrink-0 text-black" />}
             label="Dark mode"
             control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />}
           />
           <SettingsRow
-            icon={<GlobeIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            icon={<AaIcon className="h-6 w-6 shrink-0 text-black" />}
             label="Language"
             control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
           />
           <SettingsRow
-            icon={<MailIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            icon={<ZLogoIcon className="h-6 w-6 shrink-0 text-black" />}
             label="My contact"
             control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
           />
@@ -733,17 +773,17 @@ function SettingsModal({ open, onClose }) {
           style={{ left: "3.13%", right: "3.24%", top: "58.18%", height: "23.41%" }}
         >
           <SettingsRow
-            icon={<QuestionIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            icon={<QuestionIcon className="h-6 w-6 shrink-0 text-black" />}
             label="FAQ"
             control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
           />
           <SettingsRow
-            icon={<DocumentIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            icon={<DocumentIcon className="h-6 w-6 shrink-0 text-black" />}
             label="Terms of service"
             control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
           />
           <SettingsRow
-            icon={<ShieldCheckIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            icon={<ShieldCheckIcon className="h-6 w-6 shrink-0 text-black" />}
             label="User policy"
             control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
           />
@@ -754,7 +794,7 @@ function SettingsModal({ open, onClose }) {
           className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
           style={{ left: "3.13%", right: "3.24%", top: "88.47%", height: "7.71%" }}
         >
-          <LogoutIcon className="h-5 w-5 shrink-0 text-zinc-900" />
+          <LogoutIcon className="h-6 w-6 shrink-0 text-black" />
           <span className="text-sm font-semibold text-zinc-900">Log out</span>
         </div>
       </div>
