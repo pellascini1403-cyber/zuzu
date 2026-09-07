@@ -880,6 +880,91 @@ function StoreModal({ open, onClose }) {
   );
 }
 
+// PetsModal: reutiliza la misma estructura base que StoreModal (mismo
+// MODAL_BOX/canvas, card1 y card2 en idénticas coordenadas), pero
+// espejada horizontalmente — la esquina hiperredondeada va arriba a la
+// IZQUIERDA (radio medido: ~94px CSS) en vez de arriba a la derecha.
+//
+// Medido pixel a pixel contra esta referencia (no reutilizado de
+// Store): marco exterior, píldora "Hat" y las 3 pestañas de categoría
+// (percha/vaso/gato — sin token, esta vista no tiene ese botón) están
+// en rojo y pasan a Liquid Glass. El circulito decorativo top-right,
+// en cambio, midió BLANCO puro (no rojo) en esta referencia — a
+// diferencia del de Store, acá queda como círculo blanco liso, sin
+// vidrio. El preview central y los íconos/texto blancos de las
+// píldoras no estaban en rojo y quedan tal cual.
+function PetsModal({ open, onClose }) {
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label="Pets"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-50 ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...MODAL_BOX,
+          borderTopLeftRadius: 94,
+          borderTopRightRadius: 28,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          transform: `scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        {/* Circulito decorativo superior-derecho: blanco liso, no vidrio
+            (midió blanco puro en la referencia, no rojo). */}
+        <span
+          className="absolute rounded-full bg-white"
+          style={{ left: "85.44%", top: "4.59%", width: "6.58%", height: "3.53%" }}
+        />
+
+        {/* Tarjeta 1: preview + píldora "Hat" */}
+        <div
+          className="absolute overflow-hidden rounded-[28px] bg-white"
+          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
+        >
+          <PetPreviewPlaceholder />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "34.74%", top: "52.18%", width: "32.79%", height: "7.94%", ...PROFILE_GLASS_STYLE }}
+        >
+          <span className="text-sm font-bold text-white">Hat</span>
+        </div>
+
+        {/* Tarjeta 2: preview + 3 pestañas de categoría (percha/vaso/gato) */}
+        <div
+          className="absolute overflow-hidden rounded-[28px] bg-white"
+          style={{ left: "3.13%", right: "3.24%", top: "66.29%", height: "29.29%" }}
+        >
+          <PetPreviewPlaceholder />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "16.50%", top: "77.06%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
+        >
+          <HangerIcon className="h-5 w-5 text-white" />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "53.18%", top: "77.41%", width: "13.16%", height: "7.24%", ...PROFILE_GLASS_STYLE }}
+        >
+          <CupIcon className="h-5 w-5 text-white" />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "69.90%", top: "77.41%", width: "13.16%", height: "7.24%", ...PROFILE_GLASS_STYLE }}
+        >
+          <CatIcon className="h-5 w-5 text-white" />
+        </div>
+      </div>
+    </>
+  );
+}
+
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
 // sigue sin definirse). Un degradado liso no sirve para esto: el blur
@@ -912,6 +997,7 @@ export default function MainLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
+  const [petsOpen, setPetsOpen] = useState(false);
   const { xp, xpToNext, streakJustIncreased } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
@@ -1130,8 +1216,8 @@ export default function MainLayout() {
             del dock, sin burbuja alrededor.
           Un solo <button> por pestaña; el contenido (bubble vs.
           ícono+label) cambia según sea la pestaña activa o no. Store
-          además abre StoreModal (ver más abajo) — Habits/Pets solo
-          cambian `activeTab`, sin modal. */}
+          abre StoreModal y Pets abre PetsModal (ver más abajo) —
+          Habits solo cambia `activeTab`, sin modal. */}
       {NAV_ITEMS.map((item) => {
         const isActive = item.key === activeTab;
         const Icon = item.Icon;
@@ -1142,6 +1228,7 @@ export default function MainLayout() {
             onClick={() => {
               setActiveTab(item.key);
               if (item.key === "store") setStoreOpen(true);
+              if (item.key === "pets") setPetsOpen(true);
             }}
             aria-label={item.label}
             aria-pressed={isActive}
@@ -1165,6 +1252,7 @@ export default function MainLayout() {
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} streak={xp} />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
+      <PetsModal open={petsOpen} onClose={() => setPetsOpen(false)} />
     </div>
   );
 }
