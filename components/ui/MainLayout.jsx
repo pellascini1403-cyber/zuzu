@@ -619,15 +619,28 @@ function ShieldCheckIcon({ className }) {
     </svg>
   );
 }
+// LogoutIcon: reemplazado por el glifo exacto pedido por el usuario
+// (bloque rectangular redondeado con un recorte en "U" del lado
+// derecho por donde sale una flecha gruesa) — cuerpo más angosto/alto
+// que la versión anterior, con el hueco de salida redondeado en su
+// extremo interior (no un simple rectángulo recto) para que lea como
+// una "U" real y no como una muesca cuadrada.
 function LogoutIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" className={className}>
       <mask id="settings-logout-notch">
         <rect x="0" y="0" width="24" height="24" fill="#fff" />
-        <rect x="10" y="10.4" width="6" height="3.2" fill="#000" />
+        <path d="M17 9.5h-3.8a2.4 2.4 0 0 0 0 4.8H17Z" fill="#000" />
       </mask>
-      <rect x="3" y="4" width="13" height="16" rx="4" fill="currentColor" mask="url(#settings-logout-notch)" />
-      <path d="M10 12h9.5M16 8.3 20 12l-4 3.7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="1.5" y="3.3" width="14" height="17.3" rx="3.2" fill="currentColor" mask="url(#settings-logout-notch)" />
+      <path
+        d="M9.5 12h3.7M13 8.1 22.2 12 13 15.9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="miter"
+      />
     </svg>
   );
 }
