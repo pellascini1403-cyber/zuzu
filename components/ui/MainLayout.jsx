@@ -815,13 +815,18 @@ function SettingsModal({ open, onClose }) {
   );
 }
 
-// Hanger/Cup/Cat/Token: assets PNG provistos por el usuario
-// (public/nav/hanger-white.png, cup-white.png, cat-white.png,
-// token-white.png — recortados a su bounding box de alfa +2%, mismo
-// criterio que el resto de íconos en public/nav/), no íconos SVG
-// propios. A pedido explícito del usuario, dejaron de codificarse a
-// mano: se usan las imágenes exactas de su hoja de referencia vía
-// <img>, igual que flame-white.png o profile-icon.png más abajo.
+// Hanger/Cup/Cat: assets PNG provistos por el usuario
+// (public/nav/hanger-white.png, cup-white.png, cat-white.png —
+// recortados a su bounding box de alfa +2%, mismo criterio que el
+// resto de íconos en public/nav/), no íconos SVG propios. A pedido
+// explícito del usuario, dejaron de codificarse a mano: se usan las
+// imágenes exactas de su hoja de referencia vía <img>, igual que
+// flame-white.png o profile-icon.png más abajo.
+// Token: NO usa un PNG recortado propio — el recorte anterior
+// (token-white.png) mostraba un artefacto de compresión/crop (un
+// punto oscuro) en el trazo de la "Z". En vez de recortar de nuevo,
+// se reutiliza tokens-icon.png, el mismo asset limpio ya usado en la
+// píldora de saldo del header principal.
 
 // StoreModal: layout medido pixel a pixel contra la imagen de
 // referencia (mismo MODAL_BOX/canvas que Profile/Settings). card1
@@ -876,7 +881,7 @@ function StoreModal({ open, onClose }) {
           className="liquid-glass-btn absolute flex items-center justify-center gap-1.5 rounded-full"
           style={{ left: "14.89%", top: "52.18%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
         >
-          <img src="/nav/token-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 shrink-0 select-none object-contain" />
+          <img src="/nav/tokens-icon.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 shrink-0 select-none object-contain" />
           <span className="text-sm font-bold text-white">150</span>
         </div>
         <div
@@ -916,7 +921,7 @@ function StoreModal({ open, onClose }) {
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "78.21%", top: "77.41%", width: "13.38%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <img src="/nav/token-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
+          <img src="/nav/tokens-icon.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
       </div>
     </>
