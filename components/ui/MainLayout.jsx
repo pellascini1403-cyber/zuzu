@@ -329,32 +329,52 @@ const PROFILE_GLASS_STYLE = {
     "inset 1.5px 1.5px 3px rgba(255,255,255,0.7), inset -2px -3px 5px rgba(0,40,70,0.22), 0 3px 8px rgba(0,30,60,0.15)",
 };
 
+// Glifos de ProfileModal (Editar/Agregar/Compartir/Cámara) medidos
+// contra la hoja de referencia de íconos del usuario: los 4 son
+// FORMAS RELLENAS en blanco puro (currentColor), no trazos finos como
+// la versión anterior — Cámara y Compartir usan un <mask> para
+// "recortar" un hueco real en la forma rellena (el aro de la lente, la
+// ranura de la bandeja) en vez de un simple stroke encima.
 function PencilIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z" />
+      <rect x="13.2" y="19" width="6.3" height="1.7" rx="0.85" />
     </svg>
   );
 }
 function PlusIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
       <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }
 function ShareIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 16V4M7 9l5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+    <svg viewBox="0 0 24 24" className={className}>
+      <mask id="share-icon-slot">
+        <rect x="0" y="0" width="24" height="24" fill="#fff" />
+        <rect x="10.8" y="9.2" width="2.4" height="3.6" fill="#000" />
+      </mask>
+      <rect x="5" y="11" width="14" height="9" rx="2.4" fill="currentColor" mask="url(#share-icon-slot)" />
+      <path d="M12 4v9.5M8 8l4-4 4 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 function CameraIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .83-.45l.94-1.4A1 1 0 0 1 9.8 3.5h4.4a1 1 0 0 1 .83.45l.94 1.4a1 1 0 0 0 .83.45H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
-      <circle cx="12" cy="13" r="3.2" />
+    <svg viewBox="0 0 24 24" className={className}>
+      <mask id="camera-icon-lens">
+        <rect x="0" y="0" width="24" height="24" fill="#fff" />
+        <circle cx="12" cy="13" r="3.3" fill="#000" />
+      </mask>
+      <path
+        d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .83-.45l.94-1.4A1 1 0 0 1 9.8 3.5h4.4a1 1 0 0 1 .83.45l.94 1.4a1 1 0 0 0 .83.45H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"
+        fill="currentColor"
+        mask="url(#camera-icon-lens)"
+      />
+      <rect x="10.3" y="12.35" width="3.4" height="1.3" rx="0.65" fill="currentColor" />
     </svg>
   );
 }
@@ -437,7 +457,11 @@ function ProfileModal({ open, onClose, streak }) {
         </span>
 
         {/* Fila de 4 botones: Racha (píldora ancha) + Editar/Agregar/
-            Compartir (círculos), todos Liquid Glass. */}
+            Compartir (círculos), todos Liquid Glass. Los 5 glifos de esta
+            fila + Cámara (abajo) son blanco puro y un poco más grandes
+            dentro de su contenedor — pedido explícito del usuario contra
+            su hoja de referencia de íconos, reemplaza el gris oscuro/
+            tamaño chico que tenían antes. */}
         <div
           className="liquid-glass-btn absolute flex items-center justify-center gap-2 rounded-full px-4"
           style={{ left: "7.77%", top: "52.18%", width: "33.01%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
@@ -446,10 +470,9 @@ function ProfileModal({ open, onClose, streak }) {
             src="/nav/flame-white.png"
             alt=""
             draggable={false}
-            className="pointer-events-none h-5 w-4 select-none object-contain"
-            style={{ filter: "brightness(0)" }}
+            className="pointer-events-none h-6 w-5 select-none object-contain"
           />
-          {streak > 0 && <span className="text-sm font-semibold text-zinc-900">{streak}</span>}
+          {streak > 0 && <span className="text-sm font-semibold text-white">{streak}</span>}
         </div>
         <button
           type="button"
@@ -457,7 +480,7 @@ function ProfileModal({ open, onClose, streak }) {
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "44.44%", top: "52.53%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <PencilIcon className="h-4 w-4 text-zinc-800" />
+          <PencilIcon className="h-5 w-5 text-white" />
         </button>
         <button
           type="button"
@@ -465,7 +488,7 @@ function ProfileModal({ open, onClose, streak }) {
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "61.17%", top: "52.53%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <PlusIcon className="h-4 w-4 text-zinc-800" />
+          <PlusIcon className="h-5 w-5 text-white" />
         </button>
         <button
           type="button"
@@ -473,7 +496,7 @@ function ProfileModal({ open, onClose, streak }) {
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "78.21%", top: "52.53%", width: "13.38%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <ShareIcon className="h-4 w-4 text-zinc-800" />
+          <ShareIcon className="h-5 w-5 text-white" />
         </button>
 
         {/* Tarjeta 2: preview de la mascota + botón de cámara (Liquid
@@ -490,7 +513,7 @@ function ProfileModal({ open, onClose, streak }) {
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "7.87%", top: "86.00%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <CameraIcon className="h-4 w-4 text-zinc-800" />
+          <CameraIcon className="h-5 w-5 text-white" />
         </button>
       </div>
     </>
