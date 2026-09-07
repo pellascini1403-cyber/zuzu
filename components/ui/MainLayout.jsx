@@ -728,6 +728,158 @@ function SettingsModal({ open, onClose }) {
   );
 }
 
+// GLASS_ACCENT_COLOR: los íconos de Cat/Token de la referencia no son
+// simples — tienen su PROPIO detalle marcado en rojo adentro (el trazo
+// "Z" del token, los ojos/nariz del gato), sobre un fondo blanco que no
+// está en rojo. A esa escala (unos pocos px de trazo) un backdrop-
+// filter real no se notaría ni si se pudiera aplicar, así que ese
+// detalle interno se redibuja con un color sólido representativo del
+// mismo tinte que PROFILE_GLASS_STYLE en vez de intentar un blur real
+// sobre un trazo de 2px — mismo espíritu ("rojo -> vidrio"), aplicado
+// de forma práctica a un detalle demasiado chico para que el blur
+// importe.
+const GLASS_ACCENT_COLOR = "#6ea3c4";
+
+function HangerIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3a1.5 1.5 0 1 1 1.5 1.5" />
+      <path d="M12 4.5v3M4 20h16M12 7.5 3 13.5a1.2 1.2 0 0 0 .68 2.2h16.64a1.2 1.2 0 0 0 .68-2.2Z" />
+    </svg>
+  );
+}
+function CupIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" stroke="none">
+      <path d="M12 5.2c-2.9 0-5 1.6-5 3.3 0 .5.4.9.9.9h.2c.1 0 .1 0 .2 0h7.4c.1 0 .1 0 .2 0h.2c.5 0 .9-.4.9-.9 0-1.7-2.1-3.3-5-3.3Z" opacity="0" />
+      <path d="M8.3 8.6a3.9 3.9 0 0 1 3.7-2.2 3.9 3.9 0 0 1 3.7 2.2l1.3-1.6a.8.8 0 1 1 1.2 1L16.6 9.9" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M6.8 9.4h10.4a.8.8 0 0 1 .8.9l-1 8.4a1.6 1.6 0 0 1-1.6 1.4H8.6A1.6 1.6 0 0 1 7 18.7l-1-8.4a.8.8 0 0 1 .8-.9Z" />
+    </svg>
+  );
+}
+function CatIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className}>
+      <path
+        fill="currentColor"
+        d="M7 4.5 10 8h4l3-3.5a.8.8 0 0 1 1.4.6V16a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V5.1a.8.8 0 0 1 1-.6Z"
+      />
+      <circle cx="10" cy="13.2" r="1" fill={GLASS_ACCENT_COLOR} />
+      <circle cx="14" cy="13.2" r="1" fill={GLASS_ACCENT_COLOR} />
+      <rect x="11.1" y="14.6" width="1.8" height="1.1" rx="0.55" fill={GLASS_ACCENT_COLOR} />
+    </svg>
+  );
+}
+function TokenIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className}>
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="12" cy="12" r="6.6" fill="currentColor" />
+      <path d="M9.3 9.3h5.4L9.3 14.7h5.4" fill="none" stroke={GLASS_ACCENT_COLOR} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// StoreModal: layout medido pixel a pixel contra la imagen de
+// referencia (mismo MODAL_BOX/canvas que Profile/Settings). card1
+// (preview + precios) y card2 (categorías) caen exactamente en las
+// mismas coordenadas top/height que las tarjetas de ProfileModal — no
+// es coincidencia, ambos bocetos comparten el mismo lienzo/grilla base.
+// Esquina superior DERECHA hiperredondeada (radio medido: ~95px CSS,
+// el resto en 28px estándar) — "bisel curvo asimétrico extendido" del
+// boceto, solo forma, no cambia con la animación.
+//
+// Marcado en rojo en esta referencia: el marco exterior, el circulito
+// decorativo top-left, las 2 píldoras de precio, y las 4 pestañas de
+// categoría (las 4, no solo la activa) — todas se convierten a Liquid
+// Glass. El preview central (placeholder celeste) y el texto/íconos
+// blancos de las píldoras NO estaban en rojo y quedan tal cual.
+function StoreModal({ open, onClose }) {
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label="Store"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-50 ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...MODAL_BOX,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 95,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          transform: `scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        {/* Circulito decorativo superior-izquierdo: sin función todavía
+            (Fase futura). */}
+        <span
+          className="liquid-glass-btn absolute rounded-full bg-white"
+          style={{ left: "7.55%", top: "4.32%", width: "7.55%", height: "4.12%", ...PROFILE_GLASS_STYLE }}
+        />
+
+        {/* Tarjeta 1: preview + píldoras de precio */}
+        <div
+          className="absolute overflow-hidden rounded-[28px] bg-white"
+          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
+        >
+          <PetPreviewPlaceholder />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center gap-1.5 rounded-full"
+          style={{ left: "14.89%", top: "52.18%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
+        >
+          <TokenIcon className="h-5 w-5 shrink-0 text-white" />
+          <span className="text-sm font-bold text-white">150</span>
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "52.00%", top: "52.18%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
+        >
+          <span className="text-sm font-bold text-white">$1.99</span>
+        </div>
+
+        {/* Tarjeta 2: preview + 4 pestañas de categoría (Ropa activa por
+            defecto) */}
+        <div
+          className="absolute overflow-hidden rounded-[28px] bg-white"
+          style={{ left: "3.13%", right: "3.24%", top: "66.29%", height: "29.29%" }}
+        >
+          <PetPreviewPlaceholder />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "7.77%", top: "77.06%", width: "33.01%", height: "8.06%", ...PROFILE_GLASS_STYLE }}
+        >
+          <HangerIcon className="h-5 w-5 text-white" />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "44.44%", top: "77.41%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+        >
+          <CupIcon className="h-5 w-5 text-white" />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "61.17%", top: "77.41%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+        >
+          <CatIcon className="h-5 w-5 text-white" />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "78.21%", top: "77.41%", width: "13.38%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+        >
+          <TokenIcon className="h-5 w-5 text-white" />
+        </div>
+      </div>
+    </>
+  );
+}
+
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
 // sigue sin definirse). Un degradado liso no sirve para esto: el blur
@@ -759,6 +911,7 @@ export default function MainLayout() {
   // de Perfil/Configuración: solo abren/cierran, sin lógica real todavía.
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
   const { xp, xpToNext, streakJustIncreased } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
@@ -977,9 +1130,8 @@ export default function MainLayout() {
             del dock, sin burbuja alrededor.
           Un solo <button> por pestaña; el contenido (bubble vs.
           ícono+label) cambia según sea la pestaña activa o no. Store
-          queda SIN onClick a propósito (ver comentario grande más
-          abajo, junto a NAV_ITEMS) — Habits/Pets siguen cambiando
-          `activeTab` normalmente, eso nunca dependió de ningún modal. */}
+          además abre StoreModal (ver más abajo) — Habits/Pets solo
+          cambian `activeTab`, sin modal. */}
       {NAV_ITEMS.map((item) => {
         const isActive = item.key === activeTab;
         const Icon = item.Icon;
@@ -987,7 +1139,10 @@ export default function MainLayout() {
           <button
             key={item.key}
             type="button"
-            onClick={item.key === "store" ? undefined : () => setActiveTab(item.key)}
+            onClick={() => {
+              setActiveTab(item.key);
+              if (item.key === "store") setStoreOpen(true);
+            }}
             aria-label={item.label}
             aria-pressed={isActive}
             className="absolute z-30 -translate-x-1/2"
@@ -1009,6 +1164,7 @@ export default function MainLayout() {
 
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} streak={xp} />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
     </div>
   );
 }
