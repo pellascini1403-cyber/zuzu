@@ -260,11 +260,231 @@ const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
 const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
 const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 
-// Store/Perfil/Configuración: sin modal, sin backdrop, sin handler de
-// click — a pedido del usuario, ninguno de los 3 botones/pestañas hace
-// nada todavía. Quedan visibles (el ícono de Perfil/Configuración en
-// la cabecera, la pestaña Store del Dock) pero inertes hasta que se
-// definan las interfaces nuevas desde cero.
+// Store/Configuración: sin modal, sin backdrop, sin handler de click —
+// a pedido del usuario, ninguno de los 2 botones/pestañas hace nada
+// todavía. Perfil sí abre ProfileModal (ver más abajo); Store/
+// Configuración quedan visibles pero inertes hasta que se definan sus
+// interfaces desde cero.
+
+// MODAL_BOX: caja del modal de Perfil, medida directo sobre la imagen
+// de referencia del usuario (lienzo 1125x2250, contenido real recortado
+// a 927x1700 en x=[97,1024) y=[275,1975)) contra un lienzo de pantalla
+// de 390x844: x 25-364, y 111-733 -> left=6.4%, right=6.7%, top=13.15%,
+// bottom=13.1%. Dimensiones internas medidas después contra este mismo
+// canvas de 927x1700 -> se convierten directo a % de este box.
+const MODAL_BOX = { top: "13.15%", bottom: "13.1%", left: "6.4%", right: "6.7%" };
+
+// Motion Design "estilo iOS" pedido explícitamente: entrada más larga y
+// elástica (curva propia de Apple), salida más corta e inmediata.
+const MODAL_SPRING_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+const MODAL_OPEN_TRANSITION = `transform 320ms ${MODAL_SPRING_EASE}, opacity 320ms ${MODAL_SPRING_EASE}`;
+const MODAL_CLOSE_TRANSITION = "transform 220ms ease-in, opacity 220ms ease-in";
+
+// ModalBackdrop: capa oscurecedora rgba(0,0,0,0.4) a pantalla completa.
+// Siempre montada (nunca `{open && ...}`) para poder animar también la
+// salida. El onClick vive solo acá — la tarjeta del modal es un hermano
+// en el DOM (no un hijo), así que un click adentro de ella nunca
+// burbujea hasta este div; la tarjeta además lleva su propio
+// onClick={(e) => e.stopPropagation()} para dejar esa garantía
+// explícita en el código, no solo implícita en la estructura del árbol.
+function ModalBackdrop({ open, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      aria-hidden="true"
+      className={`absolute inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
+        open ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+    />
+  );
+}
+
+// PROFILE_GLASS_STYLE: reemplaza el rojo de la referencia (marco de la
+// tarjeta y los 5 botones — Racha/avatar/Editar/Agregar/Compartir/
+// Cámara) por vidrio traslúcido — receta pedida explícita: backdrop-
+// blur(16px) + opacidad baja + borde fino con reflejo, más el mismo
+// bisel de luz especular arriba-izquierda / sombra abajo-derecha que
+// ya usa el resto de la app. Un tinte (no blanco puro) porque estos
+// botones caen sobre la tarjeta blanca opaca: ahí no hay nada de color
+// detrás para que el blur muestre, así que sin tinte serían
+// indistinguibles del blanco de la tarjeta — mismo motivo por el que
+// ya se había resuelto así en una iteración anterior de este proyecto.
+const PROFILE_GLASS_STYLE = {
+  background: "rgba(196, 219, 235, 0.38)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  border: "1px solid rgba(255,255,255,0.3)",
+  boxShadow:
+    "inset 1.5px 1.5px 3px rgba(255,255,255,0.7), inset -2px -3px 5px rgba(0,40,70,0.22), 0 3px 8px rgba(0,30,60,0.15)",
+};
+
+function PencilIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+function PlusIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+function ShareIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 16V4M7 9l5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+    </svg>
+  );
+}
+function CameraIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .83-.45l.94-1.4A1 1 0 0 1 9.8 3.5h4.4a1 1 0 0 1 .83.45l.94 1.4a1 1 0 0 0 .83.45H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
+      <circle cx="12" cy="13" r="3.2" />
+    </svg>
+  );
+}
+
+// PetPreviewPlaceholder: todavía no existe el asset 3D real de la
+// mascota — un blob suave sobre un degradado celeste marca el lugar
+// sin inventar el diseño final del personaje.
+function PetPreviewPlaceholder() {
+  return (
+    <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[28px] bg-gradient-to-b from-sky-100 via-white to-sky-100">
+      <div className="h-2/3 w-2/3 rounded-[45%] bg-gradient-to-b from-white to-zinc-200 shadow-inner" />
+    </div>
+  );
+}
+
+// ProfileModal: layout medido pixel a pixel contra la imagen de
+// referencia (ver MODAL_BOX arriba) — todas las posiciones/tamaños de
+// abajo son ese mismo relevamiento convertido a % del box del modal,
+// NO valores elegidos a criterio. Cada elemento marcado en rojo en la
+// referencia (marco, píldora de Racha, Editar/Agregar/Compartir,
+// Cámara) usa PROFILE_GLASS_STYLE; el resto (tarjetas blancas, avatar,
+// textos) queda tal cual. `streak` llega desde MainLayout (usePetStats)
+// — no se vuelve a leer el hook acá para no duplicar la fuente de
+// verdad. Sin lógica real todavía: los 4 botones de acción y la cámara
+// no tienen onClick, solo layout + estilo, tal como se pidió.
+function ProfileModal({ open, onClose, streak }) {
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label="Profile"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-50 rounded-[32px] ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...MODAL_BOX,
+          transform: `scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        {/* Tarjeta 1: nombre + bio + fila de 4 botones. */}
+        <div
+          className="absolute rounded-[28px] bg-white"
+          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
+        >
+          <p
+            className="absolute left-0 right-0 text-center text-base font-bold text-zinc-900"
+            style={{ top: "34.4%" }}
+          >
+            Name
+          </p>
+          <p className="absolute left-0 right-0 text-center text-xs text-zinc-400" style={{ top: "40.4%" }}>
+            @name_26
+          </p>
+          <p
+            className="absolute text-center text-sm text-zinc-600"
+            style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
+          >
+            I write short stories and fanfiction for the most popular fandoms.
+          </p>
+        </div>
+
+        {/* Avatar: NO está marcado en rojo en la referencia (queda tal
+            cual, sin vidrio) — círculo con degradado propio, asoma por
+            encima de la propia tarjeta 1 superponiéndose a su borde
+            superior. */}
+        <span
+          className="absolute overflow-hidden rounded-full"
+          style={{
+            left: "50%",
+            top: "14.53%",
+            width: "42.72%",
+            height: "23.29%",
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <span className="block h-full w-full rounded-full bg-gradient-to-br from-sky-200 to-sky-400" />
+        </span>
+
+        {/* Fila de 4 botones: Racha (píldora ancha) + Editar/Agregar/
+            Compartir (círculos), todos Liquid Glass. */}
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center gap-2 rounded-full px-4"
+          style={{ left: "7.77%", top: "52.18%", width: "33.01%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
+        >
+          <img
+            src="/nav/flame-white.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none h-5 w-4 select-none object-contain"
+            style={{ filter: "brightness(0)" }}
+          />
+          {streak > 0 && <span className="text-sm font-semibold text-zinc-900">{streak}</span>}
+        </div>
+        <button
+          type="button"
+          aria-label="Editar"
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "44.44%", top: "52.53%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+        >
+          <PencilIcon className="h-4 w-4 text-zinc-800" />
+        </button>
+        <button
+          type="button"
+          aria-label="Agregar"
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "61.17%", top: "52.53%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+        >
+          <PlusIcon className="h-4 w-4 text-zinc-800" />
+        </button>
+        <button
+          type="button"
+          aria-label="Compartir"
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "78.21%", top: "52.53%", width: "13.38%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+        >
+          <ShareIcon className="h-4 w-4 text-zinc-800" />
+        </button>
+
+        {/* Tarjeta 2: preview de la mascota + botón de cámara (Liquid
+            Glass). */}
+        <div
+          className="absolute overflow-hidden rounded-[28px] bg-white"
+          style={{ left: "3.13%", right: "3.13%", top: "66.29%", height: "29.29%" }}
+        >
+          <PetPreviewPlaceholder />
+        </div>
+        <button
+          type="button"
+          aria-label="Cámara"
+          className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
+          style={{ left: "7.87%", top: "86.00%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+        >
+          <CameraIcon className="h-4 w-4 text-zinc-800" />
+        </button>
+      </div>
+    </>
+  );
+}
 
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
@@ -293,6 +513,9 @@ export default function MainLayout() {
   // para crecer a `const [petMessage, setPetMessage] = useState(...)`
   // el día que haga falta.
   const [petMessage] = useState("¡Hello!");
+  // Estructura mínima de click pedida explícitamente para el modal de
+  // Perfil: solo abre/cierra, sin lógica real todavía.
+  const [profileOpen, setProfileOpen] = useState(false);
   const { xp, xpToNext, streakJustIncreased } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
@@ -342,21 +565,25 @@ export default function MainLayout() {
           recortaron al bounding box real del canal alfa (+2%) antes de
           guardarlos. object-fit: contain conserva su proporción nativa
           (ninguno de los 3 es cuadrado) dentro del círculo/píldora.
-          Perfil/Configuración: sin onClick a propósito — sin modal que
-          abrir todavía (ver comentario grande más abajo), quedan
-          visibles pero inertes hasta que se definan las interfaces
-          nuevas. */}
+          Perfil abre ProfileModal; Configuración sigue sin onClick a
+          propósito — sin modal que abrir todavía, queda visible pero
+          inerte hasta que se defina su interfaz desde cero. */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
         <div className="flex flex-col items-start gap-2">
           {/* Perfil */}
-          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            aria-label="Profile"
+            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
+          >
             <img
               src="/nav/profile-icon.png"
               alt=""
               draggable={false}
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
-          </div>
+          </button>
           {/* Usuarios: 1 o 2 jugadores (PlayerAvatar, arriba), superpuestos
               (-space-x-2) cuando son 2; un solo círculo centrado cuando
               es 1 (el `flex justify-center` del contenedor lo resuelve
@@ -532,6 +759,8 @@ export default function MainLayout() {
           </button>
         );
       })}
+
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} streak={xp} />
     </div>
   );
 }
