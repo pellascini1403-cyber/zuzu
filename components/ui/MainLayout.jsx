@@ -274,6 +274,17 @@ const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
 // canvas de 927x1700 -> se convierten directo a % de este box.
 const MODAL_BOX = { top: "13.15%", bottom: "13.1%", left: "6.4%", right: "6.7%" };
 
+// BG_MODAL_BOX: caja del modal de Fondos, medida sobre su propia
+// imagen de referencia (mismo lienzo 1125x2250, mismo x=[97,1024) que
+// los otros 4 — mismo left/right heredado de MODAL_BOX — pero con un
+// contenido real más bajo, y=[578,1676) en vez de [275,1975), porque
+// esta tarjeta es más chica y no ocupa toda la altura del modal. Con
+// la misma transformación canvas->pantalla ya validada en los otros 4
+// modales (canvas_y=275 -> pantalla_y=111, canvas_y=1975 -> 733,
+// escala 622/1700=0.36588), y=578 -> 221.9px y y=1676 -> 623.6px de
+// una pantalla de 844px -> top=26.29%, bottom=26.12%.
+const BG_MODAL_BOX = { top: "26.29%", bottom: "26.12%", left: "6.4%", right: "6.7%" };
+
 // Motion Design "estilo iOS" pedido explícitamente: entrada más larga y
 // elástica (curva propia de Apple), salida más corta e inmediata.
 const MODAL_SPRING_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
@@ -965,6 +976,93 @@ function PetsModal({ open, onClose }) {
   );
 }
 
+function ImageIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="m4 17 5-5 4 4 3-3 4 4" />
+    </svg>
+  );
+}
+
+// BackgroundsModal: una sola tarjeta (la foto de fondo activa) con
+// marco Liquid Glass alrededor y 2 botones de navegación (< >)
+// superpuestos abajo al centro — sin segunda tarjeta ni pestañas,
+// estructura propia, no reutiliza StoreModal/PetsModal.
+//
+// Medido pixel a pixel contra esta referencia (lienzo propio, ver
+// BG_MODAL_BOX arriba): el marco exterior completo y los 2 botones de
+// flecha están en rojo -> Liquid Glass. La foto en sí (recorte
+// redondeado) no estaba en rojo y queda tal cual.
+//
+// Los botones de flecha no son círculos ni píldoras comunes: cada uno
+// mide igual de ancho que de alto pero con un radio bien grande del
+// lado exterior (= mitad de su alto, un semicírculo real) y casi nulo
+// del lado interior (borde recto, apenas insinuado) — juntos, si no
+// tuvieran espacio entre sí, formarían una sola píldora partida al
+// medio. Cada esquina se midió por separado en vez de asumir un
+// rounded-full parejo.
+function BackgroundsModal({ open, onClose }) {
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label="Backgrounds"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-50 rounded-[26px] ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...BG_MODAL_BOX,
+          transform: `scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        <div
+          className="absolute overflow-hidden rounded-[22px] bg-white"
+          style={{ left: "3.13%", right: "3.13%", top: "3.01%", bottom: "2.73%" }}
+        >
+          <PetPreviewPlaceholder />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center"
+          style={{
+            left: "33.48%",
+            top: "81.60%",
+            width: "15.23%",
+            height: "12.30%",
+            borderTopLeftRadius: 25,
+            borderBottomLeftRadius: 25,
+            borderTopRightRadius: 6,
+            borderBottomRightRadius: 6,
+            ...PROFILE_GLASS_STYLE,
+          }}
+        >
+          <ChevronIcon className="h-6 w-6 rotate-180 text-white" />
+        </div>
+        <div
+          className="liquid-glass-btn absolute flex items-center justify-center"
+          style={{
+            left: "51.08%",
+            top: "81.60%",
+            width: "15.23%",
+            height: "12.30%",
+            borderTopLeftRadius: 6,
+            borderBottomLeftRadius: 6,
+            borderTopRightRadius: 25,
+            borderBottomRightRadius: 25,
+            ...PROFILE_GLASS_STYLE,
+          }}
+        >
+          <ChevronIcon className="h-6 w-6 text-white" />
+        </div>
+      </div>
+    </>
+  );
+}
+
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
 // sigue sin definirse). Un degradado liso no sirve para esto: el blur
@@ -998,6 +1096,7 @@ export default function MainLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [petsOpen, setPetsOpen] = useState(false);
+  const [backgroundsOpen, setBackgroundsOpen] = useState(false);
   const { xp, xpToNext, streakJustIncreased } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
@@ -1141,7 +1240,10 @@ export default function MainLayout() {
           diseño anterior) — es el glifo de texto "..." en blanco puro,
           mismo tratamiento que el resto de labels/íconos de texto sobre
           vidrio (ver lib/typography.js). Sin lógica de apertura todavía,
-          eso es Fase 3. */}
+          eso es Fase 3.
+          Al lado de "...", un círculo más (mismos 40px que el resto de
+          burbujas del header/dock) con un ícono de imagen: abre
+          BackgroundsModal (ver más abajo). */}
       <div className="absolute inset-x-0 top-[66.35%] z-10 flex items-center justify-center gap-[9px] px-6">
         <div className="liquid-glass-btn flex h-10 w-[235px] items-center rounded-full pl-2 pr-3">
           <img
@@ -1169,6 +1271,14 @@ export default function MainLayout() {
         <div className="liquid-glass-btn flex h-10 w-[39px] items-center justify-center rounded-full">
           <span className={`text-lg leading-none ${UI_TEXT_STYLE}`}>...</span>
         </div>
+        <button
+          type="button"
+          onClick={() => setBackgroundsOpen(true)}
+          aria-label="Backgrounds"
+          className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+        >
+          <ImageIcon className={`h-5 w-5 ${UI_TEXT_STYLE}`} />
+        </button>
       </div>
 
       {/* Panel/pestaña inferior (Dock): esquinas superiores redondeadas
@@ -1253,6 +1363,7 @@ export default function MainLayout() {
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
       <PetsModal open={petsOpen} onClose={() => setPetsOpen(false)} />
+      <BackgroundsModal open={backgroundsOpen} onClose={() => setBackgroundsOpen(false)} />
     </div>
   );
 }
