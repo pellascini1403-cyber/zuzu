@@ -486,6 +486,248 @@ function ProfileModal({ open, onClose, streak }) {
   );
 }
 
+function BellIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+function GearIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+    </svg>
+  );
+}
+function MoonIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
+    </svg>
+  );
+}
+function GlobeIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" />
+    </svg>
+  );
+}
+function MailIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3.5 6 8.5 7 8.5-7" />
+    </svg>
+  );
+}
+function QuestionIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7" />
+      <path d="M12 17.2h.01" />
+    </svg>
+  );
+}
+function DocumentIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M9 12h6M9 16h6M9 8h2" />
+    </svg>
+  );
+}
+function ShieldCheckIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+function LogoutIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+  );
+}
+function ChevronIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+// ToggleSwitch: la PISTA queda gris plano (NO está marcada en rojo en
+// la referencia); solo la PERILLA es Liquid Glass (PROFILE_GLASS_STYLE)
+// — al revés de lo que podría asumirse a primera vista. Tamaño medido
+// contra la referencia: pista 64x29px, perilla 23px de diámetro con 3px
+// de margen interno a cada lado; el desplazamiento al activarse es
+// exactamente ese recorrido (64-23-3*2=35px).
+function ToggleSwitch({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="relative shrink-0 rounded-full bg-zinc-200"
+      style={{ width: 64, height: 29 }}
+    >
+      <span
+        className="liquid-glass-btn absolute rounded-full transition-transform duration-200 ease-out"
+        style={{
+          left: 3,
+          top: 3,
+          width: 23,
+          height: 23,
+          transform: checked ? "translateX(35px)" : "translateX(0)",
+          ...PROFILE_GLASS_STYLE,
+        }}
+      />
+    </button>
+  );
+}
+
+// SettingsRow: fila compartida por los 2 grupos de 3 (Dark mode/
+// Language/My contact y FAQ/Terms of service/User policy) — icono
+// negro (NO vidrio, no está marcado en rojo en la referencia) + label +
+// control (switch o chevron) a la derecha. flex-1 dentro del contenedor
+// `divide-y` del grupo en vez de una altura fija: la referencia mide
+// las 3 filas de cada grupo como tercios iguales del alto del grupo.
+function SettingsRow({ icon, label, control }) {
+  return (
+    <div className="flex flex-1 items-center gap-3 px-4">
+      {icon}
+      <span className="flex-1 text-sm font-semibold text-zinc-900">{label}</span>
+      {control}
+    </div>
+  );
+}
+
+// SettingsModal: layout medido pixel a pixel contra la imagen de
+// referencia (mismo MODAL_BOX/canvas que ProfileModal). Único cambio de
+// color respecto a la referencia: el marco exterior (Liquid Glass real,
+// `.liquid-glass-btn`) y la perilla de cada switch (PROFILE_GLASS_STYLE)
+// — son las ÚNICAS dos zonas marcadas en rojo ahí. Todo lo demás
+// (píldora ZUZU PREMIUM, tarjetas blancas, íconos negros, texto,
+// chevrons grises, fila de Log out) no estaba en rojo en la referencia
+// y queda tal cual, sin vidrio. Sin lógica real: los switches solo
+// alternan su propio estado visual, sin conectarse a nada todavía;
+// General Settings/Language/My contact/FAQ/Terms/User policy/Log out
+// no tienen onClick.
+function SettingsModal({ open, onClose }) {
+  const [pauseNotifications, setPauseNotifications] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label="Settings"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-50 overflow-hidden rounded-[32px] ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...MODAL_BOX,
+          transform: `scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        {/* ZUZU PREMIUM: no está marcada en rojo, queda con su propio
+            degradado plano, sin vidrio. */}
+        <div
+          className="absolute flex items-center justify-center rounded-full bg-gradient-to-br from-white to-sky-100"
+          style={{ left: "3.56%", right: "3.67%", top: "3.59%", height: "7.65%" }}
+        >
+          <span className="text-sm font-extrabold tracking-wide text-zinc-900">ZUZU PREMIUM</span>
+        </div>
+
+        {/* Pause notifications (tarjeta suelta) */}
+        <div
+          className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
+          style={{ left: "3.13%", right: "3.24%", top: "13.29%", height: "7.65%" }}
+        >
+          <BellIcon className="h-5 w-5 shrink-0 text-zinc-900" />
+          <span className="flex-1 text-sm font-semibold text-zinc-900">Pause notifications</span>
+          <ToggleSwitch checked={pauseNotifications} onChange={setPauseNotifications} />
+        </div>
+
+        {/* General Settings (tarjeta suelta) */}
+        <div
+          className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
+          style={{ left: "3.13%", right: "3.24%", top: "23.00%", height: "7.65%" }}
+        >
+          <GearIcon className="h-5 w-5 shrink-0 text-zinc-900" />
+          <span className="flex-1 text-sm font-semibold text-zinc-900">General Settings</span>
+          <ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />
+        </div>
+
+        {/* Grupo 1: Dark mode / Language / My contact */}
+        <div
+          className="absolute flex flex-col divide-y divide-zinc-100 overflow-hidden rounded-2xl bg-white"
+          style={{ left: "3.13%", right: "3.24%", top: "32.65%", height: "23.41%" }}
+        >
+          <SettingsRow
+            icon={<MoonIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            label="Dark mode"
+            control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />}
+          />
+          <SettingsRow
+            icon={<GlobeIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            label="Language"
+            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+          />
+          <SettingsRow
+            icon={<MailIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            label="My contact"
+            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+          />
+        </div>
+
+        {/* Grupo 2: FAQ / Terms of service / User policy */}
+        <div
+          className="absolute flex flex-col divide-y divide-zinc-100 overflow-hidden rounded-2xl bg-white"
+          style={{ left: "3.13%", right: "3.24%", top: "58.18%", height: "23.41%" }}
+        >
+          <SettingsRow
+            icon={<QuestionIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            label="FAQ"
+            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+          />
+          <SettingsRow
+            icon={<DocumentIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            label="Terms of service"
+            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+          />
+          <SettingsRow
+            icon={<ShieldCheckIcon className="h-5 w-5 shrink-0 text-zinc-900" />}
+            label="User policy"
+            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+          />
+        </div>
+
+        {/* Log out (tarjeta suelta) */}
+        <div
+          className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
+          style={{ left: "3.13%", right: "3.24%", top: "88.47%", height: "7.71%" }}
+        >
+          <LogoutIcon className="h-5 w-5 shrink-0 text-zinc-900" />
+          <span className="text-sm font-semibold text-zinc-900">Log out</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
 // sigue sin definirse). Un degradado liso no sirve para esto: el blur
@@ -513,9 +755,10 @@ export default function MainLayout() {
   // para crecer a `const [petMessage, setPetMessage] = useState(...)`
   // el día que haga falta.
   const [petMessage] = useState("¡Hello!");
-  // Estructura mínima de click pedida explícitamente para el modal de
-  // Perfil: solo abre/cierra, sin lógica real todavía.
+  // Estructura mínima de click pedida explícitamente para los modales
+  // de Perfil/Configuración: solo abren/cierran, sin lógica real todavía.
   const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { xp, xpToNext, streakJustIncreased } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
 
@@ -565,9 +808,8 @@ export default function MainLayout() {
           recortaron al bounding box real del canal alfa (+2%) antes de
           guardarlos. object-fit: contain conserva su proporción nativa
           (ninguno de los 3 es cuadrado) dentro del círculo/píldora.
-          Perfil abre ProfileModal; Configuración sigue sin onClick a
-          propósito — sin modal que abrir todavía, queda visible pero
-          inerte hasta que se defina su interfaz desde cero. */}
+          Perfil abre ProfileModal; Configuración abre SettingsModal
+          (ver más abajo). */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
         <div className="flex flex-col items-start gap-2">
           {/* Perfil */}
@@ -598,14 +840,19 @@ export default function MainLayout() {
         </div>
         <div className="flex flex-col items-end gap-2">
           {/* Configuración */}
-          <div className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full">
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Settings"
+            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
+          >
             <img
               src="/nav/settings-icon.png"
               alt=""
               draggable={false}
               className="pointer-events-none h-6 w-6 select-none object-contain"
             />
-          </div>
+          </button>
           {/* Tokens: ancho intrínseco (NO fijo) — el ícono va anclado a
               la izquierda del contenido interno, el contador a la
               derecha con su propio padding. El contenedor padre de esta
@@ -761,6 +1008,7 @@ export default function MainLayout() {
       })}
 
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} streak={xp} />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
