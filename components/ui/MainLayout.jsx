@@ -1,8 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { UI_TEXT_STYLE } from "@/lib/typography";
 import usePetStats from "@/hooks/usePetStats";
+import useLocalStorageFlag from "@/hooks/useLocalStorageFlag";
+
+// DarkModeContext: "Dark mode" en SettingsModal es un swap de tema
+// APP-WIDE (pedido explícito), no un toggle que solo cambia su propia
+// fila — así que en vez de bajar `darkMode` por props a cada modal
+// (Profile/Settings/FriendSearch/...) se expone vía Context. Persiste
+// en localStorage para sobrevivir un reload, igual que la racha en
+// useStreak.js (mismo motivo: no hay backend/preferencias de usuario
+// real todavía).
+const DarkModeContext = createContext({ darkMode: false, setDarkMode: () => {} });
+function useDarkMode() {
+  return useContext(DarkModeContext);
+}
 
 // Placeholder del contador de tokens — todavía no hay una fuente de
 // datos real conectada (eso es Fase 3). Un valor alto a propósito, para
@@ -464,6 +477,8 @@ const MOCK_FRIEND_SUGGESTIONS = [
 // MODAL_BOX/animación pop-in-out que el resto de modales, en un
 // z-index por encima de ProfileModal (se abre desde su botón +).
 function FriendSearchModal({ open, onClose }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
   const [query, setQuery] = useState("");
   const [sent, setSent] = useState(() => new Set());
 
@@ -516,17 +531,21 @@ function FriendSearchModal({ open, onClose }) {
         </div>
         <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
           {results.map((u) => (
-            <div key={u.handle} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+            <div key={u.handle} className={`flex items-center justify-between rounded-2xl px-4 py-3 ${t.card}`}>
               <div>
-                <p className="text-sm font-semibold text-zinc-900">{u.name}</p>
-                <p className="text-xs text-zinc-400">@{u.handle}</p>
+                <p className={`text-sm font-semibold ${t.text}`}>{u.name}</p>
+                <p className={`text-xs ${t.muted}`}>@{u.handle}</p>
               </div>
               <button
                 type="button"
                 onClick={() => sendRequest(u.handle)}
                 disabled={sent.has(u.handle)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                  sent.has(u.handle) ? "bg-zinc-100 text-zinc-400" : "bg-sky-500 text-white"
+                  sent.has(u.handle)
+                    ? darkMode
+                      ? "bg-white/10 text-white/40"
+                      : "bg-zinc-100 text-zinc-400"
+                    : "bg-sky-500 text-white"
                 }`}
               >
                 {sent.has(u.handle) ? "Requested" : "Add"}
@@ -712,6 +731,8 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
 // - Cámara: llama a `onEnterPhotoMode` (definido en MainLayout) en vez
 //   de tener su propio estado de Photo Mode acá.
 function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("Name");
   const [handle, setHandle] = useState("name_26");
@@ -757,7 +778,7 @@ function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
       >
         {/* Tarjeta 1: nombre + bio + fila de 4 botones. */}
         <div
-          className="absolute rounded-[28px] bg-white"
+          className={`absolute rounded-[28px] ${t.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
         >
           {editing ? (
@@ -765,29 +786,30 @@ function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               aria-label="Name"
-              className="absolute left-0 right-0 border-b border-zinc-200 bg-transparent text-center text-base font-bold text-zinc-900 focus:outline-none"
+              className={`absolute left-0 right-0 border-b bg-transparent text-center text-base font-bold focus:outline-none ${t.text} ${
+                darkMode ? "border-white/20" : "border-zinc-200"
+              }`}
               style={{ top: "34.4%" }}
             />
           ) : (
-            <p
-              className="absolute left-0 right-0 text-center text-base font-bold text-zinc-900"
-              style={{ top: "34.4%" }}
-            >
+            <p className={`absolute left-0 right-0 text-center text-base font-bold ${t.text}`} style={{ top: "34.4%" }}>
               {name}
             </p>
           )}
           {editing ? (
             <div className="absolute left-0 right-0 flex items-center justify-center gap-0.5" style={{ top: "40.4%" }}>
-              <span className="text-xs text-zinc-400">@</span>
+              <span className={`text-xs ${t.muted}`}>@</span>
               <input
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.replace(/\s/g, ""))}
                 aria-label="Username"
-                className="border-b border-zinc-200 bg-transparent text-center text-xs text-zinc-400 focus:outline-none"
+                className={`border-b bg-transparent text-center text-xs focus:outline-none ${t.muted} ${
+                  darkMode ? "border-white/20" : "border-zinc-200"
+                }`}
               />
             </div>
           ) : (
-            <p className="absolute left-0 right-0 text-center text-xs text-zinc-400" style={{ top: "40.4%" }}>
+            <p className={`absolute left-0 right-0 text-center text-xs ${t.muted}`} style={{ top: "40.4%" }}>
               @{handle}
             </p>
           )}
@@ -797,12 +819,14 @@ function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
               onChange={(e) => setBio(e.target.value)}
               aria-label="Bio"
               rows={2}
-              className="absolute resize-none border-b border-zinc-200 bg-transparent text-center text-sm text-zinc-600 focus:outline-none"
+              className={`absolute resize-none border-b bg-transparent text-center text-sm focus:outline-none ${
+                darkMode ? "border-white/20 text-white/80" : "border-zinc-200 text-zinc-600"
+              }`}
               style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
             />
           ) : (
             <p
-              className="absolute text-center text-sm text-zinc-600"
+              className={`absolute text-center text-sm ${darkMode ? "text-white/80" : "text-zinc-600"}`}
               style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
             >
               {bio}
@@ -1053,24 +1077,38 @@ function ChevronIcon({ className }) {
 // contra la referencia: pista 64x29px, perilla 23px de diámetro con 3px
 // de margen interno a cada lado; el desplazamiento al activarse es
 // exactamente ese recorrido (64-23-3*2=35px).
+// ToggleSwitch: además del deslizamiento, la perilla se agranda un
+// 18% y vuelve a su tamaño normal al activarse/desactivarse (el
+// "thumb indicator enlarged" estilo iOS pedido explícitamente) — un
+// estado transitorio `justToggled` de 220ms en vez de una animación
+// CSS por keyframes, para que dispare en cada click sin depender de
+// que el navegador reinicie una keyframe ya corrida.
 function ToggleSwitch({ checked, onChange }) {
+  const [justToggled, setJustToggled] = useState(false);
+
+  function handleClick() {
+    onChange(!checked);
+    setJustToggled(true);
+    setTimeout(() => setJustToggled(false), 220);
+  }
+
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
-      onClick={() => onChange(!checked)}
+      onClick={handleClick}
       className="relative shrink-0 rounded-full bg-zinc-200"
       style={{ width: 64, height: 29 }}
     >
       <span
-        className="liquid-glass-btn absolute rounded-full transition-transform duration-200 ease-out"
+        className="liquid-glass-btn absolute rounded-full transition-all duration-200 ease-out"
         style={{
           left: 3,
           top: 3,
           width: 23,
           height: 23,
-          transform: checked ? "translateX(35px)" : "translateX(0)",
+          transform: `translateX(${checked ? 35 : 0}px) scale(${justToggled ? 1.18 : 1})`,
           ...PROFILE_GLASS_STYLE,
         }}
       />
@@ -1084,13 +1122,346 @@ function ToggleSwitch({ checked, onChange }) {
 // control (switch o chevron) a la derecha. flex-1 dentro del contenedor
 // `divide-y` del grupo en vez de una altura fija: la referencia mide
 // las 3 filas de cada grupo como tercios iguales del alto del grupo.
-function SettingsRow({ icon, label, control }) {
+function SettingsRow({ icon, label, subLabel, control, onClick }) {
+  const { darkMode } = useDarkMode();
+  const Wrapper = onClick ? "button" : "div";
   return (
-    <div className="flex flex-1 items-center gap-3 px-4">
+    <Wrapper
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={`flex flex-1 items-center gap-3 px-4 ${onClick ? "text-left" : ""}`}
+    >
       {icon}
-      <span className="flex-1 text-sm font-semibold text-zinc-900">{label}</span>
+      <span className={`flex-1 text-sm font-semibold ${darkMode ? "text-white" : "text-zinc-900"}`}>{label}</span>
+      {subLabel && <span className={`text-xs ${darkMode ? "text-white/50" : "text-zinc-400"}`}>{subLabel}</span>}
       {control}
+    </Wrapper>
+  );
+}
+
+// themeClasses: swap centralizado para el "app-wide theme swap" de
+// Dark mode — cada modal que tenga tarjetas/texto realmente visibles
+// (no placeholders de foto, donde no cambiaría nada) llama a esto en
+// vez de repetir el mismo ternario `darkMode ? "…" : "…"` en cada
+// sitio. `card` es vidrio oscuro traslúcido de verdad (blur+borde),
+// no un simple negro plano, para seguir leyendo como Liquid Glass en
+// modo oscuro.
+function themeClasses(darkMode) {
+  return {
+    card: darkMode ? "bg-zinc-900/70 backdrop-blur-xl border border-white/10" : "bg-white",
+    text: darkMode ? "text-white" : "text-zinc-900",
+    muted: darkMode ? "text-white/50" : "text-zinc-400",
+    divide: darkMode ? "divide-white/10" : "divide-zinc-100",
+  };
+}
+
+// NestedModal: shell compartido por los 6 sub-modales nuevos de
+// Configuración (General Settings/Language/My contact/FAQ/Terms/User
+// policy) — mismo patrón de dimmer+tarjeta chica centrada que
+// FriendSearchModal/ShareSheet (ver ProfileModal más arriba: z-[55]
+// para el dimmer por ENCIMA de la tarjeta padre en z-50, z-[60] para
+// la propia). Encapsulado acá porque son 6 modales casi idénticos en
+// estructura (título + botón cerrar + contenido scrolleable), solo
+// cambia el contenido.
+function NestedModal({ open, onClose, title, children }) {
+  const { darkMode } = useDarkMode();
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[55]" />
+      <div
+        role="dialog"
+        aria-label={title}
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-[60] flex flex-col rounded-[28px] p-5 ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...NESTED_MODAL_BOX,
+          transform: `translate(-50%, -50%) scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        <div className="flex shrink-0 items-center justify-between">
+          <h2 className="text-base font-bold text-white">{title}</h2>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="liquid-glass-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+          >
+            <PlusIcon className="h-4 w-4 rotate-45 text-white" />
+          </button>
+        </div>
+        <div className={`mt-4 flex-1 space-y-2 overflow-y-auto ${darkMode ? "" : ""}`}>{children}</div>
+      </div>
+    </>
+  );
+}
+
+// ConfirmAlert: alerta chica estilo iOS (título + mensaje + Cancel/
+// acción) reutilizada para "Log out" y "Delete account" — incluye su
+// propio dimmer (mismo z-[55]/z-[60] que NestedModal) para que tape
+// tanto al modal de Configuración como a cualquier NestedModal que
+// esté abierto detrás (p.ej. confirmar borrar cuenta desde adentro de
+// User policy).
+function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, destructive }) {
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[65]" />
+      <div
+        role="alertdialog"
+        aria-label={title}
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-[70] flex flex-col gap-4 rounded-[24px] p-5 text-center ${open ? "" : "pointer-events-none"}`}
+        style={{
+          left: "50%",
+          top: "50%",
+          width: "74%",
+          transform: `translate(-50%, -50%) scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        <div>
+          <h2 className="text-base font-bold text-white">{title}</h2>
+          <p className="mt-1.5 text-sm text-white/80">{message}</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className={`flex-1 rounded-full py-2.5 text-sm font-semibold text-white ${
+              destructive ? "bg-red-500" : "bg-sky-500"
+            }`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const GENERAL_SETTINGS_OPTIONS = [
+  { key: "haptics", label: "Haptic feedback" },
+  { key: "reduceMotion", label: "Reduce motion" },
+  { key: "soundEffects", label: "Sound effects" },
+];
+
+// GeneralSettingsModal: "nested options with checkmark active states"
+// — sin una fuente de datos real detrás todavía, así que son 3
+// toggles de ejemplo (no conectados a ningún comportamiento real de
+// la app) representando el tipo de opciones que viven acá.
+function GeneralSettingsModal({ open, onClose }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
+  const [enabled, setEnabled] = useState({ haptics: true, reduceMotion: false, soundEffects: true });
+
+  function toggle(key) {
+    setEnabled((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  return (
+    <NestedModal open={open} onClose={onClose} title="General Settings">
+      {GENERAL_SETTINGS_OPTIONS.map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => toggle(opt.key)}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${t.card}`}
+        >
+          <span className={`text-sm font-semibold ${t.text}`}>{opt.label}</span>
+          {enabled[opt.key] && <CheckIcon className="h-5 w-5 text-sky-500" />}
+        </button>
+      ))}
+    </NestedModal>
+  );
+}
+
+const LANGUAGES = ["English", "Español", "Français", "Português", "Deutsch"];
+
+// LanguageModal: selección única con checkmark en el idioma activo;
+// `language`/`onSelect` vienen de SettingsModal (se muestra también
+// como sub-label en la fila "Language").
+function LanguageModal({ open, onClose, language, onSelect }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
+  return (
+    <NestedModal open={open} onClose={onClose} title="Language">
+      {LANGUAGES.map((lang) => (
+        <button
+          key={lang}
+          type="button"
+          onClick={() => {
+            onSelect(lang);
+            onClose();
+          }}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${t.card}`}
+        >
+          <span className={`text-sm font-semibold ${t.text}`}>{lang}</span>
+          {language === lang && <CheckIcon className="h-5 w-5 text-sky-500" />}
+        </button>
+      ))}
+    </NestedModal>
+  );
+}
+
+// MyContactModal: "account info, linked social accounts, and user
+// support contact details" — datos de ejemplo (no hay backend de
+// cuentas todavía), pero con la estructura real que va a necesitar
+// (sección Account, Linked accounts, Support).
+function MyContactModal({ open, onClose }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
+  return (
+    <NestedModal open={open} onClose={onClose} title="My contact">
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">Account</p>
+        <div className={`rounded-2xl px-4 py-3 ${t.card}`}>
+          <p className={`text-sm font-semibold ${t.text}`}>name_26</p>
+          <p className={`text-xs ${t.muted}`}>name_26@example.com</p>
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">Linked accounts</p>
+        <div className={`divide-y overflow-hidden rounded-2xl ${t.card} ${t.divide}`}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className={`text-sm font-semibold ${t.text}`}>Google</span>
+            <span className="text-xs font-semibold text-emerald-500">Connected</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className={`text-sm font-semibold ${t.text}`}>Apple</span>
+            <span className={`text-xs ${t.muted}`}>Not connected</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">Support</p>
+        <a href="mailto:support@zuzu.app" className={`block rounded-2xl px-4 py-3 text-sm font-semibold text-sky-500 ${t.card}`}>
+          support@zuzu.app
+        </a>
+      </div>
+    </NestedModal>
+  );
+}
+
+// LegalSection: bloque título+párrafo compartido por FAQ/Terms/User
+// policy — evita repetir la misma estructura de <h3>+<p> a mano en
+// cada uno de los ~12 bloques entre los 3 modales.
+function LegalSection({ title, children, textClass }) {
+  return (
+    <div>
+      <h3 className={`mb-1 text-sm font-bold ${textClass}`}>{title}</h3>
+      <p className="text-xs leading-relaxed text-white/70">{children}</p>
     </div>
+  );
+}
+
+// FaqModal/TermsModal/UserPolicyModal: contenido genérico de ejemplo
+// (no son textos legales reales ni revisados por un abogado) pero
+// cubren los puntos que Apple pide para la revisión de la App Store
+// en apps con cuentas de usuario: qué datos se recolectan y para qué,
+// términos de uso claros, y el derecho a borrar la cuenta (con una
+// acción real de "Delete account" en User policy, no solo texto).
+const FAQ_ITEMS = [
+  { q: "How does my streak work?", a: "Open Zuzu once a day to keep your streak alive. Miss a day and it resets to 0 — your best streak is saved separately, forever." },
+  { q: "How do I change my avatar or bio?", a: "Open your Profile and tap the pencil icon. While editing, tap your avatar to choose a new photo." },
+  { q: "How do I add friends?", a: "From your Profile, tap the + icon and search by @handle to send a friend request." },
+  { q: "Can I use Zuzu on more than one device?", a: "Yes — sign in with the same account and your pet, streak, and settings come with you." },
+];
+function FaqModal({ open, onClose }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
+  return (
+    <NestedModal open={open} onClose={onClose} title="FAQ">
+      {FAQ_ITEMS.map((item) => (
+        <div key={item.q} className={`rounded-2xl px-4 py-3 ${t.card}`}>
+          <p className={`text-sm font-semibold ${t.text}`}>{item.q}</p>
+          <p className={`mt-1 text-xs ${t.muted}`}>{item.a}</p>
+        </div>
+      ))}
+    </NestedModal>
+  );
+}
+
+function TermsModal({ open, onClose }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
+  return (
+    <NestedModal open={open} onClose={onClose} title="Terms of service">
+      <LegalSection title="1. Acceptance of terms" textClass={t.text}>
+        By creating an account or using Zuzu, you agree to these Terms of Service. If you don&apos;t agree, please don&apos;t use the app.
+      </LegalSection>
+      <LegalSection title="2. Your account" textClass={t.text}>
+        You&apos;re responsible for keeping your login credentials secure and for all activity under your account.
+      </LegalSection>
+      <LegalSection title="3. Acceptable use" textClass={t.text}>
+        Don&apos;t use Zuzu to harass others, share illegal content, or attempt to disrupt the service.
+      </LegalSection>
+      <LegalSection title="4. Tokens &amp; purchases" textClass={t.text}>
+        In-app tokens and store items are virtual goods with no cash value and are non-refundable except where required by law.
+      </LegalSection>
+      <LegalSection title="5. Termination" textClass={t.text}>
+        You can delete your account at any time from User policy. We may suspend accounts that violate these terms.
+      </LegalSection>
+      <LegalSection title="6. Contact" textClass={t.text}>
+        Questions about these terms? Reach us at support@zuzu.app.
+      </LegalSection>
+    </NestedModal>
+  );
+}
+
+function UserPolicyModal({ open, onClose, onDeleteAccount }) {
+  const { darkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  return (
+    <>
+      <NestedModal open={open} onClose={onClose} title="User policy">
+        <LegalSection title="Information we collect" textClass={t.text}>
+          Your profile info (name, @handle, bio, avatar), gameplay data (streak, level, tokens), and basic device/usage data.
+        </LegalSection>
+        <LegalSection title="How we use it" textClass={t.text}>
+          To run your pet&apos;s progress, show your profile to friends you add, and improve the app. We don&apos;t sell your personal data.
+        </LegalSection>
+        <LegalSection title="Data sharing" textClass={t.text}>
+          Shared only with service providers that help us run Zuzu (e.g. hosting), under confidentiality obligations.
+        </LegalSection>
+        <LegalSection title="Your rights" textClass={t.text}>
+          You can access, correct, or delete your data at any time. Deleting your account removes your profile, pet, and progress permanently.
+        </LegalSection>
+        <button
+          type="button"
+          onClick={() => setDeleteConfirmOpen(true)}
+          className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 ${t.card}`}
+        >
+          Delete account
+        </button>
+        <LegalSection title="Contact" textClass={t.text}>
+          Privacy questions go to support@zuzu.app.
+        </LegalSection>
+      </NestedModal>
+      <ConfirmAlert
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Delete account"
+        message="This permanently deletes your profile, pet, and progress. This can't be undone."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={onDeleteAccount}
+      />
+    </>
   );
 }
 
@@ -1100,14 +1471,32 @@ function SettingsRow({ icon, label, control }) {
 // `.liquid-glass-btn`) y la perilla de cada switch (PROFILE_GLASS_STYLE)
 // — son las ÚNICAS dos zonas marcadas en rojo ahí. Todo lo demás
 // (píldora ZUZU PREMIUM, tarjetas blancas, íconos negros, texto,
-// chevrons grises, fila de Log out) no estaba en rojo en la referencia
-// y queda tal cual, sin vidrio. Sin lógica real: los switches solo
-// alternan su propio estado visual, sin conectarse a nada todavía;
-// General Settings/Language/My contact/FAQ/Terms/User policy/Log out
-// no tienen onClick.
-function SettingsModal({ open, onClose }) {
-  const [pauseNotifications, setPauseNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+// chevrons grises, fila de Log out) no estaba en rojo en la referencia,
+// pero SÍ cambia con Dark mode (ver themeClasses) porque el pedido de
+// esta vuelta es justamente que ese swap de tema sea real.
+// Funcionalidad real:
+// - Pause notifications: persiste en localStorage (no hay sistema de
+//   notificaciones push real que "pausar" todavía, pero la preferencia
+//   es real y sobrevive un reload).
+// - Dark mode: usa el DarkModeContext de arriba (app-wide).
+// - General Settings/Language/My contact/FAQ/Terms/User policy: cada
+//   fila abre su NestedModal correspondiente.
+// - Log out: abre ConfirmAlert; confirmar llama a `onLogout` (definido
+//   en MainLayout), que cierra todo y muestra la pantalla de
+//   Onboarding placeholder.
+function SettingsModal({ open, onClose, onLogout }) {
+  const { darkMode, setDarkMode } = useDarkMode();
+  const t = themeClasses(darkMode);
+  const [pauseNotifications, setPauseNotifications] = useLocalStorageFlag("zuzu-notifications-paused", false);
+
+  const [language, setLanguage] = useState("English");
+  const [generalOpen, setGeneralOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [faqOpen, setFaqOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   return (
     <>
       <ModalBackdrop open={open} onClose={onClose} />
@@ -1125,7 +1514,8 @@ function SettingsModal({ open, onClose }) {
         }}
       >
         {/* ZUZU PREMIUM: no está marcada en rojo, queda con su propio
-            degradado plano, sin vidrio. */}
+            degradado plano, sin vidrio (no cambia con Dark mode — es
+            una insignia de marca, no una tarjeta de contenido). */}
         <div
           className="absolute flex items-center justify-center rounded-full bg-gradient-to-br from-white to-sky-100"
           style={{ left: "3.56%", right: "3.67%", top: "3.59%", height: "7.65%" }}
@@ -1135,77 +1525,108 @@ function SettingsModal({ open, onClose }) {
 
         {/* Pause notifications (tarjeta suelta) */}
         <div
-          className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
+          className={`absolute flex items-center gap-3 rounded-2xl px-4 ${t.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "13.29%", height: "7.65%" }}
         >
-          <BellIcon className="h-6 w-6 shrink-0 text-black" />
-          <span className="flex-1 text-sm font-semibold text-zinc-900">Pause notifications</span>
+          <BellIcon className={`h-6 w-6 shrink-0 ${t.text}`} />
+          <span className={`flex-1 text-sm font-semibold ${t.text}`}>Pause notifications</span>
           <ToggleSwitch checked={pauseNotifications} onChange={setPauseNotifications} />
         </div>
 
         {/* General Settings (tarjeta suelta) */}
-        <div
-          className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
+        <button
+          type="button"
+          onClick={() => setGeneralOpen(true)}
+          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${t.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "23.00%", height: "7.65%" }}
         >
-          <GearIcon className="h-6 w-6 shrink-0 text-black" />
-          <span className="flex-1 text-sm font-semibold text-zinc-900">General Settings</span>
-          <ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />
-        </div>
+          <GearIcon className={`h-6 w-6 shrink-0 ${t.text}`} />
+          <span className={`flex-1 text-sm font-semibold ${t.text}`}>General Settings</span>
+          <ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />
+        </button>
 
         {/* Grupo 1: Dark mode / Language / My contact */}
         <div
-          className="absolute flex flex-col divide-y divide-zinc-100 overflow-hidden rounded-2xl bg-white"
+          className={`absolute flex flex-col divide-y overflow-hidden rounded-2xl ${t.card} ${t.divide}`}
           style={{ left: "3.13%", right: "3.24%", top: "32.65%", height: "23.41%" }}
         >
           <SettingsRow
-            icon={<MoonIcon className="h-6 w-6 shrink-0 text-black" />}
+            icon={<MoonIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
             label="Dark mode"
             control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />}
           />
           <SettingsRow
-            icon={<AaIcon className="h-6 w-6 shrink-0 text-black" />}
+            icon={<AaIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
             label="Language"
-            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+            subLabel={language}
+            onClick={() => setLanguageOpen(true)}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
           />
           <SettingsRow
-            icon={<ZLogoIcon className="h-6 w-6 shrink-0 text-black" />}
+            icon={<ZLogoIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
             label="My contact"
-            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+            onClick={() => setContactOpen(true)}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
           />
         </div>
 
         {/* Grupo 2: FAQ / Terms of service / User policy */}
         <div
-          className="absolute flex flex-col divide-y divide-zinc-100 overflow-hidden rounded-2xl bg-white"
+          className={`absolute flex flex-col divide-y overflow-hidden rounded-2xl ${t.card} ${t.divide}`}
           style={{ left: "3.13%", right: "3.24%", top: "58.18%", height: "23.41%" }}
         >
           <SettingsRow
-            icon={<QuestionIcon className="h-6 w-6 shrink-0 text-black" />}
+            icon={<QuestionIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
             label="FAQ"
-            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+            onClick={() => setFaqOpen(true)}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
           />
           <SettingsRow
-            icon={<DocumentIcon className="h-6 w-6 shrink-0 text-black" />}
+            icon={<DocumentIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
             label="Terms of service"
-            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+            onClick={() => setTermsOpen(true)}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
           />
           <SettingsRow
-            icon={<ShieldCheckIcon className="h-6 w-6 shrink-0 text-black" />}
+            icon={<ShieldCheckIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
             label="User policy"
-            control={<ChevronIcon className="h-4 w-4 shrink-0 text-zinc-400" />}
+            onClick={() => setPolicyOpen(true)}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
           />
         </div>
 
         {/* Log out (tarjeta suelta) */}
-        <div
-          className="absolute flex items-center gap-3 rounded-2xl bg-white px-4"
+        <button
+          type="button"
+          onClick={() => setLogoutConfirmOpen(true)}
+          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${t.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "88.47%", height: "7.71%" }}
         >
-          <LogoutIcon className="h-6 w-6 shrink-0 text-black" />
-          <span className="text-sm font-semibold text-zinc-900">Log out</span>
-        </div>
+          <LogoutIcon className={`h-6 w-6 shrink-0 ${t.text}`} />
+          <span className={`text-sm font-semibold ${t.text}`}>Log out</span>
+        </button>
       </div>
+
+      <GeneralSettingsModal open={generalOpen} onClose={() => setGeneralOpen(false)} />
+      <LanguageModal
+        open={languageOpen}
+        onClose={() => setLanguageOpen(false)}
+        language={language}
+        onSelect={setLanguage}
+      />
+      <MyContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
+      <FaqModal open={faqOpen} onClose={() => setFaqOpen(false)} />
+      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
+      <UserPolicyModal open={policyOpen} onClose={() => setPolicyOpen(false)} onDeleteAccount={onLogout} />
+      <ConfirmAlert
+        open={logoutConfirmOpen}
+        onClose={() => setLogoutConfirmOpen(false)}
+        title="Log out"
+        message="Are you sure you want to log out?"
+        confirmLabel="Log Out"
+        destructive
+        onConfirm={onLogout}
+      />
     </>
   );
 }
@@ -1514,6 +1935,42 @@ const QA_TEST_BACKGROUND = `
   linear-gradient(135deg, #1a1a2e, #16213e)
 `;
 
+// OnboardingPlaceholder: pantalla destino real de "Log out" (y de
+// "Delete account") — a pedido explícito, el diseño final de esta
+// pantalla queda pendiente todavía; esto solo deja preparado el
+// manejo de estado de navegación (MainLayout renderiza esto en vez
+// de la app cuando `loggedIn` es false) para que el flujo de logout
+// tenga un destino real y comprobable, no solo cierre modales.
+function OnboardingPlaceholder({ onSignIn }) {
+  return (
+    <div
+      className="relative flex h-[100dvh] w-full flex-col items-center justify-center gap-10 px-8 text-center"
+      style={{ background: "linear-gradient(160deg, #1a1a2e, #16213e)" }}
+    >
+      <div>
+        <h1 className="text-4xl font-extrabold tracking-[0.2em] text-white">ZUZU</h1>
+        <p className="mt-3 text-sm text-white/50">Onboarding placeholder — full design pending.</p>
+      </div>
+      <div className="flex w-full max-w-xs flex-col gap-3">
+        <button
+          type="button"
+          onClick={onSignIn}
+          className="liquid-glass-btn flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white"
+        >
+          Continue with Google
+        </button>
+        <button
+          type="button"
+          onClick={onSignIn}
+          className="liquid-glass-btn flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white"
+        >
+          Continue with Apple
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState("habits");
   // Sin setter usado todavía (no hay de dónde disparar un mensaje nuevo
@@ -1531,6 +1988,21 @@ export default function MainLayout() {
   const [backgroundsOpen, setBackgroundsOpen] = useState(false);
   const { xp, xpToNext, streakJustIncreased, bestStreak } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
+
+  // Dark mode: "app-wide" (ver DarkModeContext arriba), persistido en
+  // localStorage vía useLocalStorageFlag (useSyncExternalStore, no
+  // useEffect+setState — evita el mismatch de hidratación y el error
+  // de "cascading renders" que ese patrón dispara).
+  const [darkMode, setDarkMode] = useLocalStorageFlag("zuzu-dark-mode", false);
+
+  // Sesión: "loggedIn" en memoria nada más (no hay backend de auth
+  // real) — al confirmar Log out (o Delete account, que por ahora usa
+  // el mismo destino) se cierra todo y se muestra el placeholder de
+  // Onboarding. OJO: esto NO borra datos persistidos como la racha o
+  // las preferencias — "clears the session state" se interpreta como
+  // la sesión de auth, no como borrar el progreso guardado del
+  // usuario, que sería un efecto secundario destructivo no pedido.
+  const [loggedIn, setLoggedIn] = useState(true);
 
   // Photo Mode: oculta todo el chrome (header, burbuja, barra de
   // racha/dock, dock, modales) dejando solo el fondo visible. Se activa
@@ -1562,7 +2034,22 @@ export default function MainLayout() {
     }
   }
 
+  function handleLogout() {
+    setProfileOpen(false);
+    setSettingsOpen(false);
+    setStoreOpen(false);
+    setPetsOpen(false);
+    setBackgroundsOpen(false);
+    setPhotoMode(false);
+    setLoggedIn(false);
+  }
+
+  if (!loggedIn) {
+    return <OnboardingPlaceholder onSignIn={() => setLoggedIn(true)} />;
+  }
+
   return (
+    <DarkModeContext.Provider value={{ darkMode, setDarkMode }}>
     <div
       className="relative h-[100dvh] w-full overflow-hidden bg-white"
       style={{ background: QA_TEST_BACKGROUND }}
@@ -1838,12 +2325,13 @@ export default function MainLayout() {
         bestStreak={bestStreak}
         onEnterPhotoMode={enterPhotoMode}
       />
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} onLogout={handleLogout} />
       <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
       <PetsModal open={petsOpen} onClose={() => setPetsOpen(false)} />
       <BackgroundsModal open={backgroundsOpen} onClose={() => setBackgroundsOpen(false)} />
         </>
       )}
     </div>
+    </DarkModeContext.Provider>
   );
 }
