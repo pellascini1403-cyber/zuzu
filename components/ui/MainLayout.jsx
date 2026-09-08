@@ -2,8 +2,10 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { UI_TEXT_STYLE } from "@/lib/typography";
+import { LANGUAGES, translate } from "@/lib/i18n";
 import usePetStats from "@/hooks/usePetStats";
 import useLocalStorageFlag from "@/hooks/useLocalStorageFlag";
+import useLocalStorageString from "@/hooks/useLocalStorageString";
 
 // DarkModeContext: "Dark mode" en SettingsModal es un swap de tema
 // APP-WIDE (pedido explícito), no un toggle que solo cambia su propia
@@ -15,6 +17,18 @@ import useLocalStorageFlag from "@/hooks/useLocalStorageFlag";
 const DarkModeContext = createContext({ darkMode: false, setDarkMode: () => {} });
 function useDarkMode() {
   return useContext(DarkModeContext);
+}
+
+// LanguageContext: mismo criterio que DarkModeContext — la selección de
+// idioma en Settings es app-wide, no algo local a ese modal, así que se
+// expone vía Context en vez de bajarse por props. `t(key)` es la función
+// de traducción real (ver lib/i18n.js); los componentes que ya usan
+// `themeClasses(darkMode)` la tenían asignada a una variable local `t`,
+// así que esos 9 sitios se renombraron a `tc` para liberar el nombre `t`
+// para la traducción.
+const LanguageContext = createContext({ language: "en", setLanguage: () => {}, t: (key) => key });
+function useLanguage() {
+  return useContext(LanguageContext);
 }
 
 // Placeholder del contador de tokens — todavía no hay una fuente de
@@ -264,9 +278,9 @@ function PetsIcon({ className }) {
 }
 
 const NAV_ITEMS = [
-  { key: "store", label: "Store", cx: 88, Icon: StoreIcon },
-  { key: "habits", label: "Habits", cx: 195, Icon: HabitsIcon },
-  { key: "pets", label: "Pets", cx: 302, Icon: PetsIcon },
+  { key: "store", labelKey: "nav.store", cx: 88, Icon: StoreIcon },
+  { key: "habits", labelKey: "nav.habits", cx: 195, Icon: HabitsIcon },
+  { key: "pets", labelKey: "nav.pets", cx: 302, Icon: PetsIcon },
 ];
 
 const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
@@ -478,7 +492,8 @@ const MOCK_FRIEND_SUGGESTIONS = [
 // z-index por encima de ProfileModal (se abre desde su botón +).
 function FriendSearchModal({ open, onClose }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
   const [query, setQuery] = useState("");
   const [sent, setSent] = useState(() => new Set());
 
@@ -498,7 +513,7 @@ function FriendSearchModal({ open, onClose }) {
       <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[55]" />
       <div
         role="dialog"
-        aria-label="Add friends"
+        aria-label={t("friends.title")}
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
         className={`liquid-glass-btn absolute z-[60] flex flex-col rounded-[28px] p-5 ${open ? "" : "pointer-events-none"}`}
@@ -510,10 +525,10 @@ function FriendSearchModal({ open, onClose }) {
         }}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-white">Add friends</h2>
+          <h2 className="text-base font-bold text-white">{t("friends.title")}</h2>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t("common.close")}
             onClick={onClose}
             className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full"
           >
@@ -525,16 +540,16 @@ function FriendSearchModal({ open, onClose }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search @handle"
+            placeholder={t("friends.searchPlaceholder")}
             className="w-full bg-transparent text-sm text-white placeholder:text-white/60 focus:outline-none"
           />
         </div>
         <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
           {results.map((u) => (
-            <div key={u.handle} className={`flex items-center justify-between rounded-2xl px-4 py-3 ${t.card}`}>
+            <div key={u.handle} className={`flex items-center justify-between rounded-2xl px-4 py-3 ${tc.card}`}>
               <div>
-                <p className={`text-sm font-semibold ${t.text}`}>{u.name}</p>
-                <p className={`text-xs ${t.muted}`}>@{u.handle}</p>
+                <p className={`text-sm font-semibold ${tc.text}`}>{u.name}</p>
+                <p className={`text-xs ${tc.muted}`}>@{u.handle}</p>
               </div>
               <button
                 type="button"
@@ -548,11 +563,11 @@ function FriendSearchModal({ open, onClose }) {
                     : "bg-sky-500 text-white"
                 }`}
               >
-                {sent.has(u.handle) ? "Requested" : "Add"}
+                {sent.has(u.handle) ? t("friends.requested") : t("friends.add")}
               </button>
             </div>
           ))}
-          {results.length === 0 && <p className="text-center text-sm text-white/70">No users found.</p>}
+          {results.length === 0 && <p className="text-center text-sm text-white/70">{t("friends.noResults")}</p>}
         </div>
       </div>
     </>
@@ -625,6 +640,7 @@ async function buildProfileShareCard({ name, handle, avatarUrl }) {
 // ofrece); "Copy profile link" usa la Clipboard API. Sin soporte para
 // ninguna de las dos, se avisa en vez de fallar en silencio.
 function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
+  const { t } = useLanguage();
   const [status, setStatus] = useState("idle"); // idle | sharing | copied | unsupported
 
   async function handleShareInstagram() {
@@ -660,7 +676,7 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
       <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[55]" />
       <div
         role="dialog"
-        aria-label="Share profile"
+        aria-label={t("share.title")}
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
         className={`liquid-glass-btn absolute z-[60] flex flex-col gap-3 rounded-[28px] p-5 ${open ? "" : "pointer-events-none"}`}
@@ -673,10 +689,10 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
         }}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-white">Share profile</h2>
+          <h2 className="text-base font-bold text-white">{t("share.title")}</h2>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t("common.close")}
             onClick={onClose}
             className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full"
           >
@@ -690,7 +706,7 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
         >
           <InstagramIcon className="h-6 w-6 shrink-0 text-white" />
           <span className="text-sm font-semibold text-white">
-            {status === "sharing" ? "Preparing…" : "Share to Instagram Stories"}
+            {status === "sharing" ? t("share.preparing") : t("share.instagram")}
           </span>
         </button>
         <button
@@ -700,11 +716,11 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
         >
           <LinkIcon className="h-6 w-6 shrink-0 text-white" />
           <span className="text-sm font-semibold text-white">
-            {status === "copied" ? "Link copied!" : "Copy profile link"}
+            {status === "copied" ? t("share.linkCopied") : t("share.copyLink")}
           </span>
         </button>
         {status === "unsupported" && (
-          <p className="text-center text-xs text-white/70">Sharing isn&apos;t supported in this browser.</p>
+          <p className="text-center text-xs text-white/70">{t("share.unsupported")}</p>
         )}
       </div>
     </>
@@ -732,7 +748,7 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
 //   de tener su propio estado de Photo Mode acá.
 function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const tc = themeClasses(darkMode);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("Name");
   const [handle, setHandle] = useState("name_26");
@@ -778,7 +794,7 @@ function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
       >
         {/* Tarjeta 1: nombre + bio + fila de 4 botones. */}
         <div
-          className={`absolute rounded-[28px] ${t.card}`}
+          className={`absolute rounded-[28px] ${tc.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
         >
           {editing ? (
@@ -786,30 +802,30 @@ function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               aria-label="Name"
-              className={`absolute left-0 right-0 border-b bg-transparent text-center text-base font-bold focus:outline-none ${t.text} ${
+              className={`absolute left-0 right-0 border-b bg-transparent text-center text-base font-bold focus:outline-none ${tc.text} ${
                 darkMode ? "border-white/20" : "border-zinc-200"
               }`}
               style={{ top: "34.4%" }}
             />
           ) : (
-            <p className={`absolute left-0 right-0 text-center text-base font-bold ${t.text}`} style={{ top: "34.4%" }}>
+            <p className={`absolute left-0 right-0 text-center text-base font-bold ${tc.text}`} style={{ top: "34.4%" }}>
               {name}
             </p>
           )}
           {editing ? (
             <div className="absolute left-0 right-0 flex items-center justify-center gap-0.5" style={{ top: "40.4%" }}>
-              <span className={`text-xs ${t.muted}`}>@</span>
+              <span className={`text-xs ${tc.muted}`}>@</span>
               <input
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.replace(/\s/g, ""))}
                 aria-label="Username"
-                className={`border-b bg-transparent text-center text-xs focus:outline-none ${t.muted} ${
+                className={`border-b bg-transparent text-center text-xs focus:outline-none ${tc.muted} ${
                   darkMode ? "border-white/20" : "border-zinc-200"
                 }`}
               />
             </div>
           ) : (
-            <p className={`absolute left-0 right-0 text-center text-xs ${t.muted}`} style={{ top: "40.4%" }}>
+            <p className={`absolute left-0 right-0 text-center text-xs ${tc.muted}`} style={{ top: "40.4%" }}>
               @{handle}
             </p>
           )}
@@ -1165,6 +1181,7 @@ function themeClasses(darkMode) {
 // cambia el contenido.
 function NestedModal({ open, onClose, title, children }) {
   const { darkMode } = useDarkMode();
+  const { t } = useLanguage();
   return (
     <>
       <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[55]" />
@@ -1185,7 +1202,7 @@ function NestedModal({ open, onClose, title, children }) {
           <h2 className="text-base font-bold text-white">{title}</h2>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t("common.close")}
             onClick={onClose}
             className="liquid-glass-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
           >
@@ -1205,6 +1222,7 @@ function NestedModal({ open, onClose, title, children }) {
 // esté abierto detrás (p.ej. confirmar borrar cuenta desde adentro de
 // User policy).
 function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, destructive }) {
+  const { t } = useLanguage();
   return (
     <>
       <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[65]" />
@@ -1233,7 +1251,7 @@ function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, 
             onClick={onClose}
             className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -1254,9 +1272,9 @@ function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, 
 }
 
 const GENERAL_SETTINGS_OPTIONS = [
-  { key: "haptics", label: "Haptic feedback" },
-  { key: "reduceMotion", label: "Reduce motion" },
-  { key: "soundEffects", label: "Sound effects" },
+  { key: "haptics", labelKey: "generalSettings.haptics" },
+  { key: "reduceMotion", labelKey: "generalSettings.reduceMotion" },
+  { key: "soundEffects", labelKey: "generalSettings.soundEffects" },
 ];
 
 // GeneralSettingsModal: "nested options with checkmark active states"
@@ -1265,7 +1283,8 @@ const GENERAL_SETTINGS_OPTIONS = [
 // la app) representando el tipo de opciones que viven acá.
 function GeneralSettingsModal({ open, onClose }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
   const [enabled, setEnabled] = useState({ haptics: true, reduceMotion: false, soundEffects: true });
 
   function toggle(key) {
@@ -1273,15 +1292,15 @@ function GeneralSettingsModal({ open, onClose }) {
   }
 
   return (
-    <NestedModal open={open} onClose={onClose} title="General Settings">
+    <NestedModal open={open} onClose={onClose} title={t("settings.generalSettings")}>
       {GENERAL_SETTINGS_OPTIONS.map((opt) => (
         <button
           key={opt.key}
           type="button"
           onClick={() => toggle(opt.key)}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${t.card}`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${tc.card}`}
         >
-          <span className={`text-sm font-semibold ${t.text}`}>{opt.label}</span>
+          <span className={`text-sm font-semibold ${tc.text}`}>{t(opt.labelKey)}</span>
           {enabled[opt.key] && <CheckIcon className="h-5 w-5 text-sky-500" />}
         </button>
       ))}
@@ -1289,28 +1308,29 @@ function GeneralSettingsModal({ open, onClose }) {
   );
 }
 
-const LANGUAGES = ["English", "Español", "Français", "Português", "Deutsch"];
-
-// LanguageModal: selección única con checkmark en el idioma activo;
-// `language`/`onSelect` vienen de SettingsModal (se muestra también
-// como sub-label en la fila "Language").
-function LanguageModal({ open, onClose, language, onSelect }) {
+// LanguageModal: selección única con checkmark en el idioma activo, sobre
+// los 10 idiomas de LANGUAGES (lib/i18n.js). `language`/`onSelect` vienen
+// de LanguageContext (app-wide, ver arriba) — al elegir uno, `t()` cambia
+// en toda la app de inmediato (Settings y sus 6 sub-modales, FriendSearch/
+// ShareSheet, el Dock y el placeholder de Onboarding).
+function LanguageModal({ open, onClose }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { language, setLanguage, t } = useLanguage();
+  const tc = themeClasses(darkMode);
   return (
-    <NestedModal open={open} onClose={onClose} title="Language">
+    <NestedModal open={open} onClose={onClose} title={t("settings.language")}>
       {LANGUAGES.map((lang) => (
         <button
-          key={lang}
+          key={lang.code}
           type="button"
           onClick={() => {
-            onSelect(lang);
+            setLanguage(lang.code);
             onClose();
           }}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${t.card}`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${tc.card}`}
         >
-          <span className={`text-sm font-semibold ${t.text}`}>{lang}</span>
-          {language === lang && <CheckIcon className="h-5 w-5 text-sky-500" />}
+          <span className={`text-sm font-semibold ${tc.text}`}>{lang.label}</span>
+          {language === lang.code && <CheckIcon className="h-5 w-5 text-sky-500" />}
         </button>
       ))}
     </NestedModal>
@@ -1323,32 +1343,33 @@ function LanguageModal({ open, onClose, language, onSelect }) {
 // (sección Account, Linked accounts, Support).
 function MyContactModal({ open, onClose }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
   return (
-    <NestedModal open={open} onClose={onClose} title="My contact">
+    <NestedModal open={open} onClose={onClose} title={t("settings.myContact")}>
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">Account</p>
-        <div className={`rounded-2xl px-4 py-3 ${t.card}`}>
-          <p className={`text-sm font-semibold ${t.text}`}>name_26</p>
-          <p className={`text-xs ${t.muted}`}>name_26@example.com</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">{t("contact.account")}</p>
+        <div className={`rounded-2xl px-4 py-3 ${tc.card}`}>
+          <p className={`text-sm font-semibold ${tc.text}`}>name_26</p>
+          <p className={`text-xs ${tc.muted}`}>name_26@example.com</p>
         </div>
       </div>
       <div>
-        <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">Linked accounts</p>
-        <div className={`divide-y overflow-hidden rounded-2xl ${t.card} ${t.divide}`}>
+        <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">{t("contact.linkedAccounts")}</p>
+        <div className={`divide-y overflow-hidden rounded-2xl ${tc.card} ${tc.divide}`}>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className={`text-sm font-semibold ${t.text}`}>Google</span>
-            <span className="text-xs font-semibold text-emerald-500">Connected</span>
+            <span className={`text-sm font-semibold ${tc.text}`}>Google</span>
+            <span className="text-xs font-semibold text-emerald-500">{t("contact.connected")}</span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className={`text-sm font-semibold ${t.text}`}>Apple</span>
-            <span className={`text-xs ${t.muted}`}>Not connected</span>
+            <span className={`text-sm font-semibold ${tc.text}`}>Apple</span>
+            <span className={`text-xs ${tc.muted}`}>{t("contact.notConnected")}</span>
           </div>
         </div>
       </div>
       <div>
-        <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">Support</p>
-        <a href="mailto:support@zuzu.app" className={`block rounded-2xl px-4 py-3 text-sm font-semibold text-sky-500 ${t.card}`}>
+        <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">{t("contact.support")}</p>
+        <a href="mailto:support@zuzu.app" className={`block rounded-2xl px-4 py-3 text-sm font-semibold text-sky-500 ${tc.card}`}>
           support@zuzu.app
         </a>
       </div>
@@ -1382,13 +1403,14 @@ const FAQ_ITEMS = [
 ];
 function FaqModal({ open, onClose }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
   return (
-    <NestedModal open={open} onClose={onClose} title="FAQ">
+    <NestedModal open={open} onClose={onClose} title={t("settings.faq")}>
       {FAQ_ITEMS.map((item) => (
-        <div key={item.q} className={`rounded-2xl px-4 py-3 ${t.card}`}>
-          <p className={`text-sm font-semibold ${t.text}`}>{item.q}</p>
-          <p className={`mt-1 text-xs ${t.muted}`}>{item.a}</p>
+        <div key={item.q} className={`rounded-2xl px-4 py-3 ${tc.card}`}>
+          <p className={`text-sm font-semibold ${tc.text}`}>{item.q}</p>
+          <p className={`mt-1 text-xs ${tc.muted}`}>{item.a}</p>
         </div>
       ))}
     </NestedModal>
@@ -1397,25 +1419,26 @@ function FaqModal({ open, onClose }) {
 
 function TermsModal({ open, onClose }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
   return (
-    <NestedModal open={open} onClose={onClose} title="Terms of service">
-      <LegalSection title="1. Acceptance of terms" textClass={t.text}>
+    <NestedModal open={open} onClose={onClose} title={t("settings.termsOfService")}>
+      <LegalSection title="1. Acceptance of terms" textClass={tc.text}>
         By creating an account or using Zuzu, you agree to these Terms of Service. If you don&apos;t agree, please don&apos;t use the app.
       </LegalSection>
-      <LegalSection title="2. Your account" textClass={t.text}>
+      <LegalSection title="2. Your account" textClass={tc.text}>
         You&apos;re responsible for keeping your login credentials secure and for all activity under your account.
       </LegalSection>
-      <LegalSection title="3. Acceptable use" textClass={t.text}>
+      <LegalSection title="3. Acceptable use" textClass={tc.text}>
         Don&apos;t use Zuzu to harass others, share illegal content, or attempt to disrupt the service.
       </LegalSection>
-      <LegalSection title="4. Tokens &amp; purchases" textClass={t.text}>
+      <LegalSection title="4. Tokens &amp; purchases" textClass={tc.text}>
         In-app tokens and store items are virtual goods with no cash value and are non-refundable except where required by law.
       </LegalSection>
-      <LegalSection title="5. Termination" textClass={t.text}>
+      <LegalSection title="5. Termination" textClass={tc.text}>
         You can delete your account at any time from User policy. We may suspend accounts that violate these terms.
       </LegalSection>
-      <LegalSection title="6. Contact" textClass={t.text}>
+      <LegalSection title="6. Contact" textClass={tc.text}>
         Questions about these terms? Reach us at support@zuzu.app.
       </LegalSection>
     </NestedModal>
@@ -1424,40 +1447,41 @@ function TermsModal({ open, onClose }) {
 
 function UserPolicyModal({ open, onClose, onDeleteAccount }) {
   const { darkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   return (
     <>
-      <NestedModal open={open} onClose={onClose} title="User policy">
-        <LegalSection title="Information we collect" textClass={t.text}>
+      <NestedModal open={open} onClose={onClose} title={t("settings.userPolicy")}>
+        <LegalSection title="Information we collect" textClass={tc.text}>
           Your profile info (name, @handle, bio, avatar), gameplay data (streak, level, tokens), and basic device/usage data.
         </LegalSection>
-        <LegalSection title="How we use it" textClass={t.text}>
+        <LegalSection title="How we use it" textClass={tc.text}>
           To run your pet&apos;s progress, show your profile to friends you add, and improve the app. We don&apos;t sell your personal data.
         </LegalSection>
-        <LegalSection title="Data sharing" textClass={t.text}>
+        <LegalSection title="Data sharing" textClass={tc.text}>
           Shared only with service providers that help us run Zuzu (e.g. hosting), under confidentiality obligations.
         </LegalSection>
-        <LegalSection title="Your rights" textClass={t.text}>
+        <LegalSection title="Your rights" textClass={tc.text}>
           You can access, correct, or delete your data at any time. Deleting your account removes your profile, pet, and progress permanently.
         </LegalSection>
         <button
           type="button"
           onClick={() => setDeleteConfirmOpen(true)}
-          className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 ${t.card}`}
+          className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 ${tc.card}`}
         >
-          Delete account
+          {t("policy.deleteAccount")}
         </button>
-        <LegalSection title="Contact" textClass={t.text}>
+        <LegalSection title="Contact" textClass={tc.text}>
           Privacy questions go to support@zuzu.app.
         </LegalSection>
       </NestedModal>
       <ConfirmAlert
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
-        title="Delete account"
-        message="This permanently deletes your profile, pet, and progress. This can't be undone."
-        confirmLabel="Delete"
+        title={t("policy.deleteAccount")}
+        message={t("policy.deleteConfirmMessage")}
+        confirmLabel={t("policy.deleteConfirmLabel")}
         destructive
         onConfirm={onDeleteAccount}
       />
@@ -1486,10 +1510,11 @@ function UserPolicyModal({ open, onClose, onDeleteAccount }) {
 //   Onboarding placeholder.
 function SettingsModal({ open, onClose, onLogout }) {
   const { darkMode, setDarkMode } = useDarkMode();
-  const t = themeClasses(darkMode);
+  const { language, t } = useLanguage();
+  const tc = themeClasses(darkMode);
   const [pauseNotifications, setPauseNotifications] = useLocalStorageFlag("zuzu-notifications-paused", false);
 
-  const [language, setLanguage] = useState("English");
+  const languageLabel = LANGUAGES.find((lang) => lang.code === language)?.label ?? language;
   const [generalOpen, setGeneralOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -1502,7 +1527,7 @@ function SettingsModal({ open, onClose, onLogout }) {
       <ModalBackdrop open={open} onClose={onClose} />
       <div
         role="dialog"
-        aria-label="Settings"
+        aria-label={t("settings.title")}
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
         className={`liquid-glass-btn absolute z-50 overflow-hidden rounded-[32px] ${open ? "" : "pointer-events-none"}`}
@@ -1525,11 +1550,11 @@ function SettingsModal({ open, onClose, onLogout }) {
 
         {/* Pause notifications (tarjeta suelta) */}
         <div
-          className={`absolute flex items-center gap-3 rounded-2xl px-4 ${t.card}`}
+          className={`absolute flex items-center gap-3 rounded-2xl px-4 ${tc.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "13.29%", height: "7.65%" }}
         >
-          <BellIcon className={`h-6 w-6 shrink-0 ${t.text}`} />
-          <span className={`flex-1 text-sm font-semibold ${t.text}`}>Pause notifications</span>
+          <BellIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />
+          <span className={`flex-1 text-sm font-semibold ${tc.text}`}>{t("settings.pauseNotifications")}</span>
           <ToggleSwitch checked={pauseNotifications} onChange={setPauseNotifications} />
         </div>
 
@@ -1537,61 +1562,61 @@ function SettingsModal({ open, onClose, onLogout }) {
         <button
           type="button"
           onClick={() => setGeneralOpen(true)}
-          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${t.card}`}
+          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${tc.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "23.00%", height: "7.65%" }}
         >
-          <GearIcon className={`h-6 w-6 shrink-0 ${t.text}`} />
-          <span className={`flex-1 text-sm font-semibold ${t.text}`}>General Settings</span>
-          <ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />
+          <GearIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />
+          <span className={`flex-1 text-sm font-semibold ${tc.text}`}>{t("settings.generalSettings")}</span>
+          <ChevronIcon className={`h-4 w-4 shrink-0 ${tc.muted}`} />
         </button>
 
         {/* Grupo 1: Dark mode / Language / My contact */}
         <div
-          className={`absolute flex flex-col divide-y overflow-hidden rounded-2xl ${t.card} ${t.divide}`}
+          className={`absolute flex flex-col divide-y overflow-hidden rounded-2xl ${tc.card} ${tc.divide}`}
           style={{ left: "3.13%", right: "3.24%", top: "32.65%", height: "23.41%" }}
         >
           <SettingsRow
-            icon={<MoonIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
-            label="Dark mode"
+            icon={<MoonIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />}
+            label={t("settings.darkMode")}
             control={<ToggleSwitch checked={darkMode} onChange={setDarkMode} />}
           />
           <SettingsRow
-            icon={<AaIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
-            label="Language"
-            subLabel={language}
+            icon={<AaIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />}
+            label={t("settings.language")}
+            subLabel={languageLabel}
             onClick={() => setLanguageOpen(true)}
-            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${tc.muted}`} />}
           />
           <SettingsRow
-            icon={<ZLogoIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
-            label="My contact"
+            icon={<ZLogoIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />}
+            label={t("settings.myContact")}
             onClick={() => setContactOpen(true)}
-            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${tc.muted}`} />}
           />
         </div>
 
         {/* Grupo 2: FAQ / Terms of service / User policy */}
         <div
-          className={`absolute flex flex-col divide-y overflow-hidden rounded-2xl ${t.card} ${t.divide}`}
+          className={`absolute flex flex-col divide-y overflow-hidden rounded-2xl ${tc.card} ${tc.divide}`}
           style={{ left: "3.13%", right: "3.24%", top: "58.18%", height: "23.41%" }}
         >
           <SettingsRow
-            icon={<QuestionIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
-            label="FAQ"
+            icon={<QuestionIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />}
+            label={t("settings.faq")}
             onClick={() => setFaqOpen(true)}
-            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${tc.muted}`} />}
           />
           <SettingsRow
-            icon={<DocumentIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
-            label="Terms of service"
+            icon={<DocumentIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />}
+            label={t("settings.termsOfService")}
             onClick={() => setTermsOpen(true)}
-            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${tc.muted}`} />}
           />
           <SettingsRow
-            icon={<ShieldCheckIcon className={`h-6 w-6 shrink-0 ${t.text}`} />}
-            label="User policy"
+            icon={<ShieldCheckIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />}
+            label={t("settings.userPolicy")}
             onClick={() => setPolicyOpen(true)}
-            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${t.muted}`} />}
+            control={<ChevronIcon className={`h-4 w-4 shrink-0 ${tc.muted}`} />}
           />
         </div>
 
@@ -1599,21 +1624,16 @@ function SettingsModal({ open, onClose, onLogout }) {
         <button
           type="button"
           onClick={() => setLogoutConfirmOpen(true)}
-          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${t.card}`}
+          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${tc.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "88.47%", height: "7.71%" }}
         >
-          <LogoutIcon className={`h-6 w-6 shrink-0 ${t.text}`} />
-          <span className={`text-sm font-semibold ${t.text}`}>Log out</span>
+          <LogoutIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />
+          <span className={`text-sm font-semibold ${tc.text}`}>{t("settings.logOut")}</span>
         </button>
       </div>
 
       <GeneralSettingsModal open={generalOpen} onClose={() => setGeneralOpen(false)} />
-      <LanguageModal
-        open={languageOpen}
-        onClose={() => setLanguageOpen(false)}
-        language={language}
-        onSelect={setLanguage}
-      />
+      <LanguageModal open={languageOpen} onClose={() => setLanguageOpen(false)} />
       <MyContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
       <FaqModal open={faqOpen} onClose={() => setFaqOpen(false)} />
       <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
@@ -1621,9 +1641,9 @@ function SettingsModal({ open, onClose, onLogout }) {
       <ConfirmAlert
         open={logoutConfirmOpen}
         onClose={() => setLogoutConfirmOpen(false)}
-        title="Log out"
-        message="Are you sure you want to log out?"
-        confirmLabel="Log Out"
+        title={t("settings.logOut")}
+        message={t("settings.logOutConfirmMessage")}
+        confirmLabel={t("settings.logOutConfirmLabel")}
         destructive
         onConfirm={onLogout}
       />
@@ -1942,6 +1962,7 @@ const QA_TEST_BACKGROUND = `
 // de la app cuando `loggedIn` es false) para que el flujo de logout
 // tenga un destino real y comprobable, no solo cierre modales.
 function OnboardingPlaceholder({ onSignIn }) {
+  const { t } = useLanguage();
   return (
     <div
       className="relative flex h-[100dvh] w-full flex-col items-center justify-center gap-10 px-8 text-center"
@@ -1949,7 +1970,7 @@ function OnboardingPlaceholder({ onSignIn }) {
     >
       <div>
         <h1 className="text-4xl font-extrabold tracking-[0.2em] text-white">ZUZU</h1>
-        <p className="mt-3 text-sm text-white/50">Onboarding placeholder — full design pending.</p>
+        <p className="mt-3 text-sm text-white/50">{t("onboarding.subtitle")}</p>
       </div>
       <div className="flex w-full max-w-xs flex-col gap-3">
         <button
@@ -1957,14 +1978,14 @@ function OnboardingPlaceholder({ onSignIn }) {
           onClick={onSignIn}
           className="liquid-glass-btn flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white"
         >
-          Continue with Google
+          {t("onboarding.google")}
         </button>
         <button
           type="button"
           onClick={onSignIn}
           className="liquid-glass-btn flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white"
         >
-          Continue with Apple
+          {t("onboarding.apple")}
         </button>
       </div>
     </div>
@@ -1994,6 +2015,14 @@ export default function MainLayout() {
   // useEffect+setState — evita el mismatch de hidratación y el error
   // de "cascading renders" que ese patrón dispara).
   const [darkMode, setDarkMode] = useLocalStorageFlag("zuzu-dark-mode", false);
+
+  // Idioma: mismo criterio app-wide que Dark mode, persistido en
+  // localStorage vía useLocalStorageString (mismo motivo: useSyncExternalStore
+  // en vez de useEffect+setState). `t` es una función simple (no necesita
+  // memoizarse con useCallback) que resuelve una clave contra
+  // TRANSLATIONS[language], con fallback a inglés — ver lib/i18n.js.
+  const [language, setLanguage] = useLocalStorageString("zuzu-language", "en");
+  const t = (key) => translate(language, key);
 
   // Sesión: "loggedIn" en memoria nada más (no hay backend de auth
   // real) — al confirmar Log out (o Delete account, que por ahora usa
@@ -2045,10 +2074,15 @@ export default function MainLayout() {
   }
 
   if (!loggedIn) {
-    return <OnboardingPlaceholder onSignIn={() => setLoggedIn(true)} />;
+    return (
+      <LanguageContext.Provider value={{ language, setLanguage, t }}>
+        <OnboardingPlaceholder onSignIn={() => setLoggedIn(true)} />
+      </LanguageContext.Provider>
+    );
   }
 
   return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
     <DarkModeContext.Provider value={{ darkMode, setDarkMode }}>
     <div
       className="relative h-[100dvh] w-full overflow-hidden bg-white"
@@ -2141,7 +2175,7 @@ export default function MainLayout() {
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
+            aria-label={t("settings.title")}
             className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
           >
             <img
@@ -2291,6 +2325,7 @@ export default function MainLayout() {
       {NAV_ITEMS.map((item) => {
         const isActive = item.key === activeTab;
         const Icon = item.Icon;
+        const label = t(item.labelKey);
         return (
           <button
             key={item.key}
@@ -2300,7 +2335,7 @@ export default function MainLayout() {
               if (item.key === "store") setStoreOpen(true);
               if (item.key === "pets") setPetsOpen(true);
             }}
-            aria-label={item.label}
+            aria-label={label}
             aria-pressed={isActive}
             className="absolute z-30 -translate-x-1/2"
             style={{ left: item.cx, top: isActive ? ACTIVE_BUBBLE_TOP : INACTIVE_ITEM_TOP }}
@@ -2312,7 +2347,7 @@ export default function MainLayout() {
             ) : (
               <span className="flex flex-col items-center gap-1">
                 <Icon className="h-6 w-6" />
-                <span className={`text-xs ${UI_TEXT_STYLE}`}>{item.label}</span>
+                <span className={`text-xs ${UI_TEXT_STYLE}`}>{label}</span>
               </span>
             )}
           </button>
@@ -2333,5 +2368,6 @@ export default function MainLayout() {
       )}
     </div>
     </DarkModeContext.Provider>
+    </LanguageContext.Provider>
   );
 }
