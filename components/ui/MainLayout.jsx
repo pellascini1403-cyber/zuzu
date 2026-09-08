@@ -1271,6 +1271,43 @@ function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, 
   );
 }
 
+// PremiumModal: "subscription / Premium benefits" — no hay backend de
+// pagos todavía (Fase 3), así que el botón de mejora queda deshabilitado
+// con la etiqueta "coming soon" en vez de simular un cobro que no existe;
+// los 4 beneficios sí son contenido real, no placeholders vacíos.
+const PREMIUM_BENEFITS = [
+  "premium.benefitStreakFreeze",
+  "premium.benefitOutfits",
+  "premium.benefitTokens",
+  "premium.benefitNoAds",
+];
+
+function PremiumModal({ open, onClose }) {
+  const { darkMode } = useDarkMode();
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
+  return (
+    <NestedModal open={open} onClose={onClose} title="ZUZU PREMIUM">
+      <p className={`text-sm ${tc.muted}`}>{t("premium.subtitle")}</p>
+      <div className={`divide-y overflow-hidden rounded-2xl ${tc.card} ${tc.divide}`}>
+        {PREMIUM_BENEFITS.map((key) => (
+          <div key={key} className="flex items-center gap-3 px-4 py-3">
+            <CheckIcon className="h-5 w-5 shrink-0 text-sky-500" />
+            <span className={`text-sm font-semibold ${tc.text}`}>{t(key)}</span>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        disabled
+        className="w-full cursor-not-allowed rounded-full bg-sky-500/50 py-3 text-sm font-semibold text-white"
+      >
+        {t("premium.upgrade")}
+      </button>
+    </NestedModal>
+  );
+}
+
 const GENERAL_SETTINGS_OPTIONS = [
   { key: "haptics", labelKey: "generalSettings.haptics" },
   { key: "reduceMotion", labelKey: "generalSettings.reduceMotion" },
@@ -1515,6 +1552,7 @@ function SettingsModal({ open, onClose, onLogout }) {
   const [pauseNotifications, setPauseNotifications] = useLocalStorageFlag("zuzu-notifications-paused", false);
 
   const languageLabel = LANGUAGES.find((lang) => lang.code === language)?.label ?? language;
+  const [premiumOpen, setPremiumOpen] = useState(false);
   const [generalOpen, setGeneralOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -1540,13 +1578,16 @@ function SettingsModal({ open, onClose, onLogout }) {
       >
         {/* ZUZU PREMIUM: no está marcada en rojo, queda con su propio
             degradado plano, sin vidrio (no cambia con Dark mode — es
-            una insignia de marca, no una tarjeta de contenido). */}
-        <div
+            una insignia de marca, no una tarjeta de contenido). Abre
+            PremiumModal con los beneficios (ver más abajo). */}
+        <button
+          type="button"
+          onClick={() => setPremiumOpen(true)}
           className="absolute flex items-center justify-center rounded-full bg-gradient-to-br from-white to-sky-100"
           style={{ left: "3.56%", right: "3.67%", top: "3.59%", height: "7.65%" }}
         >
           <span className="text-sm font-extrabold tracking-wide text-zinc-900">ZUZU PREMIUM</span>
-        </div>
+        </button>
 
         {/* Pause notifications (tarjeta suelta) */}
         <div
@@ -1632,6 +1673,7 @@ function SettingsModal({ open, onClose, onLogout }) {
         </button>
       </div>
 
+      <PremiumModal open={premiumOpen} onClose={() => setPremiumOpen(false)} />
       <GeneralSettingsModal open={generalOpen} onClose={() => setGeneralOpen(false)} />
       <LanguageModal open={languageOpen} onClose={() => setLanguageOpen(false)} />
       <MyContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
