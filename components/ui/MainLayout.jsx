@@ -1372,37 +1372,61 @@ function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, 
   );
 }
 
-// PremiumModal: "subscription / Premium benefits" — no hay backend de
-// pagos todavía (Fase 3), así que el botón de mejora queda deshabilitado
-// con la etiqueta "coming soon" en vez de simular un cobro que no existe;
-// los 4 beneficios sí son contenido real, no placeholders vacíos.
+// PremiumModal: "subscription / Premium benefits" — lista finalizada de
+// 5 beneficios (con su propio emoji, título y descripción — contenido
+// real, no placeholders) y precio final de compra única. Sigue sin
+// existir un backend de pagos real (Fase 3): el botón de $2.99 USD ya
+// no está deshabilitado/"coming soon" (pedido explícito: debe leer como
+// el CTA activo final), pero no tiene onClick — no hay ningún
+// proveedor de pagos conectado todavía para procesar un cobro real, y
+// simular uno acá sería mentirle al usuario sobre el estado real de la
+// función. Queda listo para conectar un handler de compra el día que
+// haya un proveedor (Stripe/RevenueCat/IAP) integrado.
 const PREMIUM_BENEFITS = [
-  "premium.benefitStreakFreeze",
-  "premium.benefitOutfits",
-  "premium.benefitTokens",
-  "premium.benefitNoAds",
+  { emoji: "🚫", titleKey: "premium.benefitNoAdsTitle", descKey: "premium.benefitNoAdsDesc" },
+  { emoji: "🐱", titleKey: "premium.benefitPetsTitle", descKey: "premium.benefitPetsDesc" },
+  { emoji: "🏞️", titleKey: "premium.benefitBackgroundsTitle", descKey: "premium.benefitBackgroundsDesc" },
+  { emoji: "❤️", titleKey: "premium.benefitStreakSaverTitle", descKey: "premium.benefitStreakSaverDesc" },
+  { emoji: "🪙", titleKey: "premium.benefitRewardsTitle", descKey: "premium.benefitRewardsDesc" },
 ];
 
 function PremiumModal({ open, onClose }) {
   const { t } = useLanguage();
   return (
     <NestedModal open={open} onClose={onClose} title="ZUZU PREMIUM">
-      <p className="text-sm text-white/70">{t("premium.subtitle")}</p>
-      <div className={`divide-y overflow-hidden rounded-2xl ${NESTED_CARD_CLASS} ${NESTED_CARD_DIVIDE_CLASS}`}>
-        {PREMIUM_BENEFITS.map((key) => (
-          <div key={key} className="flex items-center gap-3 px-4 py-3">
-            <CheckIcon className={`h-5 w-5 shrink-0 ${NESTED_ACCENT_CLASS}`} />
-            <span className="text-sm font-semibold text-white">{t(key)}</span>
-          </div>
-        ))}
+      <div className="flex justify-center">
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+          {t("premium.badge")}
+        </span>
       </div>
-      <button
-        type="button"
-        disabled
-        className="w-full cursor-not-allowed rounded-full bg-gradient-to-r from-sky-400/40 to-sky-200/40 py-3 text-sm font-semibold text-white"
-      >
-        {t("premium.upgrade")}
-      </button>
+      <p className="text-center text-sm text-white/70">{t("premium.subtitle")}</p>
+      {PREMIUM_BENEFITS.map((benefit) => (
+        <div key={benefit.titleKey} className={`rounded-2xl px-4 py-3 ${NESTED_CARD_CLASS}`}>
+          <p className="text-sm font-semibold text-white">
+            <span className="mr-1.5">{benefit.emoji}</span>
+            {t(benefit.titleKey)}
+          </p>
+          <p className="mt-1 text-xs text-white/70">{t(benefit.descKey)}</p>
+        </div>
+      ))}
+      {/* CTA de compra: mismo anillo de luz rotando que el banner ZUZU
+          PREMIUM de Settings (PREMIUM_RING_GRADIENT/ANIMATION_NAME,
+          inyectado junto a CHAT_BUBBLE_KEYFRAMES) — pedido explícito de
+          mantenerlo acá también. */}
+      <div className="relative overflow-hidden rounded-full" style={{ padding: "2.5px" }}>
+        <div
+          className="absolute inset-[-100%]"
+          style={{
+            background: PREMIUM_RING_GRADIENT,
+            animation: `${PREMIUM_RING_ANIMATION_NAME} 3.5s linear infinite`,
+          }}
+        />
+        <button type="button" className="relative z-10 w-full rounded-full py-3" style={PREMIUM_BANNER_STYLE}>
+          <span className={`text-base font-extrabold tracking-wide ${PREMIUM_TEXT_GRADIENT_CLASS}`} style={PREMIUM_TEXT_GLOW_STYLE}>
+            {t("premium.ctaPrice")}
+          </span>
+        </button>
+      </div>
     </NestedModal>
   );
 }
