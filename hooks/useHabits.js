@@ -153,7 +153,7 @@ export default function useHabits() {
     const habits = readRaw() ?? seedHabits();
     const newHabit = {
       id: `habit-${Date.now()}`,
-      emoji: habit.emoji || "✅",
+      emoji: habit.emoji || "book",
       title: habit.title,
       coinReward: habit.coinReward ?? 10,
       microTitle: habit.microTitle || null,

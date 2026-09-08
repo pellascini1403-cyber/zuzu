@@ -2242,11 +2242,9 @@ const HABITS_SHEET_BOX = { left: 0, right: 0, bottom: 0, maxHeight: "82%" };
 
 // Íconos blancos personalizados provistos por el usuario (recortados a
 // su bounding box de alfa +2%, mismo criterio que el resto de assets en
-// public/nav/) para las 5 categorías de hábito más comunes — reemplazan
-// los emoji genéricos de sistema para esos 5 casos puntuales. El resto
-// del set curado (🪥🧹🥗🎨✅) sigue siendo emoji Unicode, blanqueado vía
-// HABIT_EMOJI_MONO_STYLE más abajo, porque no hay un ícono propio
-// provisto para esas categorías todavía.
+// public/nav/) — pedido explícito de purgar el set anterior (emoji de
+// relleno tipo cepillo/escoba/ensalada/paleta/check) y dejar EXCLUSIVAMENTE
+// estos 5 como opciones del selector (ver HABIT_EMOJI_CHOICES más abajo).
 const HABIT_ICON_ASSETS = {
   book: "/nav/habit-book-white.png",
   water: "/nav/habit-water-white.png",
@@ -2280,13 +2278,11 @@ function HabitIcon({ icon, className }) {
   );
 }
 
-// Emoji/íconos fijos para elegir ícono de hábito — sin selector completo
-// de emoji del sistema operativo (fuera de alcance), un set curado
-// chico alcanza para personalizar la tarjeta. Los primeros 5 son las
-// claves de HABIT_ICON_ASSETS, EN ESE ORDEN EXACTO (Book/Water/
-// Meditate/Running/Sleep), pedido explícito; el resto sigue siendo
-// emoji Unicode.
-const HABIT_EMOJI_CHOICES = ["book", "water", "meditate", "running", "sleep", "🪥", "🧹", "🥗", "🎨", "✅"];
+// Selector de ícono de hábito: pedido explícito de purgar todo lo que
+// no sean estos 5 íconos blancos propios (HABIT_ICON_ASSETS) — nada de
+// emoji Unicode de relleno ni ningún otro set. EXACTAMENTE estas 5
+// claves, en este orden (Book/Water/Meditate/Running/Sleep).
+const HABIT_EMOJI_CHOICES = ["book", "water", "meditate", "running", "sleep"];
 
 const HABIT_WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
