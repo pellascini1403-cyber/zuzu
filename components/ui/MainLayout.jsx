@@ -393,6 +393,22 @@ const PROFILE_GLASS_STYLE = {
     "inset 1.5px 1.5px 3px rgba(255,255,255,0.7), inset -2px -3px 5px rgba(0,40,70,0.22), 0 3px 8px rgba(0,30,60,0.15)",
 };
 
+// NESTED_PILL_GLASS_STYLE: misma receta que PROFILE_GLASS_STYLE (vidrio
+// con tinte — sin él, el blur no muestra nada distinto sobre una
+// tarjeta opaca sin textura detrás) pero con tinte azul oscuro +
+// resplandor en vez del celeste pálido de PROFILE_GLASS_STYLE — para
+// las píldoras de precio/categoría de Store y Pets ahora que sus
+// tarjetas de preview pasan al fondo espacial oscuro (NESTED_MODAL_STYLE)
+// en vez de blanco.
+const NESTED_PILL_GLASS_STYLE = {
+  background: "rgba(30, 58, 110, 0.55)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  border: "1px solid rgba(140,190,255,0.3)",
+  boxShadow:
+    "inset 1.5px 1.5px 3px rgba(180,220,255,0.35), inset -2px -3px 5px rgba(0,10,30,0.35), 0 0 14px rgba(80,150,230,0.45)",
+};
+
 // Glifos de ProfileModal (Editar/Agregar/Compartir/Cámara) medidos
 // contra la hoja de referencia de íconos del usuario: los 4 son
 // FORMAS RELLENAS en blanco puro (currentColor), no trazos finos como
@@ -483,11 +499,38 @@ function InstagramIcon({ className }) {
 
 // PetPreviewPlaceholder: todavía no existe el asset 3D real de la
 // mascota — un blob suave sobre un degradado celeste marca el lugar
-// sin inventar el diseño final del personaje.
+// sin inventar el diseño final del personaje. Es opaco (tapa toda la
+// tarjeta) porque nació pensado para tarjetas blancas — sigue así en
+// ProfileModal (Tarjeta 2, fuera de este pedido), pero Store/Pets pasan
+// a NestedPreviewPlaceholder (ver más abajo) ahora que sus tarjetas de
+// preview usan el fondo espacial oscuro.
 function PetPreviewPlaceholder() {
   return (
     <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[28px] bg-gradient-to-b from-sky-100 via-white to-sky-100">
       <div className="h-2/3 w-2/3 rounded-[45%] bg-gradient-to-b from-white to-zinc-200 shadow-inner" />
+    </div>
+  );
+}
+
+// NestedPreviewPlaceholder: mismo rol de "silueta de ejemplo" que
+// PetPreviewPlaceholder, pero para las tarjetas de preview de Store/Pets
+// ahora que pasaron al tema espacial oscuro (NESTED_MODAL_STYLE) — a
+// propósito NO opaco: deja ver el degradado + resplandor de la tarjeta
+// detrás en vez de taparlo, con un aro de vidrio traslúcido en vez del
+// relleno claro sólido de la versión original.
+function NestedPreviewPlaceholder() {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div
+        className="h-2/3 w-2/3 rounded-[45%]"
+        style={{
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(180,220,255,0.35)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), 0 0 30px rgba(120,190,255,0.25)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+        }}
+      />
     </div>
   );
 }
@@ -1831,8 +1874,11 @@ function SettingsModal({ open, onClose, onLogout }) {
 // Marcado en rojo en esta referencia: el marco exterior, el circulito
 // decorativo top-left, las 2 píldoras de precio, y las 4 pestañas de
 // categoría (las 4, no solo la activa) — todas se convierten a Liquid
-// Glass. El preview central (placeholder celeste) y el texto/íconos
-// blancos de las píldoras NO estaban en rojo y quedan tal cual.
+// Glass. El preview central y las píldoras pasaron al tema espacial
+// oscuro fijo de los sub-modales de Configuración (ver
+// NESTED_MODAL_STYLE/NESTED_PILL_GLASS_STYLE) a pedido explícito —
+// texto/íconos blancos sin cambios, siguen leyendo bien sobre el nuevo
+// fondo oscuro.
 function StoreModal({ open, onClose }) {
   return (
     <>
@@ -1855,7 +1901,8 @@ function StoreModal({ open, onClose }) {
         }}
       >
         {/* Circulito decorativo superior-izquierdo: sin función todavía
-            (Fase futura). */}
+            (Fase futura). No es parte de ninguna de las 2 tarjetas, así
+            que queda tal cual (fuera de este pedido). */}
         <span
           className="liquid-glass-btn absolute rounded-full bg-white"
           style={{ left: "7.55%", top: "4.32%", width: "7.55%", height: "4.12%", ...PROFILE_GLASS_STYLE }}
@@ -1863,21 +1910,21 @@ function StoreModal({ open, onClose }) {
 
         {/* Tarjeta 1: preview + píldoras de precio */}
         <div
-          className="absolute overflow-hidden rounded-[28px] bg-white"
-          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
+          className="absolute overflow-hidden rounded-[28px]"
+          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%", opacity: 1, ...NESTED_MODAL_STYLE }}
         >
-          <PetPreviewPlaceholder />
+          <NestedPreviewPlaceholder />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center gap-1.5 rounded-full"
-          style={{ left: "14.89%", top: "52.18%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "14.89%", top: "52.18%", width: "32.90%", height: "8.00%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/tokens-icon.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 shrink-0 select-none object-contain" />
           <span className="text-sm font-bold text-white">150</span>
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "52.00%", top: "52.18%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "52.00%", top: "52.18%", width: "32.90%", height: "8.00%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <span className="text-sm font-bold text-white">$1.99</span>
         </div>
@@ -1885,32 +1932,32 @@ function StoreModal({ open, onClose }) {
         {/* Tarjeta 2: preview + 4 pestañas de categoría (Ropa activa por
             defecto) */}
         <div
-          className="absolute overflow-hidden rounded-[28px] bg-white"
-          style={{ left: "3.13%", right: "3.24%", top: "66.29%", height: "29.29%" }}
+          className="absolute overflow-hidden rounded-[28px]"
+          style={{ left: "3.13%", right: "3.24%", top: "66.29%", height: "29.29%", opacity: 1, ...NESTED_MODAL_STYLE }}
         >
-          <PetPreviewPlaceholder />
+          <NestedPreviewPlaceholder />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "7.77%", top: "77.06%", width: "33.01%", height: "8.06%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "7.77%", top: "77.06%", width: "33.01%", height: "8.06%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/hanger-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "44.44%", top: "77.41%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "44.44%", top: "77.41%", width: "13.27%", height: "7.29%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/cup-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "61.17%", top: "77.41%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "61.17%", top: "77.41%", width: "13.27%", height: "7.29%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/cat-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "78.21%", top: "77.41%", width: "13.38%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "78.21%", top: "77.41%", width: "13.38%", height: "7.29%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/tokens-icon.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
@@ -1930,8 +1977,10 @@ function StoreModal({ open, onClose }) {
 // en rojo y pasan a Liquid Glass. El circulito decorativo top-right,
 // en cambio, midió BLANCO puro (no rojo) en esta referencia — a
 // diferencia del de Store, acá queda como círculo blanco liso, sin
-// vidrio. El preview central y los íconos/texto blancos de las
-// píldoras no estaban en rojo y quedan tal cual.
+// vidrio. El preview central y las píldoras pasaron al tema espacial
+// oscuro fijo de los sub-modales de Configuración (mismo criterio que
+// StoreModal — ver NESTED_MODAL_STYLE/NESTED_PILL_GLASS_STYLE), con
+// íconos/texto blancos sin cambios.
 function PetsModal({ open, onClose }) {
   return (
     <>
@@ -1954,7 +2003,8 @@ function PetsModal({ open, onClose }) {
         }}
       >
         {/* Circulito decorativo superior-derecho: blanco liso, no vidrio
-            (midió blanco puro en la referencia, no rojo). */}
+            (midió blanco puro en la referencia, no rojo). No es parte
+            de ninguna de las 2 tarjetas, así que queda tal cual. */}
         <span
           className="absolute rounded-full bg-white"
           style={{ left: "85.44%", top: "4.59%", width: "6.58%", height: "3.53%" }}
@@ -1962,40 +2012,40 @@ function PetsModal({ open, onClose }) {
 
         {/* Tarjeta 1: preview + píldora "Hat" */}
         <div
-          className="absolute overflow-hidden rounded-[28px] bg-white"
-          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
+          className="absolute overflow-hidden rounded-[28px]"
+          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%", opacity: 1, ...NESTED_MODAL_STYLE }}
         >
-          <PetPreviewPlaceholder />
+          <NestedPreviewPlaceholder />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "34.74%", top: "52.18%", width: "32.79%", height: "7.94%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "34.74%", top: "52.18%", width: "32.79%", height: "7.94%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <span className="text-sm font-bold text-white">Hat</span>
         </div>
 
         {/* Tarjeta 2: preview + 3 pestañas de categoría (percha/vaso/gato) */}
         <div
-          className="absolute overflow-hidden rounded-[28px] bg-white"
-          style={{ left: "3.13%", right: "3.24%", top: "66.29%", height: "29.29%" }}
+          className="absolute overflow-hidden rounded-[28px]"
+          style={{ left: "3.13%", right: "3.24%", top: "66.29%", height: "29.29%", opacity: 1, ...NESTED_MODAL_STYLE }}
         >
-          <PetPreviewPlaceholder />
+          <NestedPreviewPlaceholder />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "16.50%", top: "77.06%", width: "32.90%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "16.50%", top: "77.06%", width: "32.90%", height: "8.00%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/hanger-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "53.18%", top: "77.41%", width: "13.16%", height: "7.24%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "53.18%", top: "77.41%", width: "13.16%", height: "7.24%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/cup-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
         <div
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
-          style={{ left: "69.90%", top: "77.41%", width: "13.16%", height: "7.24%", ...PROFILE_GLASS_STYLE }}
+          style={{ left: "69.90%", top: "77.41%", width: "13.16%", height: "7.24%", ...NESTED_PILL_GLASS_STYLE }}
         >
           <img src="/nav/cat-white.png" alt="" draggable={false} className="pointer-events-none h-5 w-5 select-none object-contain" />
         </div>
