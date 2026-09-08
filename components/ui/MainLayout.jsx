@@ -1171,16 +1171,57 @@ function themeClasses(darkMode) {
   };
 }
 
-// NestedModal: shell compartido por los 6 sub-modales nuevos de
-// Configuración (General Settings/Language/My contact/FAQ/Terms/User
-// policy) — mismo patrón de dimmer+tarjeta chica centrada que
-// FriendSearchModal/ShareSheet (ver ProfileModal más arriba: z-[55]
-// para el dimmer por ENCIMA de la tarjeta padre en z-50, z-[60] para
-// la propia). Encapsulado acá porque son 6 modales casi idénticos en
-// estructura (título + botón cerrar + contenido scrolleable), solo
-// cambia el contenido.
+// Estilo "espacial" pedido explícitamente para los 7 sub-modales
+// anidados de Configuración (Premium/General Settings/Language/My
+// contact/FAQ/Terms/User policy) — reemplaza el vidrio líquido
+// translúcido de NestedModal por un fondo azul profundo SÓLIDO (sin
+// dejar pasar el fondo dinámico de atrás) con resplandor superior
+// centrado + realce luminoso de borde, según las 2 imágenes de
+// referencia. A propósito, fijo — ya NO cambia con Dark mode: estos 7
+// sub-modales pasan a tener su propia identidad visual "espacial",
+// separada del tema claro/oscuro del modal padre de Configuración (que
+// sigue usando themeClasses sin cambios). Por eso todo el contenido de
+// esos 7 componentes dejó de usar `tc`/`useDarkMode` y pasa a un
+// esquema de color fijo (blanco sólido para texto secundario, degradé
+// celeste-a-blanco para títulos/valores destacados) en vez de adaptarse
+// al tema.
+const NESTED_MODAL_BACKGROUND = [
+  "radial-gradient(130% 55% at 50% -12%, rgba(148,197,255,0.55) 0%, rgba(148,197,255,0) 60%)",
+  "linear-gradient(180deg, #0a1730 0%, #123061 32%, #2c5a9e 68%, #6fa8de 100%)",
+].join(", ");
+
+const NESTED_MODAL_STYLE = {
+  background: NESTED_MODAL_BACKGROUND,
+  boxShadow: [
+    "inset 0 1px 0 rgba(255,255,255,0.35)",
+    "inset 0 0 0 1px rgba(255,255,255,0.14)",
+    "0 0 60px rgba(80,150,230,0.45)",
+    "0 25px 60px rgba(0,0,0,0.5)",
+  ].join(", "),
+};
+
+// Degradé celeste-a-blanco para títulos/valores primarios (h2 de
+// NestedModal, h3 de LegalSection) — texto secundario/de cuerpo se
+// queda en blanco sólido para máxima legibilidad, según lo pedido.
+const NESTED_MODAL_TITLE_CLASS = "bg-gradient-to-b from-white via-sky-100 to-sky-300 bg-clip-text text-transparent";
+
+// Tarjetas internas de los 7 sub-modales: sólidas/opacas (cero
+// bleed-through), no el vidrio translúcido `tc.card` — a propósito,
+// para que se note la diferencia entre las tarjetas claras del modal
+// padre y estos sub-modales oscuros "espaciales".
+const NESTED_CARD_CLASS = "bg-[#12274d] border border-white/10";
+const NESTED_CARD_DIVIDE_CLASS = "divide-white/10";
+const NESTED_ACCENT_CLASS = "text-sky-300";
+
+// NestedModal: shell compartido por los 7 sub-modales de Configuración
+// (Premium/General Settings/Language/My contact/FAQ/Terms/User policy)
+// — mismo patrón de dimmer+tarjeta chica centrada que FriendSearchModal/
+// ShareSheet (ver ProfileModal más arriba: z-[55] para el dimmer por
+// ENCIMA de la tarjeta padre en z-50, z-[60] para la propia).
+// Encapsulado acá porque son 7 modales casi idénticos en estructura
+// (título + botón cerrar + contenido scrolleable), solo cambia el
+// contenido.
 function NestedModal({ open, onClose, title, children }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
   return (
     <>
@@ -1190,16 +1231,17 @@ function NestedModal({ open, onClose, title, children }) {
         aria-label={title}
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
-        className={`liquid-glass-btn absolute z-[60] flex flex-col rounded-[28px] p-5 ${open ? "" : "pointer-events-none"}`}
+        className={`absolute z-[60] flex flex-col rounded-[28px] p-5 ${open ? "" : "pointer-events-none"}`}
         style={{
           ...NESTED_MODAL_BOX,
+          ...NESTED_MODAL_STYLE,
           transform: `translate(-50%, -50%) scale(${open ? 1 : 0.9})`,
           opacity: open ? 1 : 0,
           transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
         }}
       >
         <div className="flex shrink-0 items-center justify-between">
-          <h2 className="text-base font-bold text-white">{title}</h2>
+          <h2 className={`text-base font-bold ${NESTED_MODAL_TITLE_CLASS}`}>{title}</h2>
           <button
             type="button"
             aria-label={t("common.close")}
@@ -1209,7 +1251,7 @@ function NestedModal({ open, onClose, title, children }) {
             <PlusIcon className="h-4 w-4 rotate-45 text-white" />
           </button>
         </div>
-        <div className={`mt-4 flex-1 space-y-2 overflow-y-auto ${darkMode ? "" : ""}`}>{children}</div>
+        <div className="mt-4 flex-1 space-y-2 overflow-y-auto">{children}</div>
       </div>
     </>
   );
@@ -1283,24 +1325,22 @@ const PREMIUM_BENEFITS = [
 ];
 
 function PremiumModal({ open, onClose }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
-  const tc = themeClasses(darkMode);
   return (
     <NestedModal open={open} onClose={onClose} title="ZUZU PREMIUM">
-      <p className={`text-sm ${tc.muted}`}>{t("premium.subtitle")}</p>
-      <div className={`divide-y overflow-hidden rounded-2xl ${tc.card} ${tc.divide}`}>
+      <p className="text-sm text-white/70">{t("premium.subtitle")}</p>
+      <div className={`divide-y overflow-hidden rounded-2xl ${NESTED_CARD_CLASS} ${NESTED_CARD_DIVIDE_CLASS}`}>
         {PREMIUM_BENEFITS.map((key) => (
           <div key={key} className="flex items-center gap-3 px-4 py-3">
-            <CheckIcon className="h-5 w-5 shrink-0 text-sky-500" />
-            <span className={`text-sm font-semibold ${tc.text}`}>{t(key)}</span>
+            <CheckIcon className={`h-5 w-5 shrink-0 ${NESTED_ACCENT_CLASS}`} />
+            <span className="text-sm font-semibold text-white">{t(key)}</span>
           </div>
         ))}
       </div>
       <button
         type="button"
         disabled
-        className="w-full cursor-not-allowed rounded-full bg-sky-500/50 py-3 text-sm font-semibold text-white"
+        className="w-full cursor-not-allowed rounded-full bg-gradient-to-r from-sky-400/40 to-sky-200/40 py-3 text-sm font-semibold text-white"
       >
         {t("premium.upgrade")}
       </button>
@@ -1319,9 +1359,7 @@ const GENERAL_SETTINGS_OPTIONS = [
 // toggles de ejemplo (no conectados a ningún comportamiento real de
 // la app) representando el tipo de opciones que viven acá.
 function GeneralSettingsModal({ open, onClose }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
-  const tc = themeClasses(darkMode);
   const [enabled, setEnabled] = useState({ haptics: true, reduceMotion: false, soundEffects: true });
 
   function toggle(key) {
@@ -1335,10 +1373,10 @@ function GeneralSettingsModal({ open, onClose }) {
           key={opt.key}
           type="button"
           onClick={() => toggle(opt.key)}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${tc.card}`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${NESTED_CARD_CLASS}`}
         >
-          <span className={`text-sm font-semibold ${tc.text}`}>{t(opt.labelKey)}</span>
-          {enabled[opt.key] && <CheckIcon className="h-5 w-5 text-sky-500" />}
+          <span className="text-sm font-semibold text-white">{t(opt.labelKey)}</span>
+          {enabled[opt.key] && <CheckIcon className={`h-5 w-5 ${NESTED_ACCENT_CLASS}`} />}
         </button>
       ))}
     </NestedModal>
@@ -1351,9 +1389,7 @@ function GeneralSettingsModal({ open, onClose }) {
 // en toda la app de inmediato (Settings y sus 6 sub-modales, FriendSearch/
 // ShareSheet, el Dock y el placeholder de Onboarding).
 function LanguageModal({ open, onClose }) {
-  const { darkMode } = useDarkMode();
   const { language, setLanguage, t } = useLanguage();
-  const tc = themeClasses(darkMode);
   return (
     <NestedModal open={open} onClose={onClose} title={t("settings.language")}>
       {LANGUAGES.map((lang) => (
@@ -1364,10 +1400,10 @@ function LanguageModal({ open, onClose }) {
             setLanguage(lang.code);
             onClose();
           }}
-          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${tc.card}`}
+          className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 ${NESTED_CARD_CLASS}`}
         >
-          <span className={`text-sm font-semibold ${tc.text}`}>{lang.label}</span>
-          {language === lang.code && <CheckIcon className="h-5 w-5 text-sky-500" />}
+          <span className="text-sm font-semibold text-white">{lang.label}</span>
+          {language === lang.code && <CheckIcon className={`h-5 w-5 ${NESTED_ACCENT_CLASS}`} />}
         </button>
       ))}
     </NestedModal>
@@ -1379,34 +1415,35 @@ function LanguageModal({ open, onClose }) {
 // cuentas todavía), pero con la estructura real que va a necesitar
 // (sección Account, Linked accounts, Support).
 function MyContactModal({ open, onClose }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
-  const tc = themeClasses(darkMode);
   return (
     <NestedModal open={open} onClose={onClose} title={t("settings.myContact")}>
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">{t("contact.account")}</p>
-        <div className={`rounded-2xl px-4 py-3 ${tc.card}`}>
-          <p className={`text-sm font-semibold ${tc.text}`}>name_26</p>
-          <p className={`text-xs ${tc.muted}`}>name_26@example.com</p>
+        <div className={`rounded-2xl px-4 py-3 ${NESTED_CARD_CLASS}`}>
+          <p className={`text-sm font-semibold ${NESTED_MODAL_TITLE_CLASS}`}>name_26</p>
+          <p className="text-xs text-white/60">name_26@example.com</p>
         </div>
       </div>
       <div>
         <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">{t("contact.linkedAccounts")}</p>
-        <div className={`divide-y overflow-hidden rounded-2xl ${tc.card} ${tc.divide}`}>
+        <div className={`divide-y overflow-hidden rounded-2xl ${NESTED_CARD_CLASS} ${NESTED_CARD_DIVIDE_CLASS}`}>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className={`text-sm font-semibold ${tc.text}`}>Google</span>
-            <span className="text-xs font-semibold text-emerald-500">{t("contact.connected")}</span>
+            <span className="text-sm font-semibold text-white">Google</span>
+            <span className="text-xs font-semibold text-emerald-400">{t("contact.connected")}</span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className={`text-sm font-semibold ${tc.text}`}>Apple</span>
-            <span className={`text-xs ${tc.muted}`}>{t("contact.notConnected")}</span>
+            <span className="text-sm font-semibold text-white">Apple</span>
+            <span className="text-xs text-white/60">{t("contact.notConnected")}</span>
           </div>
         </div>
       </div>
       <div>
         <p className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-white/60">{t("contact.support")}</p>
-        <a href="mailto:support@zuzu.app" className={`block rounded-2xl px-4 py-3 text-sm font-semibold text-sky-500 ${tc.card}`}>
+        <a
+          href="mailto:support@zuzu.app"
+          className={`block rounded-2xl px-4 py-3 text-sm font-semibold ${NESTED_ACCENT_CLASS} ${NESTED_CARD_CLASS}`}
+        >
           support@zuzu.app
         </a>
       </div>
@@ -1417,10 +1454,10 @@ function MyContactModal({ open, onClose }) {
 // LegalSection: bloque título+párrafo compartido por FAQ/Terms/User
 // policy — evita repetir la misma estructura de <h3>+<p> a mano en
 // cada uno de los ~12 bloques entre los 3 modales.
-function LegalSection({ title, children, textClass }) {
+function LegalSection({ title, children }) {
   return (
     <div>
-      <h3 className={`mb-1 text-sm font-bold ${textClass}`}>{title}</h3>
+      <h3 className={`mb-1 text-sm font-bold ${NESTED_MODAL_TITLE_CLASS}`}>{title}</h3>
       <p className="text-xs leading-relaxed text-white/70">{children}</p>
     </div>
   );
@@ -1439,15 +1476,13 @@ const FAQ_ITEMS = [
   { q: "Can I use Zuzu on more than one device?", a: "Yes — sign in with the same account and your pet, streak, and settings come with you." },
 ];
 function FaqModal({ open, onClose }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
-  const tc = themeClasses(darkMode);
   return (
     <NestedModal open={open} onClose={onClose} title={t("settings.faq")}>
       {FAQ_ITEMS.map((item) => (
-        <div key={item.q} className={`rounded-2xl px-4 py-3 ${tc.card}`}>
-          <p className={`text-sm font-semibold ${tc.text}`}>{item.q}</p>
-          <p className={`mt-1 text-xs ${tc.muted}`}>{item.a}</p>
+        <div key={item.q} className={`rounded-2xl px-4 py-3 ${NESTED_CARD_CLASS}`}>
+          <p className={`text-sm font-semibold ${NESTED_MODAL_TITLE_CLASS}`}>{item.q}</p>
+          <p className="mt-1 text-xs text-white/70">{item.a}</p>
         </div>
       ))}
     </NestedModal>
@@ -1455,27 +1490,25 @@ function FaqModal({ open, onClose }) {
 }
 
 function TermsModal({ open, onClose }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
-  const tc = themeClasses(darkMode);
   return (
     <NestedModal open={open} onClose={onClose} title={t("settings.termsOfService")}>
-      <LegalSection title="1. Acceptance of terms" textClass={tc.text}>
+      <LegalSection title="1. Acceptance of terms">
         By creating an account or using Zuzu, you agree to these Terms of Service. If you don&apos;t agree, please don&apos;t use the app.
       </LegalSection>
-      <LegalSection title="2. Your account" textClass={tc.text}>
+      <LegalSection title="2. Your account">
         You&apos;re responsible for keeping your login credentials secure and for all activity under your account.
       </LegalSection>
-      <LegalSection title="3. Acceptable use" textClass={tc.text}>
+      <LegalSection title="3. Acceptable use">
         Don&apos;t use Zuzu to harass others, share illegal content, or attempt to disrupt the service.
       </LegalSection>
-      <LegalSection title="4. Tokens &amp; purchases" textClass={tc.text}>
+      <LegalSection title="4. Tokens &amp; purchases">
         In-app tokens and store items are virtual goods with no cash value and are non-refundable except where required by law.
       </LegalSection>
-      <LegalSection title="5. Termination" textClass={tc.text}>
+      <LegalSection title="5. Termination">
         You can delete your account at any time from User policy. We may suspend accounts that violate these terms.
       </LegalSection>
-      <LegalSection title="6. Contact" textClass={tc.text}>
+      <LegalSection title="6. Contact">
         Questions about these terms? Reach us at support@zuzu.app.
       </LegalSection>
     </NestedModal>
@@ -1483,33 +1516,31 @@ function TermsModal({ open, onClose }) {
 }
 
 function UserPolicyModal({ open, onClose, onDeleteAccount }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
-  const tc = themeClasses(darkMode);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   return (
     <>
       <NestedModal open={open} onClose={onClose} title={t("settings.userPolicy")}>
-        <LegalSection title="Information we collect" textClass={tc.text}>
+        <LegalSection title="Information we collect">
           Your profile info (name, @handle, bio, avatar), gameplay data (streak, level, tokens), and basic device/usage data.
         </LegalSection>
-        <LegalSection title="How we use it" textClass={tc.text}>
+        <LegalSection title="How we use it">
           To run your pet&apos;s progress, show your profile to friends you add, and improve the app. We don&apos;t sell your personal data.
         </LegalSection>
-        <LegalSection title="Data sharing" textClass={tc.text}>
+        <LegalSection title="Data sharing">
           Shared only with service providers that help us run Zuzu (e.g. hosting), under confidentiality obligations.
         </LegalSection>
-        <LegalSection title="Your rights" textClass={tc.text}>
+        <LegalSection title="Your rights">
           You can access, correct, or delete your data at any time. Deleting your account removes your profile, pet, and progress permanently.
         </LegalSection>
         <button
           type="button"
           onClick={() => setDeleteConfirmOpen(true)}
-          className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 ${tc.card}`}
+          className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-400 ${NESTED_CARD_CLASS}`}
         >
           {t("policy.deleteAccount")}
         </button>
-        <LegalSection title="Contact" textClass={tc.text}>
+        <LegalSection title="Contact">
           Privacy questions go to support@zuzu.app.
         </LegalSection>
       </NestedModal>
