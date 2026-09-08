@@ -2324,6 +2324,20 @@ const HABIT_GLASS_WHITE_GLOW_STYLE = {
   ].join(", "),
 };
 
+// Insignia de recompensa (+N Zuzu Coins): vidrio OSCURO (a diferencia
+// de liquid-glass-btn, que es un tinte claro fijo) con aro celeste —
+// pedido explícito de sacar el ámbar/amarillo y usar el mismo criterio
+// "dark liquid glass" del tema espacial en vez de un tinte claro
+// genérico. #00F0FF es el celeste exacto pedido.
+const HABIT_COIN_BADGE_STYLE = {
+  background: "rgba(8, 20, 40, 0.55)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  border: "1px solid rgba(0,240,255,0.4)",
+  boxShadow: "0 0 8px rgba(0,240,255,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+};
+const HABIT_COIN_TEXT_CLASS = "text-[#00F0FF]";
+
 // Los emoji de hábito son glifos de color (fuente de emoji del SO, no
 // SVG) — CSS `color` no los afecta. brightness(0) los aplana a negro
 // puro conservando su alfa, invert(1) lo vuelve blanco puro: el mismo
@@ -2365,8 +2379,12 @@ function HabitCard({ habit, onComplete, onDelete, t }) {
             <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/70">
               {habitScheduleLabel(habit.schedule, t)}
             </span>
-            <span className="flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
-              +{habit.coinReward} <span style={HABIT_EMOJI_MONO_STYLE}>🪙</span>
+            <span
+              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${HABIT_COIN_TEXT_CLASS}`}
+              style={HABIT_COIN_BADGE_STYLE}
+            >
+              +{habit.coinReward}
+              <img src="/nav/tokens-icon.png" alt="" draggable={false} className="h-3.5 w-3.5 shrink-0 object-contain" />
             </span>
           </div>
         </div>
@@ -2543,8 +2561,9 @@ function AddHabitForm({ onSave, onCancel, t }) {
           >
             −
           </button>
-          <span className="flex items-center gap-1 text-sm font-semibold text-white">
-            {coinReward} <span style={HABIT_EMOJI_MONO_STYLE}>🪙</span>
+          <span className={`flex items-center gap-1 text-sm font-semibold ${HABIT_COIN_TEXT_CLASS}`}>
+            {coinReward}
+            <img src="/nav/tokens-icon.png" alt="" draggable={false} className="h-4 w-4 object-contain" />
           </span>
           <button
             type="button"
