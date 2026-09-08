@@ -372,7 +372,15 @@ function ModalBackdrop({ open, onClose, zIndexClassName = "z-40" }) {
 // left/top 50% + transform translate(-50%,-50%) en vez de left/right/
 // top/bottom como el resto, con una altura máxima (el contenido decide
 // la altura real; la lista de FriendSearchModal scrollea si no entra).
-const NESTED_MODAL_BOX = { left: "50%", top: "50%", width: "86%", maxHeight: "70%" };
+// maxHeight subido de 70% a 82%: con 70%, el contenido más largo de
+// PremiumModal (badge + subtítulo + 5 tarjetas de beneficio + botón)
+// quedaba ~12px más alto que el área visible — invisible en el primer
+// frame (scrollTop 0), así que el botón de $2.99 se veía con el borde
+// inferior/esquinas redondeadas cortadas de entrada, y recién se
+// arreglaba si el usuario scrolleaba. 82% le da margen de sobra sin
+// necesidad de tocar el padding/spacing interno, y no afecta a los
+// otros 6 sub-modales (su contenido ya entraba cómodo incluso en 70%).
+const NESTED_MODAL_BOX = { left: "50%", top: "50%", width: "86%", maxHeight: "82%" };
 
 // PROFILE_GLASS_STYLE: reemplaza el rojo de la referencia (marco de la
 // tarjeta y los 5 botones — Racha/avatar/Editar/Agregar/Compartir/
@@ -1310,7 +1318,7 @@ function NestedModal({ open, onClose, title, children }) {
             <PlusIcon className="h-4 w-4 rotate-45 text-white" />
           </button>
         </div>
-        <div className="mt-4 flex-1 space-y-2 overflow-y-auto">{children}</div>
+        <div className="mt-4 flex-1 space-y-2 overflow-y-auto pb-1">{children}</div>
       </div>
     </>
   );
@@ -1382,12 +1390,24 @@ function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, 
 // simular uno acá sería mentirle al usuario sobre el estado real de la
 // función. Queda listo para conectar un handler de compra el día que
 // haya un proveedor (Stripe/RevenueCat/IAP) integrado.
+// Íconos de cada beneficio: reutilizan los assets/íconos YA existentes
+// del proyecto en vez de emoji Unicode genéricos (pedido explícito) —
+// mismo criterio que NAV_ITEMS más abajo (guardar el componente/ícono
+// en el dato, no hardcodearlo en el JSX). "No Ads" es el único que se
+// queda con emoji: no hay ningún ícono propio del proyecto para eso.
+//   - Pets: PetsIcon (el mismo ícono de la pestaña "Pets" del Dock).
+//   - Backgrounds: ImageIcon (el mismo ícono del botón "Backgrounds"
+//     del header).
+//   - Streak Saver: flame-white.png ("el fueguito blanco" de la racha,
+//     mismo asset que usa ProfileModal/el header).
+//   - 2x Rewards: tokens-icon.png (el ícono de las Zuzu Coins, mismo
+//     asset que la píldora de saldo del header y Store).
 const PREMIUM_BENEFITS = [
   { emoji: "🚫", titleKey: "premium.benefitNoAdsTitle", descKey: "premium.benefitNoAdsDesc" },
-  { emoji: "🐱", titleKey: "premium.benefitPetsTitle", descKey: "premium.benefitPetsDesc" },
-  { emoji: "🏞️", titleKey: "premium.benefitBackgroundsTitle", descKey: "premium.benefitBackgroundsDesc" },
-  { emoji: "❤️", titleKey: "premium.benefitStreakSaverTitle", descKey: "premium.benefitStreakSaverDesc" },
-  { emoji: "🪙", titleKey: "premium.benefitRewardsTitle", descKey: "premium.benefitRewardsDesc" },
+  { Icon: PetsIcon, titleKey: "premium.benefitPetsTitle", descKey: "premium.benefitPetsDesc" },
+  { Icon: ImageIcon, titleKey: "premium.benefitBackgroundsTitle", descKey: "premium.benefitBackgroundsDesc" },
+  { iconSrc: "/nav/flame-white.png", titleKey: "premium.benefitStreakSaverTitle", descKey: "premium.benefitStreakSaverDesc" },
+  { iconSrc: "/nav/tokens-icon.png", titleKey: "premium.benefitRewardsTitle", descKey: "premium.benefitRewardsDesc" },
 ];
 
 function PremiumModal({ open, onClose }) {
@@ -1400,15 +1420,27 @@ function PremiumModal({ open, onClose }) {
         </span>
       </div>
       <p className="text-center text-sm text-white/70">{t("premium.subtitle")}</p>
-      {PREMIUM_BENEFITS.map((benefit) => (
-        <div key={benefit.titleKey} className={`rounded-2xl px-4 py-3 ${NESTED_CARD_CLASS}`}>
-          <p className="text-sm font-semibold text-white">
-            <span className="mr-1.5">{benefit.emoji}</span>
-            {t(benefit.titleKey)}
-          </p>
-          <p className="mt-1 text-xs text-white/70">{t(benefit.descKey)}</p>
-        </div>
-      ))}
+      {PREMIUM_BENEFITS.map((benefit) => {
+        const Icon = benefit.Icon;
+        return (
+          <div key={benefit.titleKey} className={`rounded-2xl px-4 py-3 ${NESTED_CARD_CLASS}`}>
+            <p className="flex items-center gap-2 text-sm font-semibold text-white">
+              {benefit.emoji && <span className="text-base leading-none">{benefit.emoji}</span>}
+              {Icon && <Icon className="h-5 w-5 shrink-0 text-white" />}
+              {benefit.iconSrc && (
+                <img
+                  src={benefit.iconSrc}
+                  alt=""
+                  draggable={false}
+                  className="h-5 w-5 shrink-0 select-none object-contain"
+                />
+              )}
+              {t(benefit.titleKey)}
+            </p>
+            <p className="mt-1 text-xs text-white/70">{t(benefit.descKey)}</p>
+          </div>
+        );
+      })}
       {/* CTA de compra: mismo anillo de luz rotando que el banner ZUZU
           PREMIUM de Settings (PREMIUM_RING_GRADIENT/ANIMATION_NAME,
           inyectado junto a CHAT_BUBBLE_KEYFRAMES) — pedido explícito de
