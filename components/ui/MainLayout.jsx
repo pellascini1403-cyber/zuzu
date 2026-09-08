@@ -2247,6 +2247,40 @@ const HABIT_EMOJI_CHOICES = ["📖", "💧", "🧘", "🏃", "🛌", "🪥", "�
 
 const HABIT_WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
+// Botones del Habit Tracker: pedido explícito de sacar los rellenos
+// sólidos azul/verde menta y usar vidrio (liquid-glass-btn) en todos
+// lados, marcando "seleccionado"/"completado" con un aro de luz +
+// resplandor de color en vez de un fill plano — mismo bisel base que
+// .liquid-glass-btn (inset blanco arriba-izquierda / negro abajo-
+// derecha, ver globals.css) con una tercera capa inset de color
+// agregada encima.
+const HABIT_GLASS_ACCENT_STYLE = {
+  boxShadow: [
+    "inset 1px 1px 2px rgba(255,255,255,0.5)",
+    "inset -1px -1px 2px rgba(0,0,0,0.5)",
+    "inset 0 0 0 1.5px rgba(125,211,252,0.85)",
+    "0 0 14px rgba(56,189,248,0.5)",
+    "0 8px 24px rgba(0,0,0,0.3)",
+  ].join(", "),
+};
+const HABIT_GLASS_DONE_STYLE = {
+  boxShadow: [
+    "inset 1px 1px 2px rgba(255,255,255,0.5)",
+    "inset -1px -1px 2px rgba(0,0,0,0.5)",
+    "inset 0 0 0 1.5px rgba(110,231,183,0.85)",
+    "0 0 14px rgba(16,185,129,0.45)",
+    "0 8px 24px rgba(0,0,0,0.3)",
+  ].join(", "),
+};
+
+// Los emoji de hábito son glifos de color (fuente de emoji del SO, no
+// SVG) — CSS `color` no los afecta. brightness(0) los aplana a negro
+// puro conservando su alfa, invert(1) lo vuelve blanco puro: el mismo
+// truco que se usa para blanquear íconos de color sin tener un asset
+// blanco aparte. Es lo más cerca de "monocromático blanco" que se
+// puede pedir de un emoji Unicode real vía CSS.
+const HABIT_EMOJI_MONO_STYLE = { filter: "brightness(0) invert(1)" };
+
 // Texto corto de la frecuencia elegida, para el badge de cada tarjeta.
 function habitScheduleLabel(schedule, t) {
   if (!schedule || schedule.type === "noPressure") return t("habits.scheduleNoPressure");
@@ -2267,20 +2301,22 @@ function habitScheduleLabel(schedule, t) {
 // hábito tiene micro-hábito definido). El estado "hecho hoy" viene ya
 // resuelto en `habit.completedToday` (useHabits lo deriva contra la
 // fecha de hoy en cada snapshot).
-function HabitCard({ habit, onComplete, onDelete, tc, t }) {
+function HabitCard({ habit, onComplete, onDelete, t }) {
   const done = Boolean(habit.completedToday);
   return (
-    <div className={`rounded-2xl p-4 ${tc.card}`}>
+    <div className={`rounded-2xl p-4 ${NESTED_CARD_CLASS}`}>
       <div className="flex items-start gap-3">
-        <span className="text-2xl leading-none">{habit.emoji}</span>
+        <span className="text-2xl leading-none" style={HABIT_EMOJI_MONO_STYLE}>
+          {habit.emoji}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className={`text-sm font-semibold ${tc.text}`}>{habit.title}</p>
+          <p className="text-sm font-semibold text-white">{habit.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tc.muted} ${tc.card}`}>
+            <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/70">
               {habitScheduleLabel(habit.schedule, t)}
             </span>
-            <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
-              +{habit.coinReward} 🪙
+            <span className="flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+              +{habit.coinReward} <span style={HABIT_EMOJI_MONO_STYLE}>🪙</span>
             </span>
           </div>
         </div>
@@ -2288,7 +2324,7 @@ function HabitCard({ habit, onComplete, onDelete, tc, t }) {
           type="button"
           onClick={() => onDelete(habit.id)}
           aria-label={t("habits.deleteHabit")}
-          className={`shrink-0 rounded-full p-1.5 ${tc.muted}`}
+          className="liquid-glass-btn shrink-0 rounded-full p-1.5 text-white/70"
         >
           <PlusIcon className="h-4 w-4 rotate-45" />
         </button>
@@ -2298,8 +2334,9 @@ function HabitCard({ habit, onComplete, onDelete, tc, t }) {
           type="button"
           disabled={done}
           onClick={() => onComplete(habit.id, false)}
-          className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
-            done ? "bg-emerald-500/20 text-emerald-500" : "bg-sky-500 text-white active:scale-95"
+          style={done ? HABIT_GLASS_DONE_STYLE : HABIT_GLASS_ACCENT_STYLE}
+          className={`liquid-glass-btn flex-1 rounded-full py-2 text-sm font-semibold transition-transform active:scale-95 ${
+            done ? "text-emerald-300" : "text-white"
           }`}
         >
           {done ? `✓ ${t("habits.doneToday")}` : "✓"}
@@ -2308,7 +2345,7 @@ function HabitCard({ habit, onComplete, onDelete, tc, t }) {
           <button
             type="button"
             onClick={() => onComplete(habit.id, true)}
-            className={`flex-1 rounded-full py-2 text-xs font-semibold ${tc.muted} ${tc.card}`}
+            className="liquid-glass-btn flex-1 rounded-full py-2 text-xs font-semibold text-white/80"
             title={habit.microTitle}
           >
             {t("habits.doMicro")}
@@ -2325,7 +2362,7 @@ function HabitCard({ habit, onComplete, onDelete, tc, t }) {
 // 5). Sin validación exhaustiva: el único requisito real es un título
 // no vacío, consistente con el resto de la app (sin backend, sin
 // lógica de negocio compleja todavía).
-function AddHabitForm({ onSave, onCancel, tc, t }) {
+function AddHabitForm({ onSave, onCancel, t }) {
   const [title, setTitle] = useState("");
   const [emoji, setEmoji] = useState(HABIT_EMOJI_CHOICES[0]);
   const [microTitle, setMicroTitle] = useState("");
@@ -2353,8 +2390,9 @@ function AddHabitForm({ onSave, onCancel, tc, t }) {
     <button
       type="button"
       onClick={() => setScheduleType(type)}
-      className={`flex-1 rounded-full py-2 text-xs font-semibold ${
-        scheduleType === type ? "bg-sky-500 text-white" : `${tc.muted} ${tc.card}`
+      style={scheduleType === type ? HABIT_GLASS_ACCENT_STYLE : undefined}
+      className={`liquid-glass-btn flex-1 rounded-full py-2 text-xs font-semibold ${
+        scheduleType === type ? "text-white" : "text-white/70"
       }`}
     >
       {label}
@@ -2362,45 +2400,44 @@ function AddHabitForm({ onSave, onCancel, tc, t }) {
   );
 
   return (
-    <div className={`space-y-3 rounded-2xl p-4 ${tc.card}`}>
+    <div className={`space-y-3 rounded-2xl p-4 ${NESTED_CARD_CLASS}`}>
       <div>
-        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.habitTitleLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.habitTitleLabel")}</label>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t("habits.habitTitlePlaceholder")}
-          className={`w-full rounded-xl border-b bg-transparent px-1 py-2 text-sm focus:outline-none ${tc.text} border-current/20`}
+          className="w-full rounded-xl border-b border-current/20 bg-transparent px-1 py-2 text-sm text-white focus:outline-none"
         />
       </div>
       <div>
-        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.emojiLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.emojiLabel")}</label>
         <div className="flex flex-wrap gap-1.5">
           {HABIT_EMOJI_CHOICES.map((choice) => (
             <button
               key={choice}
               type="button"
               onClick={() => setEmoji(choice)}
-              className={`flex h-9 w-9 items-center justify-center rounded-full text-lg ${
-                emoji === choice ? "bg-sky-500/30 ring-2 ring-sky-500" : tc.card
-              }`}
+              style={emoji === choice ? HABIT_GLASS_ACCENT_STYLE : undefined}
+              className="liquid-glass-btn flex h-9 w-9 items-center justify-center rounded-full text-lg"
             >
-              {choice}
+              <span style={HABIT_EMOJI_MONO_STYLE}>{choice}</span>
             </button>
           ))}
         </div>
       </div>
       <div>
-        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.microHabitLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.microHabitLabel")}</label>
         <input
           value={microTitle}
           onChange={(e) => setMicroTitle(e.target.value)}
           placeholder={t("habits.microHabitPlaceholder")}
-          className={`w-full rounded-xl border-b bg-transparent px-1 py-2 text-sm focus:outline-none ${tc.text} border-current/20`}
+          className="w-full rounded-xl border-b border-current/20 bg-transparent px-1 py-2 text-sm text-white focus:outline-none"
         />
-        <p className={`mt-1 text-[11px] ${tc.muted}`}>{t("habits.microHabitHint")}</p>
+        <p className="mt-1 text-[11px] text-white/70">{t("habits.microHabitHint")}</p>
       </div>
       <div>
-        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.scheduleLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.scheduleLabel")}</label>
         <div className="flex gap-1.5">
           {scheduleTypeButton("days", t("habits.scheduleDays"))}
           {scheduleTypeButton("weekly", t("habits.scheduleWeekly"))}
@@ -2413,8 +2450,9 @@ function AddHabitForm({ onSave, onCancel, tc, t }) {
                 key={i}
                 type="button"
                 onClick={() => toggleDay(i)}
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
-                  days.includes(i) ? "bg-sky-500 text-white" : `${tc.muted} ${tc.card}`
+                style={days.includes(i) ? HABIT_GLASS_ACCENT_STYLE : undefined}
+                className={`liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                  days.includes(i) ? "text-white" : "text-white/70"
                 }`}
               >
                 {letter}
@@ -2427,53 +2465,56 @@ function AddHabitForm({ onSave, onCancel, tc, t }) {
             <button
               type="button"
               onClick={() => setTimesPerWeek((v) => Math.max(1, v - 1))}
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+              className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full text-lg text-white"
             >
               −
             </button>
-            <span className={`text-sm font-semibold ${tc.text}`}>
+            <span className="text-sm font-semibold text-white">
               {timesPerWeek} {t("habits.timesPerWeek")}
             </span>
             <button
               type="button"
               onClick={() => setTimesPerWeek((v) => Math.min(7, v + 1))}
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+              className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full text-lg text-white"
             >
               +
             </button>
           </div>
         )}
-        {scheduleType === "noPressure" && <p className={`mt-2 text-[11px] ${tc.muted}`}>{t("habits.noPressureHint")}</p>}
+        {scheduleType === "noPressure" && <p className="mt-2 text-[11px] text-white/70">{t("habits.noPressureHint")}</p>}
       </div>
       <div>
-        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.rewardLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.rewardLabel")}</label>
         <div className="flex items-center justify-center gap-4">
           <button
             type="button"
             onClick={() => setCoinReward((v) => Math.max(5, v - 5))}
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+            className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full text-lg text-white"
           >
             −
           </button>
-          <span className={`text-sm font-semibold ${tc.text}`}>{coinReward} 🪙</span>
+          <span className="flex items-center gap-1 text-sm font-semibold text-white">
+            {coinReward} <span style={HABIT_EMOJI_MONO_STYLE}>🪙</span>
+          </span>
           <button
             type="button"
             onClick={() => setCoinReward((v) => Math.min(100, v + 5))}
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+            className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full text-lg text-white"
           >
             +
           </button>
         </div>
       </div>
       <div className="flex gap-2 pt-1">
-        <button type="button" onClick={onCancel} className={`flex-1 rounded-full py-2.5 text-sm font-semibold ${tc.muted} ${tc.card}`}>
+        <button type="button" onClick={onCancel} className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white/70">
           {t("habits.cancel")}
         </button>
         <button
           type="button"
           onClick={handleSave}
           disabled={!title.trim()}
-          className="flex-1 rounded-full bg-sky-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+          style={HABIT_GLASS_ACCENT_STYLE}
+          className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white disabled:opacity-40"
         >
           {t("habits.save")}
         </button>
@@ -2490,9 +2531,7 @@ function AddHabitForm({ onSave, onCancel, tc, t }) {
 // día, completarlo suma monedas, no completarlo no resta ni penaliza
 // nada visualmente.
 function HabitsModal({ open, onClose, habits, onComplete, onAddHabit, onDeleteHabit }) {
-  const { darkMode } = useDarkMode();
   const { t } = useLanguage();
-  const tc = themeClasses(darkMode);
   const [showAddForm, setShowAddForm] = useState(false);
 
   return (
@@ -2531,11 +2570,10 @@ function HabitsModal({ open, onClose, habits, onComplete, onAddHabit, onDeleteHa
             <p className="py-6 text-center text-sm text-white/70">{t("habits.emptyState")}</p>
           )}
           {habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} onComplete={onComplete} onDelete={onDeleteHabit} tc={tc} t={t} />
+            <HabitCard key={habit.id} habit={habit} onComplete={onComplete} onDelete={onDeleteHabit} t={t} />
           ))}
           {showAddForm ? (
             <AddHabitForm
-              tc={tc}
               t={t}
               onCancel={() => setShowAddForm(false)}
               onSave={(habit) => {
@@ -2547,7 +2585,7 @@ function HabitsModal({ open, onClose, habits, onComplete, onAddHabit, onDeleteHa
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className={`w-full rounded-2xl py-3 text-sm font-semibold ${tc.card} ${tc.text}`}
+              className="liquid-glass-btn w-full rounded-2xl py-3 text-sm font-semibold text-white"
             >
               + {t("habits.addHabit")}
             </button>
