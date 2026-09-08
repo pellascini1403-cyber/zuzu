@@ -1562,7 +1562,7 @@ function SettingsModal({ open, onClose, onLogout }) {
         <button
           type="button"
           onClick={() => setGeneralOpen(true)}
-          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${tc.card}`}
+          className={`absolute flex items-center gap-3 rounded-2xl px-4 text-left ${tc.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "23.00%", height: "7.65%" }}
         >
           <GearIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />
@@ -1624,7 +1624,7 @@ function SettingsModal({ open, onClose, onLogout }) {
         <button
           type="button"
           onClick={() => setLogoutConfirmOpen(true)}
-          className={`absolute flex w-full items-center gap-3 rounded-2xl px-4 text-left ${tc.card}`}
+          className={`absolute flex items-center gap-3 rounded-2xl px-4 text-left ${tc.card}`}
           style={{ left: "3.13%", right: "3.24%", top: "88.47%", height: "7.71%" }}
         >
           <LogoutIcon className={`h-6 w-6 shrink-0 ${tc.text}`} />
