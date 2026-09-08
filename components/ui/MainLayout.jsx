@@ -1557,15 +1557,63 @@ function UserPolicyModal({ open, onClose, onDeleteAccount }) {
   );
 }
 
+// ZUZU PREMIUM (banner CTA): mismo tratamiento "espacial" que los 7
+// sub-modales anidados (fondo azul profundo + resplandor superior),
+// pero un poco más brillante/intenso a propósito — es un banner para
+// llamar la atención y generar clicks, no una tarjeta de contenido más.
+// Fijo, no cambia con Dark mode (igual que NESTED_MODAL_STYLE).
+const PREMIUM_BANNER_BACKGROUND = [
+  "radial-gradient(140% 90% at 50% -25%, rgba(180,222,255,0.8) 0%, rgba(180,222,255,0) 65%)",
+  "linear-gradient(180deg, #0d1f3d 0%, #163a72 30%, #2f66ab 65%, #7db6ea 100%)",
+].join(", ");
+
+const PREMIUM_BANNER_STYLE = {
+  background: PREMIUM_BANNER_BACKGROUND,
+  boxShadow: [
+    "inset 0 1px 0 rgba(255,255,255,0.55)",
+    "inset 0 0 22px rgba(160,210,255,0.4)",
+    "0 0 30px rgba(90,160,240,0.65)",
+  ].join(", "),
+};
+
+// Anillo de luz rotando: capa de fondo con conic-gradient sobredimensionada
+// (inset -100% = 3x el tamaño de la píldora en cada eje, así ninguna
+// rotación deja una esquina sin cubrir) puesta DETRÁS del botón real y
+// recortada a la forma de la píldora por el `overflow-hidden` + `rounded-full`
+// del contenedor exterior — el botón interior, más chico por el padding de
+// 2px del contenedor, tapa el centro y deja ver solo un aro fino, que es el
+// que gira. Se anima con `transform: rotate()` (ver keyframes más abajo,
+// inyectados junto a CHAT_BUBBLE_KEYFRAMES) en vez de animar el ángulo del
+// propio conic-gradient, que necesitaría `@property` para interpolar suave.
+const PREMIUM_RING_GRADIENT =
+  "conic-gradient(from 0deg, rgba(125,211,252,0.3) 0deg, rgba(125,211,252,0.3) 25deg, #ffffff 55deg, rgba(125,211,252,0.95) 85deg, rgba(125,211,252,0.3) 115deg, rgba(125,211,252,0.3) 360deg)";
+const PREMIUM_RING_ANIMATION_NAME = "zuzu-premium-ring-spin";
+const PREMIUM_RING_KEYFRAMES = `
+  @keyframes ${PREMIUM_RING_ANIMATION_NAME} {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+// Degradé celeste vívido-a-blanco horizontal (más vívido que
+// NESTED_MODAL_TITLE_CLASS, pensado para una sola línea ancha en vez de
+// un título corto) + drop-shadow doble como resplandor detrás de las
+// letras.
+const PREMIUM_TEXT_GRADIENT_CLASS = "bg-gradient-to-r from-cyan-200 via-white to-sky-300 bg-clip-text text-transparent";
+const PREMIUM_TEXT_GLOW_STYLE = {
+  filter: "drop-shadow(0 0 8px rgba(125,211,252,0.85)) drop-shadow(0 0 18px rgba(56,189,248,0.5))",
+};
+
 // SettingsModal: layout medido pixel a pixel contra la imagen de
 // referencia (mismo MODAL_BOX/canvas que ProfileModal). Único cambio de
 // color respecto a la referencia: el marco exterior (Liquid Glass real,
 // `.liquid-glass-btn`) y la perilla de cada switch (PROFILE_GLASS_STYLE)
 // — son las ÚNICAS dos zonas marcadas en rojo ahí. Todo lo demás
-// (píldora ZUZU PREMIUM, tarjetas blancas, íconos negros, texto,
-// chevrons grises, fila de Log out) no estaba en rojo en la referencia,
-// pero SÍ cambia con Dark mode (ver themeClasses) porque el pedido de
-// esta vuelta es justamente que ese swap de tema sea real.
+// (tarjetas blancas, íconos negros, texto, chevrons grises, fila de Log
+// out) no estaba en rojo en la referencia, pero SÍ cambia con Dark mode
+// (ver themeClasses) porque el pedido de esta vuelta es justamente que
+// ese swap de tema sea real. ZUZU PREMIUM es la única excepción: banner
+// CTA de estilo fijo "espacial" (ver PREMIUM_BANNER_STYLE arriba), no
+// sujeto a Dark mode.
 // Funcionalidad real:
 // - Pause notifications: persiste en localStorage (no hay sistema de
 //   notificaciones push real que "pausar" todavía, pero la preferencia
@@ -1607,18 +1655,36 @@ function SettingsModal({ open, onClose, onLogout }) {
           transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
         }}
       >
-        {/* ZUZU PREMIUM: no está marcada en rojo, queda con su propio
-            degradado plano, sin vidrio (no cambia con Dark mode — es
-            una insignia de marca, no una tarjeta de contenido). Abre
-            PremiumModal con los beneficios (ver más abajo). */}
-        <button
-          type="button"
-          onClick={() => setPremiumOpen(true)}
-          className="absolute flex items-center justify-center rounded-full bg-gradient-to-br from-white to-sky-100"
-          style={{ left: "3.56%", right: "3.67%", top: "3.59%", height: "7.65%" }}
+        {/* ZUZU PREMIUM: banner CTA de estilo fijo "espacial" (no cambia
+            con Dark mode — ver PREMIUM_BANNER_STYLE/PREMIUM_RING_GRADIENT
+            arriba). Anillo de luz rotando + fondo azul con resplandor +
+            texto en degradé con drop-shadow. Abre PremiumModal con los
+            beneficios (ver más abajo). */}
+        <div
+          className="absolute overflow-hidden rounded-full"
+          style={{ left: "3.56%", right: "3.67%", top: "3.59%", height: "7.65%", padding: "2.5px" }}
         >
-          <span className="text-sm font-extrabold tracking-wide text-zinc-900">ZUZU PREMIUM</span>
-        </button>
+          <div
+            className="absolute inset-[-100%]"
+            style={{
+              background: PREMIUM_RING_GRADIENT,
+              animation: `${PREMIUM_RING_ANIMATION_NAME} 3.5s linear infinite`,
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setPremiumOpen(true)}
+            className="relative z-10 flex h-full w-full items-center justify-center rounded-full"
+            style={PREMIUM_BANNER_STYLE}
+          >
+            <span
+              className={`text-lg font-extrabold tracking-wide ${PREMIUM_TEXT_GRADIENT_CLASS}`}
+              style={PREMIUM_TEXT_GLOW_STYLE}
+            >
+              ZUZU PREMIUM
+            </span>
+          </button>
+        </div>
 
         {/* Pause notifications (tarjeta suelta) */}
         <div
@@ -2161,7 +2227,7 @@ export default function MainLayout() {
       className="relative h-[100dvh] w-full overflow-hidden bg-white"
       style={{ background: QA_TEST_BACKGROUND }}
     >
-      <style>{CHAT_BUBBLE_KEYFRAMES}</style>
+      <style>{`${CHAT_BUBBLE_KEYFRAMES}${PREMIUM_RING_KEYFRAMES}`}</style>
 
       {photoMode && (
         <div
