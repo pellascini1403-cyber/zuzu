@@ -6,6 +6,8 @@ import { LANGUAGES, translate } from "@/lib/i18n";
 import usePetStats from "@/hooks/usePetStats";
 import useLocalStorageFlag from "@/hooks/useLocalStorageFlag";
 import useLocalStorageString from "@/hooks/useLocalStorageString";
+import useTokens from "@/hooks/useTokens";
+import useHabits from "@/hooks/useHabits";
 
 // DarkModeContext: "Dark mode" en SettingsModal es un swap de tema
 // APP-WIDE (pedido explícito), no un toggle que solo cambia su propia
@@ -31,12 +33,6 @@ function useLanguage() {
   return useContext(LanguageContext);
 }
 
-// Placeholder del contador de tokens — todavía no hay una fuente de
-// datos real conectada (eso es Fase 3). Un valor alto a propósito, para
-// poder probar el crecimiento hacia la izquierda de la píldora con una
-// cifra larga como la del pedido ("1.000.000"). .toLocaleString("es")
-// da el separador de miles con puntos.
-const TOKEN_COUNT = 1000000;
 
 // Placeholder de jugadores vinculados a esta mascota (1 o 2) — todavía
 // sin fuente de datos real (Fase 3) ni fotos subidas. `avatarUrl: null`
@@ -142,6 +138,38 @@ const CHAT_BUBBLE_KEYFRAMES = `
   }
 `;
 
+// Reacción "alegre" de la mascota al completar un hábito (Habit
+// Tracker, ver más abajo): no hay todavía ningún asset 3D real de la
+// mascota (sigue siendo Fase 3 en todo el resto del archivo — ver
+// PetPreviewPlaceholder), así que la burbuja de diálogo (ChatBubble,
+// la única pieza de "la mascota" que ya existe en la pantalla
+// principal) es la superficie real más cercana para esa reacción: al
+// completar, además del cambio de texto (que ya dispara su propio
+// pop-in vía key={message}), toda la burbuja pega un salto extra con
+// este keyframe cuando `pulse` es true.
+const CHAT_BUBBLE_PULSE_ANIMATION_NAME = "zuzu-bubble-celebrate-pulse";
+const CHAT_BUBBLE_PULSE_KEYFRAMES = `
+  @keyframes ${CHAT_BUBBLE_PULSE_ANIMATION_NAME} {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.18); }
+    60% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+  }
+`;
+
+// Partícula "+N 🪙" que sube y se desvanece sobre la píldora de saldo
+// del header al completar un hábito — el "particle animation"
+// pedido explícitamente como parte del feedback inmediato.
+const COIN_BURST_ANIMATION_NAME = "zuzu-coin-burst";
+const COIN_BURST_KEYFRAMES = `
+  @keyframes ${COIN_BURST_ANIMATION_NAME} {
+    0% { opacity: 0; transform: translateY(6px) scale(0.8); }
+    20% { opacity: 1; transform: translateY(0) scale(1.05); }
+    75% { opacity: 1; transform: translateY(-10px) scale(1); }
+    100% { opacity: 0; transform: translateY(-16px) scale(0.95); }
+  }
+`;
+
 // Burbuja de diálogo "Chat Pet": el mensaje llega por prop (`message`,
 // con default "¡Hello!" en MainLayout más abajo) en vez de vivir
 // hardcodeado en el JSX — así, cuando haya diálogo real (reacciones a
@@ -158,9 +186,16 @@ const CHAT_BUBBLE_KEYFRAMES = `
 // también se escribe en esas coordenadas nativas (22px) y termina
 // rindiendo a ~13px reales — mismo criterio que el resto de la geometría
 // de esta burbuja.
-function ChatBubble({ message }) {
+function ChatBubble({ message, pulse }) {
   return (
-    <div className="relative" style={{ width: 140, height: 51.33 }}>
+    <div
+      className="relative"
+      style={{
+        width: 140,
+        height: 51.33,
+        animation: pulse ? `${CHAT_BUBBLE_PULSE_ANIMATION_NAME} 550ms ease-out` : undefined,
+      }}
+    >
       <div
         className="absolute left-0 top-0"
         style={{
@@ -2197,6 +2232,332 @@ function BackgroundsModal({ open, onClose }) {
   );
 }
 
+// HABITS_SHEET_BOX: a diferencia de MODAL_BOX/NESTED_MODAL_BOX (tarjetas
+// centradas), el Habit Tracker es un modal bottom-sheet real — pegado
+// al borde inferior de la pantalla (bottom: 0, sin left/right/top como
+// offset de centrado) y animado con translateY (0% abierto, 100%
+// cerrado) en vez de scale+opacity, para que lea como "sube desde
+// abajo" y no como el resto de modales centrados.
+const HABITS_SHEET_BOX = { left: 0, right: 0, bottom: 0, maxHeight: "82%" };
+
+// Emoji fijos para elegir ícono de hábito — sin selector completo de
+// emoji del sistema operativo (fuera de alcance), un set curado chico
+// alcanza para personalizar la tarjeta.
+const HABIT_EMOJI_CHOICES = ["📖", "💧", "🧘", "🏃", "🛌", "🪥", "🧹", "🥗", "🎨", "✅"];
+
+const HABIT_WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+
+// Texto corto de la frecuencia elegida, para el badge de cada tarjeta.
+function habitScheduleLabel(schedule, t) {
+  if (!schedule || schedule.type === "noPressure") return t("habits.scheduleNoPressure");
+  if (schedule.type === "weekly") return `${schedule.timesPerWeek}x ${t("habits.timesPerWeek")}`;
+  if (schedule.type === "days") {
+    if (!schedule.days || schedule.days.length === 7) return t("habits.scheduleDays");
+    return schedule.days
+      .slice()
+      .sort((a, b) => a - b)
+      .map((d) => HABIT_WEEKDAY_LETTERS[d])
+      .join(" ");
+  }
+  return t("habits.scheduleNoPressure");
+}
+
+// HabitCard: una fila por hábito — emoji + título + badge de frecuencia
+// + recompensa, con botón "Completar" (y "Hacer versión mini" si el
+// hábito tiene micro-hábito definido). El estado "hecho hoy" viene ya
+// resuelto en `habit.completedToday` (useHabits lo deriva contra la
+// fecha de hoy en cada snapshot).
+function HabitCard({ habit, onComplete, onDelete, tc, t }) {
+  const done = Boolean(habit.completedToday);
+  return (
+    <div className={`rounded-2xl p-4 ${tc.card}`}>
+      <div className="flex items-start gap-3">
+        <span className="text-2xl leading-none">{habit.emoji}</span>
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-semibold ${tc.text}`}>{habit.title}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tc.muted} ${tc.card}`}>
+              {habitScheduleLabel(habit.schedule, t)}
+            </span>
+            <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
+              +{habit.coinReward} 🪙
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onDelete(habit.id)}
+          aria-label={t("habits.deleteHabit")}
+          className={`shrink-0 rounded-full p-1.5 ${tc.muted}`}
+        >
+          <PlusIcon className="h-4 w-4 rotate-45" />
+        </button>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          disabled={done}
+          onClick={() => onComplete(habit.id, false)}
+          className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
+            done ? "bg-emerald-500/20 text-emerald-500" : "bg-sky-500 text-white active:scale-95"
+          }`}
+        >
+          {done ? `✓ ${t("habits.doneToday")}` : "✓"}
+        </button>
+        {habit.microTitle && !done && (
+          <button
+            type="button"
+            onClick={() => onComplete(habit.id, true)}
+            className={`flex-1 rounded-full py-2 text-xs font-semibold ${tc.muted} ${tc.card}`}
+            title={habit.microTitle}
+          >
+            {t("habits.doMicro")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// AddHabitForm: alta rápida de hábito — título, emoji, micro-hábito
+// opcional ("Emergency Mode"), frecuencia (días específicos / veces
+// por semana / sin presión) y recompensa en monedas (stepper de 5 en
+// 5). Sin validación exhaustiva: el único requisito real es un título
+// no vacío, consistente con el resto de la app (sin backend, sin
+// lógica de negocio compleja todavía).
+function AddHabitForm({ onSave, onCancel, tc, t }) {
+  const [title, setTitle] = useState("");
+  const [emoji, setEmoji] = useState(HABIT_EMOJI_CHOICES[0]);
+  const [microTitle, setMicroTitle] = useState("");
+  const [scheduleType, setScheduleType] = useState("noPressure");
+  const [days, setDays] = useState([1, 2, 3, 4, 5]);
+  const [timesPerWeek, setTimesPerWeek] = useState(3);
+  const [coinReward, setCoinReward] = useState(10);
+
+  function toggleDay(d) {
+    setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b)));
+  }
+
+  function handleSave() {
+    if (!title.trim()) return;
+    const schedule =
+      scheduleType === "days"
+        ? { type: "days", days }
+        : scheduleType === "weekly"
+          ? { type: "weekly", timesPerWeek }
+          : { type: "noPressure" };
+    onSave({ title: title.trim(), emoji, microTitle: microTitle.trim() || null, schedule, coinReward });
+  }
+
+  const scheduleTypeButton = (type, label) => (
+    <button
+      type="button"
+      onClick={() => setScheduleType(type)}
+      className={`flex-1 rounded-full py-2 text-xs font-semibold ${
+        scheduleType === type ? "bg-sky-500 text-white" : `${tc.muted} ${tc.card}`
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className={`space-y-3 rounded-2xl p-4 ${tc.card}`}>
+      <div>
+        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.habitTitleLabel")}</label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t("habits.habitTitlePlaceholder")}
+          className={`w-full rounded-xl border-b bg-transparent px-1 py-2 text-sm focus:outline-none ${tc.text} border-current/20`}
+        />
+      </div>
+      <div>
+        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.emojiLabel")}</label>
+        <div className="flex flex-wrap gap-1.5">
+          {HABIT_EMOJI_CHOICES.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              onClick={() => setEmoji(choice)}
+              className={`flex h-9 w-9 items-center justify-center rounded-full text-lg ${
+                emoji === choice ? "bg-sky-500/30 ring-2 ring-sky-500" : tc.card
+              }`}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.microHabitLabel")}</label>
+        <input
+          value={microTitle}
+          onChange={(e) => setMicroTitle(e.target.value)}
+          placeholder={t("habits.microHabitPlaceholder")}
+          className={`w-full rounded-xl border-b bg-transparent px-1 py-2 text-sm focus:outline-none ${tc.text} border-current/20`}
+        />
+        <p className={`mt-1 text-[11px] ${tc.muted}`}>{t("habits.microHabitHint")}</p>
+      </div>
+      <div>
+        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.scheduleLabel")}</label>
+        <div className="flex gap-1.5">
+          {scheduleTypeButton("days", t("habits.scheduleDays"))}
+          {scheduleTypeButton("weekly", t("habits.scheduleWeekly"))}
+          {scheduleTypeButton("noPressure", t("habits.scheduleNoPressure"))}
+        </div>
+        {scheduleType === "days" && (
+          <div className="mt-2 flex justify-between gap-1">
+            {HABIT_WEEKDAY_LETTERS.map((letter, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => toggleDay(i)}
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                  days.includes(i) ? "bg-sky-500 text-white" : `${tc.muted} ${tc.card}`
+                }`}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+        )}
+        {scheduleType === "weekly" && (
+          <div className="mt-2 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setTimesPerWeek((v) => Math.max(1, v - 1))}
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+            >
+              −
+            </button>
+            <span className={`text-sm font-semibold ${tc.text}`}>
+              {timesPerWeek} {t("habits.timesPerWeek")}
+            </span>
+            <button
+              type="button"
+              onClick={() => setTimesPerWeek((v) => Math.min(7, v + 1))}
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+            >
+              +
+            </button>
+          </div>
+        )}
+        {scheduleType === "noPressure" && <p className={`mt-2 text-[11px] ${tc.muted}`}>{t("habits.noPressureHint")}</p>}
+      </div>
+      <div>
+        <label className={`mb-1 block text-xs font-semibold ${tc.muted}`}>{t("habits.rewardLabel")}</label>
+        <div className="flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => setCoinReward((v) => Math.max(5, v - 5))}
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+          >
+            −
+          </button>
+          <span className={`text-sm font-semibold ${tc.text}`}>{coinReward} 🪙</span>
+          <button
+            type="button"
+            onClick={() => setCoinReward((v) => Math.min(100, v + 5))}
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-lg ${tc.card} ${tc.text}`}
+          >
+            +
+          </button>
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button type="button" onClick={onCancel} className={`flex-1 rounded-full py-2.5 text-sm font-semibold ${tc.muted} ${tc.card}`}>
+          {t("habits.cancel")}
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!title.trim()}
+          className="flex-1 rounded-full bg-sky-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          {t("habits.save")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// HabitsModal: bottom sheet del Habit Tracker — se abre desde el botón
+// "..." de la barra de racha (antes decorativo, sin handler). Filosofía
+// "Zero Guilt" en el propio contenido: sin ningún estado de "racha de
+// hábitos perdida" ni lenguaje negativo en ningún string (ver
+// lib/i18n.js, sección habits.*) — cada hábito es independiente por
+// día, completarlo suma monedas, no completarlo no resta ni penaliza
+// nada visualmente.
+function HabitsModal({ open, onClose, habits, onComplete, onAddHabit, onDeleteHabit }) {
+  const { darkMode } = useDarkMode();
+  const { t } = useLanguage();
+  const tc = themeClasses(darkMode);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label={t("habits.title")}
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-50 flex flex-col rounded-t-[32px] p-5 ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...HABITS_SHEET_BOX,
+          transform: `translateY(${open ? "0%" : "100%"})`,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        <div className="mx-auto mb-3 h-1.5 w-12 shrink-0 rounded-full bg-white/40" />
+        <div className="flex shrink-0 items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-white">{t("habits.title")}</h2>
+            <p className="text-xs text-white/70">{t("habits.subtitle")}</p>
+          </div>
+          <button
+            type="button"
+            aria-label={t("common.close")}
+            onClick={onClose}
+            className="liquid-glass-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+          >
+            <PlusIcon className="h-4 w-4 rotate-45 text-white" />
+          </button>
+        </div>
+
+        <div className="mt-4 flex-1 space-y-2 overflow-y-auto pb-1">
+          {habits.length === 0 && !showAddForm && (
+            <p className="py-6 text-center text-sm text-white/70">{t("habits.emptyState")}</p>
+          )}
+          {habits.map((habit) => (
+            <HabitCard key={habit.id} habit={habit} onComplete={onComplete} onDelete={onDeleteHabit} tc={tc} t={t} />
+          ))}
+          {showAddForm ? (
+            <AddHabitForm
+              tc={tc}
+              t={t}
+              onCancel={() => setShowAddForm(false)}
+              onSave={(habit) => {
+                onAddHabit(habit);
+                setShowAddForm(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className={`w-full rounded-2xl py-3 text-sm font-semibold ${tc.card} ${tc.text}`}
+            >
+              + {t("habits.addHabit")}
+            </button>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
 // transparencia del Liquid Glass; NO es el fondo final de la app (eso
 // sigue sin definirse). Un degradado liso no sirve para esto: el blur
@@ -2255,12 +2616,6 @@ function OnboardingPlaceholder({ onSignIn }) {
 
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState("habits");
-  // Sin setter usado todavía (no hay de dónde disparar un mensaje nuevo
-  // hasta que exista lógica de interacción real — Fase 3): dejar solo el
-  // valor evita una variable sin usar mientras el estado ya queda listo
-  // para crecer a `const [petMessage, setPetMessage] = useState(...)`
-  // el día que haga falta.
-  const [petMessage] = useState("¡Hello!");
   // Estructura mínima de click pedida explícitamente para los modales
   // de Perfil/Configuración: solo abren/cierran, sin lógica real todavía.
   const [profileOpen, setProfileOpen] = useState(false);
@@ -2268,8 +2623,11 @@ export default function MainLayout() {
   const [storeOpen, setStoreOpen] = useState(false);
   const [petsOpen, setPetsOpen] = useState(false);
   const [backgroundsOpen, setBackgroundsOpen] = useState(false);
-  const { xp, xpToNext, streakJustIncreased, bestStreak } = usePetStats();
+  const [habitsOpen, setHabitsOpen] = useState(false);
+  const { xp, xpToNext, streakJustIncreased, streakJustReset, bestStreak } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
+  const { tokens, addTokens } = useTokens();
+  const { habits, completeHabit, addHabit, deleteHabit } = useHabits();
 
   // Dark mode: "app-wide" (ver DarkModeContext arriba), persistido en
   // localStorage vía useLocalStorageFlag (useSyncExternalStore, no
@@ -2284,6 +2642,83 @@ export default function MainLayout() {
   // TRANSLATIONS[language], con fallback a inglés — ver lib/i18n.js.
   const [language, setLanguage] = useLocalStorageString("zuzu-language", "en");
   const t = (key) => translate(language, key);
+
+  // Mensaje de la burbuja "Chat Pet": arranca con el mensaje compasivo
+  // de racha perdida (filosofía "Zero Guilt" del Habit Tracker) si
+  // `streakJustReset` viene true de useStreak (se saltó uno o más días
+  // teniendo racha acumulada) — nunca "Streak Lost" ni lenguaje
+  // negativo, y nunca en la primera visita (streak en 0 sin nada que
+  // perder). Se calcula en el inicializador de useState (no en un
+  // useEffect) para no disparar un render extra ni arriesgar el mismatch
+  // de hidratación que ese patrón trae en este proyecto.
+  const [petMessage, setPetMessage] = useState(() =>
+    streakJustReset ? t("habits.streakGentleMessage") : "¡Hello!"
+  );
+  // Salto extra de la burbuja al completar un hábito (ver
+  // CHAT_BUBBLE_PULSE_ANIMATION_NAME) — además del pop-in de texto que
+  // ya dispara solo por cambiar `petMessage` (key={message} en
+  // ChatBubble). Es la reacción "alegre" de la mascota pedida: no hay
+  // ningún asset 3D de mascota todavía en esta pantalla (ver
+  // PetPreviewPlaceholder y sus comentarios en el resto del archivo),
+  // así que la burbuja es la única superficie real disponible para eso.
+  const [petPulse, setPetPulse] = useState(false);
+  // Partícula "+N 🪙" sobre la píldora de saldo (feedback inmediato al
+  // completar un hábito) — se limpia sola con un timeout que coincide
+  // con la duración de COIN_BURST_ANIMATION_NAME.
+  const [coinBurst, setCoinBurst] = useState(null);
+
+  function triggerPetCelebration(message) {
+    setPetMessage(message);
+    setPetPulse(true);
+    setTimeout(() => setPetPulse(false), 600);
+  }
+
+  // playHabitCompleteSound: sin ningún asset de audio provisto todavía
+  // — en vez de apuntar a un archivo que no existe (404 silencioso),
+  // sintetiza un "pop" cortito con Web Audio. Envuelto en try/catch:
+  // algunos navegadores exigen que el AudioContext se cree/reanude
+  // dentro de un gesto del usuario, y tocar el botón de completar ya lo
+  // es, pero preferimos fallar en silencio antes que romper el flujo
+  // de completar un hábito por un problema de audio.
+  function playHabitCompleteSound() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(660, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(990, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.24);
+      oscillator.onended = () => ctx.close();
+    } catch {
+      // Sin sonido si Web Audio no está disponible — no es crítico.
+    }
+  }
+
+  // handleHabitComplete: núcleo del feedback inmediato pedido —
+  // acredita monedas de verdad (useTokens), dispara la partícula del
+  // saldo, la reacción de la mascota (mensaje + salto), vibración
+  // háptica donde el navegador la soporte, y un sonido corto. Si el
+  // hábito ya estaba completado hoy, `completeHabit` no acredita nada
+  // de nuevo (evita duplicar recompensas) y esta función no dispara
+  // ningún feedback — no hay nada que festejar dos veces, pero tampoco
+  // ningún mensaje de error: el botón ya se ve "hecho".
+  function handleHabitComplete(id, micro) {
+    const result = completeHabit(id, { micro });
+    if (result.alreadyDone) return;
+    addTokens(result.coinsAwarded);
+    setCoinBurst({ key: Date.now(), amount: result.coinsAwarded, critical: result.isCritical });
+    setTimeout(() => setCoinBurst(null), 1000);
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(30);
+    playHabitCompleteSound();
+    triggerPetCelebration(result.isCritical ? t("habits.criticalHit") : t("habits.petCelebration"));
+  }
 
   // Sesión: "loggedIn" en memoria nada más (no hay backend de auth
   // real) — al confirmar Log out (o Delete account, que por ahora usa
@@ -2311,6 +2746,7 @@ export default function MainLayout() {
     setStoreOpen(false);
     setPetsOpen(false);
     setBackgroundsOpen(false);
+    setHabitsOpen(false);
     setPhotoMode(true);
   }
 
@@ -2330,6 +2766,7 @@ export default function MainLayout() {
     setStoreOpen(false);
     setPetsOpen(false);
     setBackgroundsOpen(false);
+    setHabitsOpen(false);
     setPhotoMode(false);
     setLoggedIn(false);
   }
@@ -2349,7 +2786,7 @@ export default function MainLayout() {
       className="relative h-[100dvh] w-full overflow-hidden bg-white"
       style={{ background: QA_TEST_BACKGROUND }}
     >
-      <style>{`${CHAT_BUBBLE_KEYFRAMES}${PREMIUM_RING_KEYFRAMES}`}</style>
+      <style>{`${CHAT_BUBBLE_KEYFRAMES}${PREMIUM_RING_KEYFRAMES}${CHAT_BUBBLE_PULSE_KEYFRAMES}${COIN_BURST_KEYFRAMES}`}</style>
 
       {photoMode && (
         <div
@@ -2455,14 +2892,29 @@ export default function MainLayout() {
               lado izquierdo de la píldora se mueve. whitespace-nowrap +
               padding evita que una cifra larga rompa la forma de la
               cápsula. */}
-          <div className="liquid-glass-btn flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-1 pr-3">
+          <div className="liquid-glass-btn relative flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-1 pr-3">
             <img
               src="/nav/tokens-icon.png"
               alt=""
               draggable={false}
               className="pointer-events-none h-7 w-7 shrink-0 select-none object-contain"
             />
-            <span className={`text-sm ${UI_TEXT_STYLE}`}>{TOKEN_COUNT.toLocaleString("es")}</span>
+            <span className={`text-sm ${UI_TEXT_STYLE}`}>{tokens.toLocaleString("es")}</span>
+            {/* Partícula "+N 🪙" del Habit Tracker (ver handleHabitComplete
+                más abajo) — se limpia sola con un timeout, no necesita
+                que nada más la desmonte. */}
+            {coinBurst && (
+              <span
+                key={coinBurst.key}
+                className="pointer-events-none absolute -top-1 right-2 whitespace-nowrap text-xs font-bold text-emerald-300"
+                style={{
+                  animation: `${COIN_BURST_ANIMATION_NAME} 900ms ease-out forwards`,
+                  textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                }}
+              >
+                +{coinBurst.amount} 🪙
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -2473,7 +2925,7 @@ export default function MainLayout() {
           el detalle de la geometría (clip-path + backdrop-blur + SVG de
           bisel/sombra) y de cómo entra el texto. */}
       <div className="absolute inset-x-0 top-[28.67%] z-10 flex justify-center px-6">
-        <ChatBubble message={petMessage} />
+        <ChatBubble message={petMessage} pulse={petPulse} />
       </div>
 
       {/* Racha/Objetos: píldora ancha (235x40px) + círculo chico (39x40px)
@@ -2494,8 +2946,8 @@ export default function MainLayout() {
           Objetos: NO es el ícono de bolsa (eso era Inventario, del
           diseño anterior) — es el glifo de texto "..." en blanco puro,
           mismo tratamiento que el resto de labels/íconos de texto sobre
-          vidrio (ver lib/typography.js). Sin lógica de apertura todavía,
-          eso es Fase 3.
+          vidrio (ver lib/typography.js). Abre HabitsModal (Habit
+          Tracker, ver más abajo) — dejó de ser decorativo.
           Al lado de "...", un círculo más (mismos 40px que el resto de
           burbujas del header/dock) con un ícono de imagen: abre
           BackgroundsModal (ver más abajo). */}
@@ -2523,9 +2975,14 @@ export default function MainLayout() {
             {xp}/{xpToNext}
           </span>
         </div>
-        <div className="liquid-glass-btn flex h-10 w-[39px] items-center justify-center rounded-full">
+        <button
+          type="button"
+          onClick={() => setHabitsOpen(true)}
+          aria-label={t("habits.title")}
+          className="liquid-glass-btn flex h-10 w-[39px] items-center justify-center rounded-full"
+        >
           <span className={`text-lg leading-none ${UI_TEXT_STYLE}`}>...</span>
-        </div>
+        </button>
         <button
           type="button"
           onClick={() => setBackgroundsOpen(true)}
@@ -2625,6 +3082,14 @@ export default function MainLayout() {
       <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
       <PetsModal open={petsOpen} onClose={() => setPetsOpen(false)} />
       <BackgroundsModal open={backgroundsOpen} onClose={() => setBackgroundsOpen(false)} />
+      <HabitsModal
+        open={habitsOpen}
+        onClose={() => setHabitsOpen(false)}
+        habits={habits}
+        onComplete={handleHabitComplete}
+        onAddHabit={addHabit}
+        onDeleteHabit={deleteHabit}
+      />
         </>
       )}
     </div>
