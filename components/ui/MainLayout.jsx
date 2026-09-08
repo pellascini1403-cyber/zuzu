@@ -749,8 +749,9 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
 // abajo son ese mismo relevamiento convertido a % del box del modal,
 // NO valores elegidos a criterio. Cada elemento marcado en rojo en la
 // referencia (marco, píldora de Racha, Editar/Agregar/Compartir,
-// Cámara) usa PROFILE_GLASS_STYLE; el resto (tarjetas blancas, avatar,
-// textos) queda tal cual.
+// Cámara) usa PROFILE_GLASS_STYLE; el resto (avatar, textos) queda tal
+// cual — salvo la Tarjeta 1 (nombre/@handle/bio), que pasó al tema
+// "espacial" fijo de los sub-modales de Configuración (ver más abajo).
 // Funcionalidad real (a pedido explícito, las anotaciones de color de
 // la referencia son solo wireframe):
 // - Racha: `bestStreak` (récord histórico, de useStreak vía
@@ -764,8 +765,6 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
 // - Cámara: llama a `onEnterPhotoMode` (definido en MainLayout) en vez
 //   de tener su propio estado de Photo Mode acá.
 function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
-  const { darkMode } = useDarkMode();
-  const tc = themeClasses(darkMode);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("Name");
   const [handle, setHandle] = useState("name_26");
@@ -809,40 +808,45 @@ function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
           transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
         }}
       >
-        {/* Tarjeta 1: nombre + bio + fila de 4 botones. */}
+        {/* Tarjeta 1: nombre + bio + fila de 4 botones — mismo tema
+            "espacial" fijo que los 7 sub-modales de Configuración
+            (NESTED_MODAL_STYLE/NESTED_MODAL_TITLE_CLASS), a pedido
+            explícito, SIN los efectos exclusivos del banner ZUZU
+            PREMIUM (sin anillo de luz rotando, sin animación de alta
+            intensidad — solo fondo + resplandor + texto en degradé).
+            Ya no cambia con Dark mode, igual que esos 7 sub-modales. */}
         <div
-          className={`absolute rounded-[28px] ${tc.card}`}
-          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
+          className="absolute rounded-[28px]"
+          style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%", ...NESTED_MODAL_STYLE }}
         >
           {editing ? (
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               aria-label="Name"
-              className={`absolute left-0 right-0 border-b bg-transparent text-center text-base font-bold focus:outline-none ${tc.text} ${
-                darkMode ? "border-white/20" : "border-zinc-200"
-              }`}
+              className={`absolute left-0 right-0 border-b border-white/20 bg-transparent text-center text-base font-bold focus:outline-none ${NESTED_MODAL_TITLE_CLASS}`}
               style={{ top: "34.4%" }}
             />
           ) : (
-            <p className={`absolute left-0 right-0 text-center text-base font-bold ${tc.text}`} style={{ top: "34.4%" }}>
+            <p
+              className={`absolute left-0 right-0 text-center text-base font-bold ${NESTED_MODAL_TITLE_CLASS}`}
+              style={{ top: "34.4%" }}
+            >
               {name}
             </p>
           )}
           {editing ? (
             <div className="absolute left-0 right-0 flex items-center justify-center gap-0.5" style={{ top: "40.4%" }}>
-              <span className={`text-xs ${tc.muted}`}>@</span>
+              <span className="text-xs text-white">@</span>
               <input
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.replace(/\s/g, ""))}
                 aria-label="Username"
-                className={`border-b bg-transparent text-center text-xs focus:outline-none ${tc.muted} ${
-                  darkMode ? "border-white/20" : "border-zinc-200"
-                }`}
+                className="border-b border-white/20 bg-transparent text-center text-xs text-white focus:outline-none"
               />
             </div>
           ) : (
-            <p className={`absolute left-0 right-0 text-center text-xs ${tc.muted}`} style={{ top: "40.4%" }}>
+            <p className="absolute left-0 right-0 text-center text-xs text-white" style={{ top: "40.4%" }}>
               @{handle}
             </p>
           )}
@@ -852,16 +856,11 @@ function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
               onChange={(e) => setBio(e.target.value)}
               aria-label="Bio"
               rows={2}
-              className={`absolute resize-none border-b bg-transparent text-center text-sm focus:outline-none ${
-                darkMode ? "border-white/20 text-white/80" : "border-zinc-200 text-zinc-600"
-              }`}
+              className="absolute resize-none border-b border-white/20 bg-transparent text-center text-sm text-white focus:outline-none"
               style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
             />
           ) : (
-            <p
-              className={`absolute text-center text-sm ${darkMode ? "text-white/80" : "text-zinc-600"}`}
-              style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
-            >
+            <p className="absolute text-center text-sm text-white" style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}>
               {bio}
             </p>
           )}
