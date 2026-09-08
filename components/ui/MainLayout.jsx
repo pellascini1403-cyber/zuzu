@@ -298,17 +298,37 @@ const MODAL_CLOSE_TRANSITION = "transform 220ms ease-in, opacity 220ms ease-in";
 // burbujea hasta este div; la tarjeta además lleva su propio
 // onClick={(e) => e.stopPropagation()} para dejar esa garantía
 // explícita en el código, no solo implícita en la estructura del árbol.
-function ModalBackdrop({ open, onClose }) {
+// ModalBackdrop: el z-index es configurable (default z-40, el de
+// siempre para los modales de primer nivel) porque un modal ANIDADO
+// (ver FriendSearchModal/ShareSheet más abajo) necesita un dimmer por
+// ENCIMA de la tarjeta del modal padre (z-50) para de verdad oscurecerla
+// — con z-40 fijo, el dimmer quedaba por detrás de esa tarjeta en el
+// stacking order y nunca se veía (el bug que reportó el usuario: la
+// tarjeta de Perfil seguía completamente brillante detrás del modal
+// anidado, dos paneles de vidrio superpuestos sin ningún atenuado
+// entre medio).
+function ModalBackdrop({ open, onClose, zIndexClassName = "z-40" }) {
   return (
     <div
       onClick={onClose}
       aria-hidden="true"
-      className={`absolute inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
+      className={`absolute inset-0 ${zIndexClassName} bg-black/40 transition-opacity duration-300 ${
         open ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     />
   );
 }
+
+// NESTED_MODAL_BOX: caja compacta y centrada para modales ANIDADOS que
+// se abren desde adentro de otro modal (Agregar/Compartir dentro de
+// Perfil) — a diferencia de MODAL_BOX (pensado para ocupar casi toda
+// la pantalla, medido pixel a pixel contra las referencias de
+// Perfil/Configuración/Tienda/etc.), estos son tarjetas chicas
+// centradas, sin referencia de imagen pixel-exacta: por eso usan
+// left/top 50% + transform translate(-50%,-50%) en vez de left/right/
+// top/bottom como el resto, con una altura máxima (el contenido decide
+// la altura real; la lista de FriendSearchModal scrollea si no entra).
+const NESTED_MODAL_BOX = { left: "50%", top: "50%", width: "86%", maxHeight: "70%" };
 
 // PROFILE_GLASS_STYLE: reemplaza el rojo de la referencia (marco de la
 // tarjeta y los 5 botones — Racha/avatar/Editar/Agregar/Compartir/
@@ -460,16 +480,16 @@ function FriendSearchModal({ open, onClose }) {
 
   return (
     <>
-      <ModalBackdrop open={open} onClose={onClose} />
+      <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[55]" />
       <div
         role="dialog"
         aria-label="Add friends"
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
-        className={`liquid-glass-btn absolute z-[60] flex flex-col rounded-[32px] p-5 ${open ? "" : "pointer-events-none"}`}
+        className={`liquid-glass-btn absolute z-[60] flex flex-col rounded-[28px] p-5 ${open ? "" : "pointer-events-none"}`}
         style={{
-          ...MODAL_BOX,
-          transform: `scale(${open ? 1 : 0.9})`,
+          ...NESTED_MODAL_BOX,
+          transform: `translate(-50%, -50%) scale(${open ? 1 : 0.9})`,
           opacity: open ? 1 : 0,
           transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
         }}
@@ -618,16 +638,17 @@ function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
 
   return (
     <>
-      <ModalBackdrop open={open} onClose={onClose} />
+      <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[55]" />
       <div
         role="dialog"
         aria-label="Share profile"
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
-        className={`liquid-glass-btn absolute z-[60] flex flex-col gap-3 rounded-[32px] p-5 ${open ? "" : "pointer-events-none"}`}
+        className={`liquid-glass-btn absolute z-[60] flex flex-col gap-3 rounded-[28px] p-5 ${open ? "" : "pointer-events-none"}`}
         style={{
-          ...MODAL_BOX,
-          transform: `scale(${open ? 1 : 0.9})`,
+          ...NESTED_MODAL_BOX,
+          height: "auto",
+          transform: `translate(-50%, -50%) scale(${open ? 1 : 0.9})`,
           opacity: open ? 1 : 0,
           transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
         }}
