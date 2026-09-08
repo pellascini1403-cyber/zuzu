@@ -318,12 +318,12 @@ const MODAL_SPRING_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
 const MODAL_OPEN_TRANSITION = `transform 320ms ${MODAL_SPRING_EASE}, opacity 320ms ${MODAL_SPRING_EASE}`;
 const MODAL_CLOSE_TRANSITION = "transform 220ms ease-in, opacity 220ms ease-in";
 
-// ModalBackdrop: capa oscurecedora rgba(0,0,0,0.4) a pantalla completa.
-// Siempre montada (nunca `{open && ...}`) para poder animar también la
-// salida. El onClick vive solo acá — la tarjeta del modal es un hermano
-// en el DOM (no un hijo), así que un click adentro de ella nunca
-// burbujea hasta este div; la tarjeta además lleva su propio
-// onClick={(e) => e.stopPropagation()} para dejar esa garantía
+// ModalBackdrop: capa oscurecedora rgba(0,0,0,0.5) + backdrop-blur a
+// pantalla completa. Siempre montada (nunca `{open && ...}`) para poder
+// animar también la salida. El onClick vive solo acá — la tarjeta del
+// modal es un hermano en el DOM (no un hijo), así que un click adentro
+// de ella nunca burbujea hasta este div; la tarjeta además lleva su
+// propio onClick={(e) => e.stopPropagation()} para dejar esa garantía
 // explícita en el código, no solo implícita en la estructura del árbol.
 // ModalBackdrop: el z-index es configurable (default z-40, el de
 // siempre para los modales de primer nivel) porque un modal ANIDADO
@@ -334,14 +334,31 @@ const MODAL_CLOSE_TRANSITION = "transform 220ms ease-in, opacity 220ms ease-in";
 // tarjeta de Perfil seguía completamente brillante detrás del modal
 // anidado, dos paneles de vidrio superpuestos sin ningún atenuado
 // entre medio).
+//
+// Sistema de blur unificado (pedido explícito): backdrop-blur-md (12px,
+// la escala de Tailwind) en TODO ModalBackdrop, sin importar el nivel.
+// La profundidad multinivel no se calcula a mano — es consecuencia
+// directa de que cada nivel (modal principal, sub-modal anidado) monta
+// su PROPIA capa de blur en su PROPIO z-index: cuando un sub-modal abre
+// sobre un modal padre, su backdrop (p.ej. z-[55]) queda POR ENCIMA de
+// la tarjeta del modal padre, así que blurea esa tarjeta una vez más
+// además del fondo dinámico que ya venía blureado por el backdrop del
+// modal principal (z-40) — el fondo termina con blur doble/compuesto,
+// la tarjeta padre con blur simple, y el propio sub-modal (que se monta
+// arriba de todo, sin ningún backdrop-blur encima) queda nítido. Mismo
+// mecanismo que ya resolvía el oscurecido en capas, ahora extendido a
+// blur. `will-change` en vez de animar backdrop-filter en sí (que no
+// cambia de intensidad, solo de opacidad) ayuda al compositor a no
+// repintar de más durante la transición de apertura/cierre.
 function ModalBackdrop({ open, onClose, zIndexClassName = "z-40" }) {
   return (
     <div
       onClick={onClose}
       aria-hidden="true"
-      className={`absolute inset-0 ${zIndexClassName} bg-black/40 transition-opacity duration-300 ${
+      className={`absolute inset-0 ${zIndexClassName} bg-black/50 backdrop-blur-md transition-opacity duration-300 ${
         open ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
+      style={{ willChange: "backdrop-filter, opacity" }}
     />
   );
 }
