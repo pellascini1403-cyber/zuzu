@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UI_TEXT_STYLE } from "@/lib/typography";
 import usePetStats from "@/hooks/usePetStats";
 
@@ -378,6 +378,44 @@ function CameraIcon({ className }) {
     </svg>
   );
 }
+// CheckIcon/SearchIcon/LinkIcon/InstagramIcon: glifos nuevos para la
+// funcionalidad real del modal de Perfil (editar/buscar amigos/
+// compartir) — sin referencia de imagen para estos, así que son
+// diseño propio simple en el mismo estilo stroke/fill que el resto
+// de íconos de este archivo, no de una librería externa.
+function CheckIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m4 12.5 5 5 11-11" />
+    </svg>
+  );
+}
+function SearchIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m20 20-4.3-4.3" />
+    </svg>
+  );
+}
+function LinkIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 14.5 14.5 9.5" />
+      <path d="M11 6.5 12.6 4.9a3.5 3.5 0 0 1 5 5L16 11.5" />
+      <path d="M13 17.5 11.4 19.1a3.5 3.5 0 0 1-5-5L8 12.5" />
+    </svg>
+  );
+}
+function InstagramIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="3" width="18" height="18" rx="5.5" />
+      <circle cx="12" cy="12" r="4.2" />
+      <circle cx="17.15" cy="6.85" r="1.05" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
 
 // PetPreviewPlaceholder: todavía no existe el asset 3D real de la
 // mascota — un blob suave sobre un degradado celeste marca el lugar
@@ -390,17 +428,296 @@ function PetPreviewPlaceholder() {
   );
 }
 
+// MOCK_FRIEND_SUGGESTIONS: sin backend todavía, "Agregar amigos" busca
+// contra esta lista fija en vez de un endpoint real.
+const MOCK_FRIEND_SUGGESTIONS = [
+  { handle: "aria_writes", name: "Aria" },
+  { handle: "mango.tales", name: "Mango" },
+  { handle: "lucid_kai", name: "Kai" },
+  { handle: "nova_reads", name: "Nova" },
+  { handle: "z_pixel", name: "Pixel" },
+];
+
+// FriendSearchModal: filtra MOCK_FRIEND_SUGGESTIONS por @handle o
+// nombre; "Add" solo cambia el estado local del botón a "Requested"
+// (sin persistencia real, no hay backend). Reutiliza el mismo
+// MODAL_BOX/animación pop-in-out que el resto de modales, en un
+// z-index por encima de ProfileModal (se abre desde su botón +).
+function FriendSearchModal({ open, onClose }) {
+  const [query, setQuery] = useState("");
+  const [sent, setSent] = useState(() => new Set());
+
+  const normalized = query.trim().toLowerCase().replace(/^@/, "");
+  const results = normalized
+    ? MOCK_FRIEND_SUGGESTIONS.filter(
+        (u) => u.handle.toLowerCase().includes(normalized) || u.name.toLowerCase().includes(normalized)
+      )
+    : MOCK_FRIEND_SUGGESTIONS;
+
+  function sendRequest(handle) {
+    setSent((prev) => new Set(prev).add(handle));
+  }
+
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label="Add friends"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-[60] flex flex-col rounded-[32px] p-5 ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...MODAL_BOX,
+          transform: `scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-white">Add friends</h2>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full"
+          >
+            <PlusIcon className="h-4 w-4 rotate-45 text-white" />
+          </button>
+        </div>
+        <div className="liquid-glass-btn mt-4 flex h-11 shrink-0 items-center gap-2 rounded-full px-4">
+          <SearchIcon className="h-4 w-4 shrink-0 text-white" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search @handle"
+            className="w-full bg-transparent text-sm text-white placeholder:text-white/60 focus:outline-none"
+          />
+        </div>
+        <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
+          {results.map((u) => (
+            <div key={u.handle} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-zinc-900">{u.name}</p>
+                <p className="text-xs text-zinc-400">@{u.handle}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => sendRequest(u.handle)}
+                disabled={sent.has(u.handle)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  sent.has(u.handle) ? "bg-zinc-100 text-zinc-400" : "bg-sky-500 text-white"
+                }`}
+              >
+                {sent.has(u.handle) ? "Requested" : "Add"}
+              </button>
+            </div>
+          ))}
+          {results.length === 0 && <p className="text-center text-sm text-white/70">No users found.</p>}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// buildProfileShareCard: dibuja una tarjeta de perfil (avatar + nombre
+// + handle sobre un degradado) en un <canvas> y la convierte en un
+// archivo PNG. Es el mejor esfuerzo posible para "compartir a
+// Instagram Stories" desde una página web sin SDK nativo ni backend:
+// `navigator.share({ files })` deja que Instagram aparezca como
+// destino en el selector nativo del sistema operativo cuando el
+// dispositivo lo soporta, pero no existe forma de abrir el editor de
+// Stories directo sin un Facebook App ID registrado y un contenedor
+// nativo — eso queda fuera del alcance de una PWA.
+async function buildProfileShareCard({ name, handle, avatarUrl }) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1920;
+  const ctx = canvas.getContext("2d");
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, "#7c3aed");
+  gradient.addColorStop(1, "#0ea5e9");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const cx = canvas.width / 2;
+  const cy = 760;
+  const r = 220;
+
+  if (avatarUrl) {
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = reject;
+        el.src = avatarUrl;
+      });
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+      ctx.restore();
+    } catch {
+      // Sigue sin avatar en la tarjeta si la imagen no llega a cargar.
+    }
+  } else {
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.font = "700 64px sans-serif";
+  ctx.fillText(name || "Name", cx, cy + r + 110);
+  ctx.font = "500 40px sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.fillText(`@${handle || "name_26"}`, cx, cy + r + 170);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  return new File([blob], "zuzu-profile.png", { type: "image/png" });
+}
+
+// ShareSheet: "Share to Instagram Stories" arma la tarjeta de arriba y
+// la pasa a `navigator.share` (deja elegir Instagram si el SO lo
+// ofrece); "Copy profile link" usa la Clipboard API. Sin soporte para
+// ninguna de las dos, se avisa en vez de fallar en silencio.
+function ShareSheet({ open, onClose, name, handle, avatarUrl, profileUrl }) {
+  const [status, setStatus] = useState("idle"); // idle | sharing | copied | unsupported
+
+  async function handleShareInstagram() {
+    setStatus("sharing");
+    try {
+      const file = await buildProfileShareCard({ name, handle, avatarUrl });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Zuzu", text: `Check out ${name}'s Zuzu profile!` });
+      } else if (navigator.share) {
+        await navigator.share({ title: "Zuzu", text: `Check out ${name}'s Zuzu profile!`, url: profileUrl });
+      } else {
+        setStatus("unsupported");
+        return;
+      }
+      setStatus("idle");
+    } catch {
+      setStatus("idle");
+    }
+  }
+
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      setStatus("copied");
+      setTimeout(() => setStatus("idle"), 1600);
+    } catch {
+      setStatus("unsupported");
+    }
+  }
+
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} />
+      <div
+        role="dialog"
+        aria-label="Share profile"
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`liquid-glass-btn absolute z-[60] flex flex-col gap-3 rounded-[32px] p-5 ${open ? "" : "pointer-events-none"}`}
+        style={{
+          ...MODAL_BOX,
+          transform: `scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-white">Share profile</h2>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full"
+          >
+            <PlusIcon className="h-4 w-4 rotate-45 text-white" />
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={handleShareInstagram}
+          className="liquid-glass-btn flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left"
+        >
+          <InstagramIcon className="h-6 w-6 shrink-0 text-white" />
+          <span className="text-sm font-semibold text-white">
+            {status === "sharing" ? "Preparing…" : "Share to Instagram Stories"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="liquid-glass-btn flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left"
+        >
+          <LinkIcon className="h-6 w-6 shrink-0 text-white" />
+          <span className="text-sm font-semibold text-white">
+            {status === "copied" ? "Link copied!" : "Copy profile link"}
+          </span>
+        </button>
+        {status === "unsupported" && (
+          <p className="text-center text-xs text-white/70">Sharing isn&apos;t supported in this browser.</p>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ProfileModal: layout medido pixel a pixel contra la imagen de
 // referencia (ver MODAL_BOX arriba) — todas las posiciones/tamaños de
 // abajo son ese mismo relevamiento convertido a % del box del modal,
 // NO valores elegidos a criterio. Cada elemento marcado en rojo en la
 // referencia (marco, píldora de Racha, Editar/Agregar/Compartir,
 // Cámara) usa PROFILE_GLASS_STYLE; el resto (tarjetas blancas, avatar,
-// textos) queda tal cual. `streak` llega desde MainLayout (usePetStats)
-// — no se vuelve a leer el hook acá para no duplicar la fuente de
-// verdad. Sin lógica real todavía: los 4 botones de acción y la cámara
-// no tienen onClick, solo layout + estilo, tal como se pidió.
-function ProfileModal({ open, onClose, streak }) {
+// textos) queda tal cual.
+// Funcionalidad real (a pedido explícito, las anotaciones de color de
+// la referencia son solo wireframe):
+// - Racha: `bestStreak` (récord histórico, de useStreak vía
+//   usePetStats) en vez de la racha actual — este badge es "el
+//   récord", la barra de racha del header sigue mostrando la actual.
+// - Editar: toggle de `editing`; en ese estado el avatar abre el
+//   selector de archivos (input file oculto + object URL, revocado en
+//   cleanup) y nombre/@handle/bio pasan a ser inputs controlados.
+// - Agregar: abre FriendSearchModal (arriba).
+// - Compartir: abre ShareSheet (arriba).
+// - Cámara: llama a `onEnterPhotoMode` (definido en MainLayout) en vez
+//   de tener su propio estado de Photo Mode acá.
+function ProfileModal({ open, onClose, bestStreak, onEnterPhotoMode }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("Name");
+  const [handle, setHandle] = useState("name_26");
+  const [bio, setBio] = useState("I write short stories and fanfiction for the most popular fandoms.");
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [friendSearchOpen, setFriendSearchOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (avatarUrl) URL.revokeObjectURL(avatarUrl);
+    };
+  }, [avatarUrl]);
+
+  function handleAvatarFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    e.target.value = "";
+  }
+
+  const profileUrl = `https://zuzu.app/u/${handle || "name_26"}`;
+
   return (
     <>
       <ModalBackdrop open={open} onClose={onClose} />
@@ -422,28 +739,67 @@ function ProfileModal({ open, onClose, streak }) {
           className="absolute rounded-[28px] bg-white"
           style={{ left: "3.13%", right: "3.24%", top: "12.41%", height: "50.47%" }}
         >
-          <p
-            className="absolute left-0 right-0 text-center text-base font-bold text-zinc-900"
-            style={{ top: "34.4%" }}
-          >
-            Name
-          </p>
-          <p className="absolute left-0 right-0 text-center text-xs text-zinc-400" style={{ top: "40.4%" }}>
-            @name_26
-          </p>
-          <p
-            className="absolute text-center text-sm text-zinc-600"
-            style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
-          >
-            I write short stories and fanfiction for the most popular fandoms.
-          </p>
+          {editing ? (
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-label="Name"
+              className="absolute left-0 right-0 border-b border-zinc-200 bg-transparent text-center text-base font-bold text-zinc-900 focus:outline-none"
+              style={{ top: "34.4%" }}
+            />
+          ) : (
+            <p
+              className="absolute left-0 right-0 text-center text-base font-bold text-zinc-900"
+              style={{ top: "34.4%" }}
+            >
+              {name}
+            </p>
+          )}
+          {editing ? (
+            <div className="absolute left-0 right-0 flex items-center justify-center gap-0.5" style={{ top: "40.4%" }}>
+              <span className="text-xs text-zinc-400">@</span>
+              <input
+                value={handle}
+                onChange={(e) => setHandle(e.target.value.replace(/\s/g, ""))}
+                aria-label="Username"
+                className="border-b border-zinc-200 bg-transparent text-center text-xs text-zinc-400 focus:outline-none"
+              />
+            </div>
+          ) : (
+            <p className="absolute left-0 right-0 text-center text-xs text-zinc-400" style={{ top: "40.4%" }}>
+              @{handle}
+            </p>
+          )}
+          {editing ? (
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              aria-label="Bio"
+              rows={2}
+              className="absolute resize-none border-b border-zinc-200 bg-transparent text-center text-sm text-zinc-600 focus:outline-none"
+              style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
+            />
+          ) : (
+            <p
+              className="absolute text-center text-sm text-zinc-600"
+              style={{ left: "9.5%", right: "7.6%", top: "50.4%" }}
+            >
+              {bio}
+            </p>
+          )}
         </div>
 
         {/* Avatar: NO está marcado en rojo en la referencia (queda tal
             cual, sin vidrio) — círculo con degradado propio, asoma por
             encima de la propia tarjeta 1 superponiéndose a su borde
-            superior. */}
-        <span
+            superior. En modo edición se puede tocar para elegir una
+            foto nueva (input file oculto + preview via object URL). */}
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
+        <button
+          type="button"
+          disabled={!editing}
+          onClick={() => fileInputRef.current?.click()}
+          aria-label={editing ? "Change photo" : "Avatar"}
           className="absolute overflow-hidden rounded-full"
           style={{
             left: "50%",
@@ -453,15 +809,20 @@ function ProfileModal({ open, onClose, streak }) {
             transform: "translate(-50%, -50%)",
           }}
         >
-          <span className="block h-full w-full rounded-full bg-gradient-to-br from-sky-200 to-sky-400" />
-        </span>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="block h-full w-full object-cover" />
+          ) : (
+            <span className="block h-full w-full rounded-full bg-gradient-to-br from-sky-200 to-sky-400" />
+          )}
+          {editing && (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <CameraIcon className="h-6 w-6 text-white" />
+            </span>
+          )}
+        </button>
 
-        {/* Fila de 4 botones: Racha (píldora ancha) + Editar/Agregar/
-            Compartir (círculos), todos Liquid Glass. Los 5 glifos de esta
-            fila + Cámara (abajo) son blanco puro y un poco más grandes
-            dentro de su contenedor — pedido explícito del usuario contra
-            su hoja de referencia de íconos, reemplaza el gris oscuro/
-            tamaño chico que tenían antes. */}
+        {/* Fila de 4 botones: Racha (récord histórico, píldora ancha) +
+            Editar/Agregar/Compartir (círculos), todos Liquid Glass. */}
         <div
           className="liquid-glass-btn absolute flex items-center justify-center gap-2 rounded-full px-4"
           style={{ left: "7.77%", top: "52.18%", width: "33.01%", height: "8.00%", ...PROFILE_GLASS_STYLE }}
@@ -472,19 +833,21 @@ function ProfileModal({ open, onClose, streak }) {
             draggable={false}
             className="pointer-events-none h-6 w-5 select-none object-contain"
           />
-          {streak > 0 && <span className="text-sm font-semibold text-white">{streak}</span>}
+          {bestStreak > 0 && <span className="text-sm font-semibold text-white">{bestStreak}</span>}
         </div>
         <button
           type="button"
-          aria-label="Editar"
+          aria-label={editing ? "Done editing" : "Editar"}
+          onClick={() => setEditing((prev) => !prev)}
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "44.44%", top: "52.53%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
-          <PencilIcon className="h-5 w-5 text-white" />
+          {editing ? <CheckIcon className="h-5 w-5 text-white" /> : <PencilIcon className="h-5 w-5 text-white" />}
         </button>
         <button
           type="button"
           aria-label="Agregar"
+          onClick={() => setFriendSearchOpen(true)}
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "61.17%", top: "52.53%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
@@ -493,6 +856,7 @@ function ProfileModal({ open, onClose, streak }) {
         <button
           type="button"
           aria-label="Compartir"
+          onClick={() => setShareOpen(true)}
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "78.21%", top: "52.53%", width: "13.38%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
@@ -500,7 +864,7 @@ function ProfileModal({ open, onClose, streak }) {
         </button>
 
         {/* Tarjeta 2: preview de la mascota + botón de cámara (Liquid
-            Glass). */}
+            Glass) — entra a Photo Mode. */}
         <div
           className="absolute overflow-hidden rounded-[28px] bg-white"
           style={{ left: "3.13%", right: "3.13%", top: "66.29%", height: "29.29%" }}
@@ -510,12 +874,22 @@ function ProfileModal({ open, onClose, streak }) {
         <button
           type="button"
           aria-label="Cámara"
+          onClick={onEnterPhotoMode}
           className="liquid-glass-btn absolute flex items-center justify-center rounded-full"
           style={{ left: "7.87%", top: "86.00%", width: "13.27%", height: "7.29%", ...PROFILE_GLASS_STYLE }}
         >
           <CameraIcon className="h-5 w-5 text-white" />
         </button>
       </div>
+      <FriendSearchModal open={friendSearchOpen} onClose={() => setFriendSearchOpen(false)} />
+      <ShareSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        name={name}
+        handle={handle}
+        avatarUrl={avatarUrl}
+        profileUrl={profileUrl}
+      />
     </>
   );
 }
@@ -1134,8 +1508,38 @@ export default function MainLayout() {
   const [storeOpen, setStoreOpen] = useState(false);
   const [petsOpen, setPetsOpen] = useState(false);
   const [backgroundsOpen, setBackgroundsOpen] = useState(false);
-  const { xp, xpToNext, streakJustIncreased } = usePetStats();
+  const { xp, xpToNext, streakJustIncreased, bestStreak } = usePetStats();
   const streakProgress = Math.min((xp / xpToNext) * 100, 100);
+
+  // Photo Mode: oculta todo el chrome (header, burbuja, barra de
+  // racha/dock, dock, modales) dejando solo el fondo visible. Se activa
+  // desde el botón de cámara del ProfileModal (cierra todos los
+  // modales de paso) y se sale con un doble tap en cualquier parte de
+  // la pantalla — se detecta a mano comparando el timestamp contra el
+  // del tap anterior (guardado en un ref para no disparar renders de
+  // más) en vez de depender de un gesto nativo tipo `ondblclick`, que
+  // en mobile no siempre dispara igual que en desktop.
+  const [photoMode, setPhotoMode] = useState(false);
+  const lastPhotoModeTapRef = useRef(0);
+
+  function enterPhotoMode() {
+    setProfileOpen(false);
+    setSettingsOpen(false);
+    setStoreOpen(false);
+    setPetsOpen(false);
+    setBackgroundsOpen(false);
+    setPhotoMode(true);
+  }
+
+  function handlePhotoModeTap() {
+    const now = Date.now();
+    if (now - lastPhotoModeTapRef.current < 350) {
+      setPhotoMode(false);
+      lastPhotoModeTapRef.current = 0;
+    } else {
+      lastPhotoModeTapRef.current = now;
+    }
+  }
 
   return (
     <div
@@ -1144,6 +1548,17 @@ export default function MainLayout() {
     >
       <style>{CHAT_BUBBLE_KEYFRAMES}</style>
 
+      {photoMode && (
+        <div
+          className="absolute inset-0 z-[70]"
+          onClick={handlePhotoModeTap}
+          role="presentation"
+          aria-label="Photo mode — double-tap to exit"
+        />
+      )}
+
+      {!photoMode && (
+        <>
       {/* Definición compartida del degradado del bisel: blanco 50% en la
           esquina superior-izquierda (el brillo), transparente a mitad de
           camino, negro 50% en la esquina inferior-derecha (el
@@ -1396,11 +1811,18 @@ export default function MainLayout() {
         );
       })}
 
-      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} streak={xp} />
+      <ProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        bestStreak={bestStreak}
+        onEnterPhotoMode={enterPhotoMode}
+      />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
       <PetsModal open={petsOpen} onClose={() => setPetsOpen(false)} />
       <BackgroundsModal open={backgroundsOpen} onClose={() => setBackgroundsOpen(false)} />
+        </>
+      )}
     </div>
   );
 }

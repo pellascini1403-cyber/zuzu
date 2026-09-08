@@ -16,7 +16,7 @@ export default function usePetStats() {
     hunger: 72,
     coins: 120,
   });
-  const { streak, justIncreased } = useStreak();
+  const { streak, bestStreak, justIncreased } = useStreak();
 
   function feed(restore = 15) {
     setStats((prev) => ({
@@ -25,5 +25,5 @@ export default function usePetStats() {
     }));
   }
 
-  return { ...stats, xp: streak, streakJustIncreased: justIncreased, feed };
+  return { ...stats, xp: streak, bestStreak, streakJustIncreased: justIncreased, feed };
 }

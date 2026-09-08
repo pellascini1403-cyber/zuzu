@@ -27,6 +27,10 @@ function daysBetween(a, b) {
 //   marca `justIncreased` para que LevelBar anime el relleno.
 // - Volver a abrir después de saltarse uno o más días: la racha se
 //   reinicia a 0 (se cortó la consecutividad).
+// `bestStreak` es el récord histórico (el `count` más alto alcanzado
+// alguna vez), independiente de que la racha actual se haya cortado —
+// se guarda aparte como `best` en el mismo objeto de localStorage y
+// nunca baja, solo sube cuando `count` lo supera.
 //
 // Se implementa con useSyncExternalStore (en vez de leer localStorage en
 // un useEffect + setState) para no depender de window durante el render
@@ -38,7 +42,7 @@ let cachedSnapshot = null;
 
 function computeSnapshot() {
   if (typeof window === "undefined") {
-    return { streak: 0, justIncreased: false };
+    return { streak: 0, bestStreak: 0, justIncreased: false };
   }
 
   let stored = null;
@@ -51,22 +55,24 @@ function computeSnapshot() {
   const today = todayKey();
 
   if (!stored || typeof stored.count !== "number" || !stored.lastVisitDate) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ count: 0, lastVisitDate: today }));
-    return { streak: 0, justIncreased: false };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ count: 0, best: 0, lastVisitDate: today }));
+    return { streak: 0, bestStreak: 0, justIncreased: false };
   }
 
+  const best = typeof stored.best === "number" ? stored.best : stored.count;
   const diff = daysBetween(stored.lastVisitDate, today);
 
   if (diff === 0) {
-    return { streak: stored.count, justIncreased: false };
+    return { streak: stored.count, bestStreak: Math.max(best, stored.count), justIncreased: false };
   }
   if (diff === 1) {
     const next = stored.count + 1;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ count: next, lastVisitDate: today }));
-    return { streak: next, justIncreased: true };
+    const nextBest = Math.max(best, next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ count: next, best: nextBest, lastVisitDate: today }));
+    return { streak: next, bestStreak: nextBest, justIncreased: true };
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ count: 0, lastVisitDate: today }));
-  return { streak: 0, justIncreased: false };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ count: 0, best, lastVisitDate: today }));
+  return { streak: 0, bestStreak: best, justIncreased: false };
 }
 
 function getSnapshot() {
@@ -78,7 +84,7 @@ function getSnapshot() {
 
 // Debe ser un objeto estable (misma referencia) entre llamadas — si no,
 // React entra en un loop de re-render durante la hidratación.
-const SERVER_SNAPSHOT = { streak: 0, justIncreased: false };
+const SERVER_SNAPSHOT = { streak: 0, bestStreak: 0, justIncreased: false };
 function getServerSnapshot() {
   return SERVER_SNAPSHOT;
 }
