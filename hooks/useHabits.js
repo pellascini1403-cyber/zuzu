@@ -28,12 +28,14 @@ function todayKey(date = new Date()) {
 
 // Semilla de ejemplo — 3 hábitos que muestran las 3 formas de
 // scheduling y el modo "Read 20 mins" vs "Read 1 page" pedido
-// explícito como ejemplo de micro-hábito.
+// explícito como ejemplo de micro-hábito. `emoji` guarda una clave de
+// HABIT_ICON_ASSETS (MainLayout.jsx) en vez de un emoji Unicode crudo
+// para estos 3 — son íconos PNG blancos propios, no emoji de sistema.
 function seedHabits() {
   return [
     {
       id: "habit-read",
-      emoji: "📖",
+      emoji: "book",
       title: "Read 20 mins",
       coinReward: 10,
       microTitle: "Read 1 page",
@@ -42,7 +44,7 @@ function seedHabits() {
     },
     {
       id: "habit-water",
-      emoji: "💧",
+      emoji: "water",
       title: "Drink water",
       coinReward: 5,
       microTitle: null,
@@ -51,7 +53,7 @@ function seedHabits() {
     },
     {
       id: "habit-meditate",
-      emoji: "🧘",
+      emoji: "meditate",
       title: "Meditate",
       coinReward: 15,
       microTitle: "Take 3 deep breaths",

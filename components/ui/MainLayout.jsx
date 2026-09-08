@@ -2240,10 +2240,53 @@ function BackgroundsModal({ open, onClose }) {
 // abajo" y no como el resto de modales centrados.
 const HABITS_SHEET_BOX = { left: 0, right: 0, bottom: 0, maxHeight: "82%" };
 
-// Emoji fijos para elegir ícono de hábito — sin selector completo de
-// emoji del sistema operativo (fuera de alcance), un set curado chico
-// alcanza para personalizar la tarjeta.
-const HABIT_EMOJI_CHOICES = ["📖", "💧", "🧘", "🏃", "🛌", "🪥", "🧹", "🥗", "🎨", "✅"];
+// Íconos blancos personalizados provistos por el usuario (recortados a
+// su bounding box de alfa +2%, mismo criterio que el resto de assets en
+// public/nav/) para las 5 categorías de hábito más comunes — reemplazan
+// los emoji genéricos de sistema para esos 5 casos puntuales. El resto
+// del set curado (🪥🧹🥗🎨✅) sigue siendo emoji Unicode, blanqueado vía
+// HABIT_EMOJI_MONO_STYLE más abajo, porque no hay un ícono propio
+// provisto para esas categorías todavía.
+const HABIT_ICON_ASSETS = {
+  book: "/nav/habit-book-white.png",
+  water: "/nav/habit-water-white.png",
+  meditate: "/nav/habit-meditate-white.png",
+  running: "/nav/habit-running-white.png",
+  sleep: "/nav/habit-sleep-white.png",
+};
+
+// HabitIcon: `habit.emoji` (mismo campo de siempre, reutilizado) ahora
+// puede valer una de las 5 claves de HABIT_ICON_ASSETS (ícono PNG
+// propio, ya blanco — SIN el filtro de blanqueo, que lo dejaría
+// invisible) o un emoji Unicode crudo (blanqueado vía filter). Un único
+// helper decide cuál renderizar, así HabitCard y el selector de
+// AddHabitForm no repiten la lógica cada uno por su lado.
+function HabitIcon({ icon, className }) {
+  const src = HABIT_ICON_ASSETS[icon];
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        draggable={false}
+        className={`${className} pointer-events-none select-none object-contain`}
+      />
+    );
+  }
+  return (
+    <span className={className} style={HABIT_EMOJI_MONO_STYLE}>
+      {icon}
+    </span>
+  );
+}
+
+// Emoji/íconos fijos para elegir ícono de hábito — sin selector completo
+// de emoji del sistema operativo (fuera de alcance), un set curado
+// chico alcanza para personalizar la tarjeta. Los primeros 5 son las
+// claves de HABIT_ICON_ASSETS, EN ESE ORDEN EXACTO (Book/Water/
+// Meditate/Running/Sleep), pedido explícito; el resto sigue siendo
+// emoji Unicode.
+const HABIT_EMOJI_CHOICES = ["book", "water", "meditate", "running", "sleep", "🪥", "🧹", "🥗", "🎨", "✅"];
 
 const HABIT_WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -2272,13 +2315,26 @@ const HABIT_GLASS_DONE_STYLE = {
     "0 8px 24px rgba(0,0,0,0.3)",
   ].join(", "),
 };
+// Aro de selección de la grilla de íconos: pedido explícito de un
+// "subtle white glow" (en vez del cian de HABIT_GLASS_ACCENT_STYLE) al
+// elegir ícono en AddHabitForm.
+const HABIT_GLASS_WHITE_GLOW_STYLE = {
+  boxShadow: [
+    "inset 1px 1px 2px rgba(255,255,255,0.5)",
+    "inset -1px -1px 2px rgba(0,0,0,0.5)",
+    "inset 0 0 0 1.5px rgba(255,255,255,0.85)",
+    "0 0 14px rgba(255,255,255,0.5)",
+    "0 8px 24px rgba(0,0,0,0.3)",
+  ].join(", "),
+};
 
 // Los emoji de hábito son glifos de color (fuente de emoji del SO, no
 // SVG) — CSS `color` no los afecta. brightness(0) los aplana a negro
 // puro conservando su alfa, invert(1) lo vuelve blanco puro: el mismo
 // truco que se usa para blanquear íconos de color sin tener un asset
 // blanco aparte. Es lo más cerca de "monocromático blanco" que se
-// puede pedir de un emoji Unicode real vía CSS.
+// puede pedir de un emoji Unicode real vía CSS. NO se aplica a los
+// íconos PNG de HABIT_ICON_ASSETS — esos ya vienen blancos.
 const HABIT_EMOJI_MONO_STYLE = { filter: "brightness(0) invert(1)" };
 
 // Texto corto de la frecuencia elegida, para el badge de cada tarjeta.
@@ -2306,9 +2362,7 @@ function HabitCard({ habit, onComplete, onDelete, t }) {
   return (
     <div className={`rounded-2xl p-4 ${NESTED_CARD_CLASS}`}>
       <div className="flex items-start gap-3">
-        <span className="text-2xl leading-none" style={HABIT_EMOJI_MONO_STYLE}>
-          {habit.emoji}
-        </span>
+        <HabitIcon icon={habit.emoji} className="h-7 w-7 shrink-0 text-2xl leading-none" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">{habit.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -2418,10 +2472,10 @@ function AddHabitForm({ onSave, onCancel, t }) {
               key={choice}
               type="button"
               onClick={() => setEmoji(choice)}
-              style={emoji === choice ? HABIT_GLASS_ACCENT_STYLE : undefined}
+              style={emoji === choice ? HABIT_GLASS_WHITE_GLOW_STYLE : undefined}
               className="liquid-glass-btn flex h-9 w-9 items-center justify-center rounded-full text-lg"
             >
-              <span style={HABIT_EMOJI_MONO_STYLE}>{choice}</span>
+              <HabitIcon icon={choice} className="h-5 w-5 text-lg" />
             </button>
           ))}
         </div>
