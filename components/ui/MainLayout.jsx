@@ -1040,13 +1040,6 @@ function ImageIcon({ className }) {
 // tuvieran espacio entre sí, formarían una sola píldora partida al
 // medio. Cada esquina se midió por separado en vez de asumir un
 // rounded-full parejo.
-// BACKGROUNDS_RED: color exacto muestreado de la referencia (255,0,0
-// puro) — a diferencia de todos los demás modales de este archivo,
-// acá el rojo de la referencia NO se traduce a Liquid Glass: el
-// pedido explícito fue un borde/relleno rojo sólido real (marco y
-// botones), sin blur ni traslucidez.
-const BACKGROUNDS_RED = "#ff0000";
-
 function BackgroundsModal({ open, onClose }) {
   return (
     <>
@@ -1056,10 +1049,9 @@ function BackgroundsModal({ open, onClose }) {
         aria-label="Backgrounds"
         aria-hidden={!open}
         onClick={(e) => e.stopPropagation()}
-        className={`absolute z-50 rounded-[26px] ${open ? "" : "pointer-events-none"}`}
+        className={`liquid-glass-btn absolute z-50 rounded-[26px] ${open ? "" : "pointer-events-none"}`}
         style={{
           ...BG_MODAL_BOX,
-          background: BACKGROUNDS_RED,
           transform: `scale(${open ? 1 : 0.9})`,
           opacity: open ? 1 : 0,
           transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
@@ -1072,7 +1064,7 @@ function BackgroundsModal({ open, onClose }) {
           <PetPreviewPlaceholder />
         </div>
         <div
-          className="absolute flex items-center justify-center"
+          className="liquid-glass-btn absolute flex items-center justify-center"
           style={{
             left: "33.48%",
             top: "81.60%",
@@ -1082,13 +1074,13 @@ function BackgroundsModal({ open, onClose }) {
             borderBottomLeftRadius: 25,
             borderTopRightRadius: 6,
             borderBottomRightRadius: 6,
-            background: BACKGROUNDS_RED,
+            ...PROFILE_GLASS_STYLE,
           }}
         >
           <ChevronIcon className="h-6 w-6 rotate-180 text-white" />
         </div>
         <div
-          className="absolute flex items-center justify-center"
+          className="liquid-glass-btn absolute flex items-center justify-center"
           style={{
             left: "51.08%",
             top: "81.60%",
@@ -1098,7 +1090,7 @@ function BackgroundsModal({ open, onClose }) {
             borderBottomLeftRadius: 6,
             borderTopRightRadius: 25,
             borderBottomRightRadius: 25,
-            background: BACKGROUNDS_RED,
+            ...PROFILE_GLASS_STYLE,
           }}
         >
           <ChevronIcon className="h-6 w-6 text-white" />
