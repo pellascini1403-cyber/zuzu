@@ -8,6 +8,7 @@ import useLocalStorageFlag from "@/hooks/useLocalStorageFlag";
 import useLocalStorageString from "@/hooks/useLocalStorageString";
 import useTokens from "@/hooks/useTokens";
 import useHabits from "@/hooks/useHabits";
+import WelcomeScreen from "@/components/ui/WelcomeScreen";
 
 // DarkModeContext: "Dark mode" en SettingsModal es un swap de tema
 // APP-WIDE (pedido explícito), no un toggle que solo cambia su propia
@@ -2684,43 +2685,6 @@ const QA_TEST_BACKGROUND = `
   linear-gradient(135deg, #1a1a2e, #16213e)
 `;
 
-// OnboardingPlaceholder: pantalla destino real de "Log out" (y de
-// "Delete account") — a pedido explícito, el diseño final de esta
-// pantalla queda pendiente todavía; esto solo deja preparado el
-// manejo de estado de navegación (MainLayout renderiza esto en vez
-// de la app cuando `loggedIn` es false) para que el flujo de logout
-// tenga un destino real y comprobable, no solo cierre modales.
-function OnboardingPlaceholder({ onSignIn }) {
-  const { t } = useLanguage();
-  return (
-    <div
-      className="relative flex h-[100dvh] w-full flex-col items-center justify-center gap-10 px-8 text-center"
-      style={{ background: "linear-gradient(160deg, #1a1a2e, #16213e)" }}
-    >
-      <div>
-        <h1 className="text-4xl font-extrabold tracking-[0.2em] text-white">ZUZU</h1>
-        <p className="mt-3 text-sm text-white/50">{t("onboarding.subtitle")}</p>
-      </div>
-      <div className="flex w-full max-w-xs flex-col gap-3">
-        <button
-          type="button"
-          onClick={onSignIn}
-          className="liquid-glass-btn flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white"
-        >
-          {t("onboarding.google")}
-        </button>
-        <button
-          type="button"
-          onClick={onSignIn}
-          className="liquid-glass-btn flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white"
-        >
-          {t("onboarding.apple")}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState("habits");
   // Estructura mínima de click pedida explícitamente para los modales
@@ -2827,14 +2791,23 @@ export default function MainLayout() {
     triggerPetCelebration(result.isCritical ? t("habits.criticalHit") : t("habits.petCelebration"));
   }
 
-  // Sesión: "loggedIn" en memoria nada más (no hay backend de auth
-  // real) — al confirmar Log out (o Delete account, que por ahora usa
-  // el mismo destino) se cierra todo y se muestra el placeholder de
-  // Onboarding. OJO: esto NO borra datos persistidos como la racha o
-  // las preferencias — "clears the session state" se interpreta como
-  // la sesión de auth, no como borrar el progreso guardado del
-  // usuario, que sería un efecto secundario destructivo no pedido.
-  const [loggedIn, setLoggedIn] = useState(true);
+  // Sesión, en dos partes (ver WelcomeScreen.jsx):
+  // - `signedIn`: si el usuario ya pasó por el OAuth alguna vez. Persiste
+  //   en localStorage porque es justamente lo que distingue a un usuario
+  //   NUEVO (ve los botones de Google/Apple) de uno que VUELVE (ve el
+  //   domo de vidrio y entra deslizando). No hay backend de auth real
+  //   todavía: tocar cualquiera de los dos botones lo marca en true.
+  // - `entered`: si ya pasó la pantalla de entrada EN ESTA sesión. En
+  //   memoria a propósito — el gesto de desbloqueo tiene que volver a
+  //   pedirse en cada arranque de la app, si no la pantalla de entrada
+  //   no tendría sentido.
+  // OJO: Log out solo limpia esto, NO borra datos persistidos como la
+  // racha, los hábitos o las preferencias — "clears the session state"
+  // se interpreta como la sesión de auth, no como borrar el progreso
+  // guardado del usuario, que sería un efecto secundario destructivo
+  // no pedido.
+  const [signedIn, setSignedIn] = useLocalStorageFlag("zuzu-signed-in", false);
+  const [entered, setEntered] = useState(false);
 
   // Photo Mode: oculta todo el chrome (header, burbuja, barra de
   // racha/dock, dock, modales) dejando solo el fondo visible. Se activa
@@ -2875,14 +2848,23 @@ export default function MainLayout() {
     setBackgroundsOpen(false);
     setHabitsOpen(false);
     setPhotoMode(false);
-    setLoggedIn(false);
+    setSignedIn(false);
+    setEntered(false);
   }
 
-  if (!loggedIn) {
+  // La pantalla de entrada cubre los dos casos: sin `signedIn` muestra el
+  // OAuth, con `signedIn` muestra el domo de vidrio que se arrastra para
+  // desbloquear. `t` va por prop (no por LanguageContext) porque
+  // WelcomeScreen vive en su propio archivo y importar el contexto desde
+  // acá sería una dependencia circular.
+  if (!signedIn || !entered) {
     return (
-      <LanguageContext.Provider value={{ language, setLanguage, t }}>
-        <OnboardingPlaceholder onSignIn={() => setLoggedIn(true)} />
-      </LanguageContext.Provider>
+      <WelcomeScreen
+        signedIn={signedIn}
+        onSignIn={() => setSignedIn(true)}
+        onEnter={() => setEntered(true)}
+        t={t}
+      />
     );
   }
 
