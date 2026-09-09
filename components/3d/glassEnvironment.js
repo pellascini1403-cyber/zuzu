@@ -46,13 +46,47 @@ function wrapDelta(a, b) {
   return Math.min(d, 1 - d);
 }
 
-// Gradiente vertical del entorno, en luminancia lineal. v = 0 es el nadir.
+// Gradiente vertical de respaldo, en luminancia lineal. v = 0 es el nadir.
 function surround(v) {
   if (v < 0.5) return 0.018 + 0.05 * (v / 0.5); // suelo oscuro
   return 0.068 + 0.3 * ((v - 0.5) / 0.5) ** 1.6; // cielo, más claro arriba
 }
 
-function buildEnvData() {
+// Base del entorno tomada de la MISMA foto que está de fondo. Es lo que
+// integra la burbuja con el cielo nuevo: los reflejos difusos llevan el azul
+// de arriba y el blanco cálido de las nubes de abajo, en vez de un gris de
+// estudio que no tendría nada que ver con lo que hay detrás.
+//
+// Va muy atenuada (SURROUND_GAIN) y desenfocada a propósito. Sin atenuar, un
+// entorno tan claro hace que la esfera refleje blanco en toda su cara y el
+// vidrio se vea lechoso; lo que se busca de la foto es el COLOR, mientras el
+// contraste y los destellos siguen viniendo de los softboxes en HDR.
+const SURROUND_GAIN = 0.42;
+const SRGB_TO_LINEAR = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+
+function sampleImage(image) {
+  const canvas = document.createElement("canvas");
+  canvas.width = ENV_W;
+  canvas.height = ENV_H;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  // Desenfocada: de la foto interesa el campo de color, no su detalle, y un
+  // detalle nítido en el reflejo del clearcoat delataría que es una textura
+  // estirada sobre 360 grados.
+  ctx.filter = "blur(9px)";
+  // Espejada en Y: la DataTexture no invierte, así que la fila 0 del array
+  // es el nadir y tiene que corresponder a la parte BAJA de la foto.
+  ctx.translate(0, ENV_H);
+  ctx.scale(1, -1);
+  ctx.drawImage(image, 0, 0, ENV_W, ENV_H);
+  try {
+    return ctx.getImageData(0, 0, ENV_W, ENV_H).data;
+  } catch {
+    return null; // canvas contaminado: se cae al gradiente de respaldo
+  }
+}
+
+function buildEnvData(image) {
+  const photo = image ? sampleImage(image) : null;
   const data = new Float32Array(ENV_W * ENV_H * 4);
   for (let y = 0; y < ENV_H; y += 1) {
     // La DataTexture no invierte en Y, así que la fila 0 es el nadir.
@@ -63,6 +97,15 @@ function buildEnvData() {
       let r = base;
       let g = base * 1.02;
       let b = base * 1.12; // el entorno tira levemente a frío
+      if (photo) {
+        const p = (y * ENV_W + x) * 4;
+        // Se ATENÚA hacia el nadir para que el borde de abajo del vidrio
+        // conserve un tono oscuro contra el que recortarse.
+        const gain = SURROUND_GAIN * (0.25 + 0.75 * v);
+        r = SRGB_TO_LINEAR(photo[p] / 255) * gain;
+        g = SRGB_TO_LINEAR(photo[p + 1] / 255) * gain;
+        b = SRGB_TO_LINEAR(photo[p + 2] / 255) * gain;
+      }
       for (const [su, sv, sw, sh, intensity, edge] of SOFTBOXES) {
         const du = wrapDelta(u, su) / sw;
         const dv = Math.abs(v - sv) / sh;
@@ -87,10 +130,11 @@ function buildEnvData() {
 }
 
 // Devuelve { texture, dispose }. La PMREM hay que generarla con el mismo
-// renderer que dibuja la escena.
-export function createGlassEnvironment(renderer) {
+// renderer que dibuja la escena. `image` es la foto del fondo: si viene, el
+// entorno se construye a partir de ella.
+export function createGlassEnvironment(renderer, image) {
   const equirect = new THREE.DataTexture(
-    buildEnvData(),
+    buildEnvData(image),
     ENV_W,
     ENV_H,
     THREE.RGBAFormat,

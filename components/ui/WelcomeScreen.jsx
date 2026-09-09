@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef } from "react";
 import useWebGLSupport from "@/hooks/useWebGLSupport";
+import { SKY_URL } from "@/lib/sky";
 import {
   EXPAND_MS,
   shouldUnlock,
@@ -44,12 +45,11 @@ const lerp = (a, b, t) => a + (b - a) * t;
 // del fondo, donde el blanco no se leería.
 const DOME_INK = "#17406e";
 
-// Fondo CSS de respaldo: se ve durante el primer frame, antes de que el
-// canvas pinte, y es lo único que queda si el dispositivo no tiene WebGL.
-const SKY_FALLBACK = [
-  "radial-gradient(80% 45% at 72% 8%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 60%)",
-  "linear-gradient(180deg, #2c6ab0 0%, #4a8ccb 26%, #7db4e2 52%, #b9d9f0 76%, #e3f0fa 100%)",
-].join(", ");
+// Fondo CSS de respaldo: la MISMA foto que usa la escena 3D. Se ve durante
+// el primer frame, antes de que el canvas pinte —así no hay un salto de
+// color al aparecer— y es lo único que queda si el dispositivo no tiene
+// WebGL.
+const SKY_FALLBACK = `url(${SKY_URL}) center / cover no-repeat`;
 
 const WELCOME_KEYFRAMES = `
   @keyframes zuzu-hint-pulse {
@@ -92,12 +92,16 @@ export default function WelcomeScreen({ signedIn, onSignIn, onEnter, t }) {
   // Lo único que sigue escribiéndose desde acá es el DOM de encima: el
   // paralaje del título y el desvanecido del hint mientras se tira.
   const handleFrame = useCallback((pull, expand) => {
+    // El desvanecido va con la MAGNITUD del estirado: el gesto vale en los
+    // dos sentidos, y con el valor con signo el hint se quedaba entero
+    // mientras la burbuja se le venía encima al estirar hacia abajo.
+    const stretch = Math.abs(pull);
     if (titleRef.current) {
       titleRef.current.style.transform = `translate3d(0, ${(-pull * 26).toFixed(1)}px, 0)`;
-      titleRef.current.style.opacity = String(Math.max(0, 1 - pull * 0.55 - expand));
+      titleRef.current.style.opacity = String(Math.max(0, 1 - stretch * 0.55 - expand));
     }
     if (hintRef.current) {
-      hintRef.current.style.opacity = String(Math.max(0, 1 - pull * 1.6));
+      hintRef.current.style.opacity = String(Math.max(0, 1 - stretch * 1.6));
     }
   }, []);
 
@@ -139,9 +143,12 @@ export default function WelcomeScreen({ signedIn, onSignIn, onEnter, t }) {
     const dx = e.clientX - drag.startX;
     drag.moved = Math.max(drag.moved, Math.abs(dy) + Math.abs(dx));
 
+    // Rubber band simétrico: se puede estirar hacia arriba o hacia abajo, y
+    // pasado el recorrido nominal cuesta casi el triple seguir estirando,
+    // como en iOS.
     const raw = dy / UNLOCK_DISTANCE;
-    // Rubber band: pasado el umbral cuesta el triple estirar, como en iOS.
-    const pull = raw <= 1 ? Math.max(raw, -0.14) : 1 + (raw - 1) * 0.35;
+    const stretch = Math.abs(raw);
+    const pull = Math.sign(raw) * (stretch <= 1 ? stretch : 1 + (stretch - 1) * 0.35);
     const dt = Math.max(e.timeStamp - drag.lastT, 1);
     // Muestra suavizada: un solo evento de puntero es ruidoso y esta
     // velocidad decide el flick Y siembra el resorte al soltar.

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
+import { SKY_ASPECT, SKY_URL } from "@/lib/sky";
 import { createGlassEnvironment } from "./glassEnvironment";
 
 // Burbuja de vidrio líquido REAL (WebGL), no una ilustración.
@@ -36,6 +39,11 @@ const CAMERA_FOV = 32;
 // que el resto del DOM (título, hint, tarjeta de login).
 const pixelCameraDistance = (heightPx) => heightPx / 2 / Math.tan((CAMERA_FOV * Math.PI) / 360);
 
+// Zoom del cielo sobre el encuadre: el margen sobrante es el que permite que
+// las nubes deriven despacio sin que aparezca ningún borde.
+const SKY_ZOOM = 1.14;
+const SKY_DRIFT_SECONDS = 90;
+
 const SKY_DEPTH = 700; // cuánto detrás de la burbuja se apoya el cielo
 // Longitud, en píxeles, del rayo refractado que atraviesa el vidrio: es lo
 // que decide cuán lejos del punto de entrada se muestrea el cielo, o sea
@@ -66,53 +74,27 @@ const SKY_VERT = /* glsl */ `
 
 const SKY_FRAG = /* glsl */ `
   varying vec2 vUv;
-  uniform float uTime;
-
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
-  float noise(vec2 p) {
-    vec2 i = floor(p), f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
-               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
-  }
-  // 3 octavas, no 5. El cielo cubre toda la pantalla y además se vuelve a
-  // dibujar entero en el pase de transmisión de la burbuja, así que cada
-  // octava se paga dos veces por frame; a partir de la tercera lo que
-  // agregan es detalle que el propio degradado ya no deja ver.
-  float fbm(vec2 p) {
-    float v = 0.0, a = 0.5;
-    for (int i = 0; i < 3; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
-    return v;
-  }
+  uniform sampler2D uMap;
+  uniform vec2 uScale;   // recorte tipo object-fit: cover
+  uniform vec2 uOffset;  // deriva lenta dentro del margen que deja el zoom
 
   void main() {
-    float h = vUv.y; // 1 = arriba de la pantalla
-    vec3 low = vec3(0.890, 0.941, 0.980);
-    vec3 mid = vec3(0.490, 0.706, 0.886);
-    vec3 top = vec3(0.169, 0.416, 0.690);
-    vec3 sky = mix(low, mid, smoothstep(0.0, 0.55, h));
-    sky = mix(sky, top, smoothstep(0.55, 1.0, h));
-    // Sol difuso arriba a la derecha.
-    sky += vec3(0.20, 0.22, 0.24) * smoothstep(0.85, 0.0, distance(vUv, vec2(0.74, 0.94)) * 1.5);
-
-    float cloud = 0.0;
-    cloud += 0.55 * smoothstep(0.42, 0.92, fbm(vec2(vUv.x * 2.6 + uTime * 0.011, h * 4.2 + 1.0)));
-    cloud += 0.40 * smoothstep(0.48, 1.00, fbm(vec2(vUv.x * 4.4 - uTime * 0.019, h * 6.2 + 7.0)));
-    cloud *= smoothstep(1.0, 0.22, h);
-
-    vec3 col = mix(sky, vec3(1.0), clamp(cloud, 0.0, 1.0) * 0.85);
-    // Banco de nubes de abajo, sobre el que se apoya la burbuja.
-    col = mix(col, vec3(1.0), smoothstep(0.32, 0.015, h) * 0.92);
-    gl_FragColor = vec4(col, 1.0);
+    vec2 uv = (vUv - 0.5) * uScale + 0.5 + uOffset;
+    gl_FragColor = texture2D(uMap, uv);
   }
 `;
 
-// Instancia única, a nivel de módulo: el material tiene que recibir el
-// mismo objeto de uniforms en el render, y leerlo de un ref durante el
-// render no está permitido en este proyecto.
-const SKY_UNIFORMS = { uTime: { value: 0 } };
+// Instancia única, a nivel de módulo: el material tiene que recibir el mismo
+// objeto de uniforms en el render, y leerlo de un ref durante el render no
+// está permitido en este proyecto.
+const SKY_UNIFORMS = {
+  uMap: { value: null },
+  uScale: { value: [1, 1] },
+  uOffset: { value: [0, 0] },
+  uTime: { value: 0 },
+};
 
-function SkyBackdrop() {
+function SkyBackdrop({ texture }) {
   const meshRef = useRef(null);
 
   // El plano es 1x1 y se escala por frame desde state.size: así un resize
@@ -121,10 +103,31 @@ function SkyBackdrop() {
   useFrame((state, delta) => {
     const mesh = meshRef.current;
     if (!mesh) return;
-    SKY_UNIFORMS.uTime.value += delta;
     const dist = pixelCameraDistance(state.size.height) + SKY_DEPTH;
     const visibleH = 2 * dist * Math.tan((CAMERA_FOV * Math.PI) / 360);
-    mesh.scale.set(visibleH * (state.size.width / state.size.height), visibleH, 1);
+    const viewAspect = state.size.width / state.size.height;
+    mesh.scale.set(visibleH * viewAspect, visibleH, 1);
+
+    // Cover: se usa el lado que sobra y se recorta el otro, para que la foto
+    // llene la pantalla sin deformarse en ninguna proporción.
+    const ratio = viewAspect / SKY_ASPECT;
+    let sx = ratio > 1 ? 1 : ratio;
+    let sy = ratio > 1 ? 1 / ratio : 1;
+    sx /= SKY_ZOOM;
+    sy /= SKY_ZOOM;
+
+    // Deriva: las nubes tienen que pasar por detrás (y por dentro) de la
+    // burbuja. Va con seno/coseno y no con un desplazamiento lineal porque
+    // así el recorrido es cerrado y nunca hay un salto al reiniciar el ciclo.
+    SKY_UNIFORMS.uTime.value += delta;
+    const phase = (SKY_UNIFORMS.uTime.value / SKY_DRIFT_SECONDS) * Math.PI * 2;
+    const marginX = (1 - sx) / 2;
+    const marginY = (1 - sy) / 2;
+    SKY_UNIFORMS.uScale.value[0] = sx;
+    SKY_UNIFORMS.uScale.value[1] = sy;
+    SKY_UNIFORMS.uOffset.value[0] = Math.sin(phase) * marginX * 0.85;
+    SKY_UNIFORMS.uOffset.value[1] = Math.cos(phase * 0.6) * marginY * 0.85;
+    SKY_UNIFORMS.uMap.value = texture;
   });
 
   return (
@@ -155,9 +158,15 @@ const DEFORM_COMMON = /* glsl */ `
   vec3 zuzuDeformed;
 
   vec3 zuzuDeform(vec3 p) {
-    float t = clamp(p.y * 0.5 + 0.5, 0.0, 1.0);          // 0 abajo, 1 arriba
-    float yScale = 1.0 + uPull * mix(1.15, 0.36, t);      // la cola cede más
-    float pinch = (1.0 - 0.20 * uPull) * mix(1.0 - 0.52 * uPull, 1.0, smoothstep(-0.05, 0.78, t));
+    // El gesto va en los dos sentidos, así que la deformación trabaja con la
+    // MAGNITUD del arrastre y se orienta con su signo: la cola siempre queda
+    // del lado contrario al que se tira. Tirando hacia arriba afina abajo;
+    // tirando hacia abajo afina arriba.
+    float mag = abs(uPull);
+    float t = clamp(p.y * 0.5 + 0.5, 0.0, 1.0);           // 0 abajo, 1 arriba
+    float s = uPull >= 0.0 ? t : 1.0 - t;                 // 0 = extremo que arrastra la cola
+    float yScale = 1.0 + mag * mix(1.15, 0.36, s);        // la cola cede más
+    float pinch = (1.0 - 0.20 * mag) * mix(1.0 - 0.52 * mag, 1.0, smoothstep(-0.05, 0.78, s));
     vec3 q = vec3(p.x * pinch, p.y * yScale, p.z * pinch);
     q.x += uBend * 0.55 * t;                              // inercia lateral
     return q;
@@ -184,7 +193,7 @@ const DEFORM_NORMAL = /* glsl */ `
   #endif
 `;
 
-function GlassSphere({ stateRef, onFrame }) {
+function GlassSphere({ stateRef, onFrame, skyImage }) {
   const meshRef = useRef(null);
   const materialRef = useRef(null);
   const uniformsRef = useRef({ uPull: { value: 0 }, uBend: { value: 0 } });
@@ -231,7 +240,7 @@ function GlassSphere({ stateRef, onFrame }) {
     // como argumento del frame, no como valor devuelto por un hook.
     if (!setup.done) {
       setup.done = true;
-      const env = createGlassEnvironment(state.gl);
+      const env = createGlassEnvironment(state.gl, skyImage);
       envRef.current = env;
       state.scene.environment = env.texture;
       // El pase de transmisión es una segunda pasada de toda la escena por
@@ -270,7 +279,12 @@ function GlassSphere({ stateRef, onFrame }) {
     }
 
     const restCy = s.signedIn ? h - BUBBLE_BOTTOM_MARGIN - BUBBLE_RADIUS : h * 0.46;
-    let cy = restCy - s.pull * h * 0.42;
+    // Recorrido asimétrico: hacia arriba hay pantalla de sobra, hacia abajo
+    // la burbuja ya está apoyada, así que estirando para abajo casi no se
+    // desplaza y lo que se ve es la deformación por tensión, no una salida
+    // de cuadro.
+    const travel = s.pull >= 0 ? 0.42 : 0.1;
+    let cy = restCy - s.pull * h * travel;
     let cx = 0;
     let radius = BUBBLE_RADIUS;
     let pull = s.pull;
@@ -309,7 +323,12 @@ function GlassSphere({ stateRef, onFrame }) {
         thickness={REFRACTION_DEPTH / BUBBLE_RADIUS}
         ior={1.46}
         dispersion={0.45}
-        roughness={0.02}
+        // La rugosidad de la base es la que DESENFOCA lo refractado (three
+        // muestrea el target de transmisión con un LOD según roughness), así
+        // que las nubes que se ven a través del vidrio salen suavizadas y no
+        // recortadas. Los destellos nítidos no se pierden porque los aporta el
+        // clearcoat, que va con su propia rugosidad casi nula.
+        roughness={0.16}
         metalness={0}
         clearcoat={1}
         clearcoatRoughness={0.02}
@@ -325,6 +344,22 @@ function GlassSphere({ stateRef, onFrame }) {
   );
 }
 
+function Scene({ stateRef, onFrame }) {
+  const texture = useTexture(SKY_URL);
+  return (
+    <>
+      <SkyBackdrop texture={texture} />
+      {/* Sin luces direccionales a propósito. Sobre un vidrio con roughness
+          tan baja una luz puntual da un punto de brillo diminuto y duro que
+          se lee como un artefacto; los reflejos de verdad los pone el mapa
+          de entorno, que además es lo que hace que se desplacen solos
+          cuando la superficie se deforma. */}
+      <ambientLight intensity={0.05} />
+      <GlassSphere stateRef={stateRef} onFrame={onFrame} skyImage={texture.image} />
+    </>
+  );
+}
+
 export default function GlassBubbleCanvas({ stateRef, onFrame }) {
   return (
     <Canvas
@@ -334,14 +369,11 @@ export default function GlassBubbleCanvas({ stateRef, onFrame }) {
       gl={{ alpha: false, antialias: true, powerPreference: "high-performance" }}
       camera={{ fov: CAMERA_FOV, position: [0, 0, 1400] }}
     >
-      <SkyBackdrop />
-      {/* Sin luces direccionales a propósito. Sobre un vidrio con roughness
-          tan baja una luz puntual da un punto de brillo diminuto y duro que
-          se lee como un artefacto; los reflejos de verdad los pone el mapa
-          de entorno, que además es lo que hace que se desplacen solos
-          cuando la superficie se deforma. */}
-      <ambientLight intensity={0.05} />
-      <GlassSphere stateRef={stateRef} onFrame={onFrame} />
+      <Suspense fallback={null}>
+        <Scene stateRef={stateRef} onFrame={onFrame} />
+      </Suspense>
     </Canvas>
   );
 }
+
+useTexture.preload(SKY_URL);
