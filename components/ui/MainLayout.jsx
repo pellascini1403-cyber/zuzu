@@ -35,43 +35,6 @@ function useLanguage() {
 }
 
 
-// Placeholder de jugadores vinculados a esta mascota (1 o 2) — todavía
-// sin fuente de datos real (Fase 3) ni fotos subidas. `avatarUrl: null`
-// en los 2 es el estado por defecto: PlayerAvatar (abajo) cae a las
-// iniciales sobre el degradado rosa (color muestreado de la imagen de
-// referencia, rgb(248,180,224)) hasta que haya una URL real que
-// mostrar — nunca un ícono de otro botón de la app.
-const players = [
-  { id: "p1", name: "Jugador 1", initial: "M", avatarUrl: null },
-  { id: "p2", name: "Jugador 2", initial: "A", avatarUrl: null },
-];
-
-// Aislado a propósito en su propio componente: PlayerAvatar es la ÚNICA
-// pieza de la app que lee `players`/`avatarUrl`, así que no hay forma de
-// que termine mostrando el ícono de otro botón (como pasó — según
-// reportó el usuario — con el ícono de Store, aunque no se encontró tal
-// referencia en el código commiteado; probablemente una captura de
-// verificación intermedia que se vio por separado). Cada avatar es su
-// propio <img> o su propio placeholder, sin compartir el `src` con
-// ningún otro componente de la interfaz.
-function PlayerAvatar({ player }) {
-  return (
-    <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white/80">
-      {player.avatarUrl ? (
-        <img
-          src={player.avatarUrl}
-          alt={player.name}
-          draggable={false}
-          className="h-full w-full select-none object-cover"
-        />
-      ) : (
-        <span className="flex h-full w-full items-center justify-center bg-gradient-to-b from-[#ffd6f2] to-[#f8b4e0]">
-          <span className={`text-xs ${UI_TEXT_STYLE}`}>{player.initial}</span>
-        </span>
-      )}
-    </span>
-  );
-}
 
 // FASE 4 — Estilo visual "Liquid Glass" (ver .liquid-glass-btn en
 // app/globals.css). Se aplicó a los 9 contenedores maquetados en Fase 1
@@ -120,34 +83,21 @@ function PlayerAvatar({ player }) {
 //
 // Medidas/posiciones: sin cambios respecto a Fase 1 (ver historial de
 // commits) — este paso es solo estilo visual.
-const CHAT_BUBBLE_PATH =
-  "M35 0H205C224.33 0 240 15.67 240 35C240 54.33 224.33 70 205 70H118C114 70 109 72 105 78C101 84 96 88 92 88C90 88 91 82 93 76C94.5 71.5 92 70 88 70H35C15.67 70 0 54.33 0 35C0 15.67 15.67 0 35 0Z";
-
-// Nombre único (no genérico, para no pisar ningún @keyframes de otro
-// componente si en algún momento se declara otro inline como este) del
-// keyframe que anima la entrada del mensaje de la burbuja. Es una
-// `animation`, no una `transition`: una transition no dispara sola al
-// montar, y remontar el <span> del mensaje (vía key={message} en
-// ChatBubble) en cada cambio de texto sí — así el mismo efecto cubre
-// tanto un mensaje nuevo como la apertura inicial de la app, sin JS
-// aparte para diferenciar los dos casos.
-const CHAT_BUBBLE_ANIMATION_NAME = "zuzu-bubble-message-in";
-const CHAT_BUBBLE_KEYFRAMES = `
-  @keyframes ${CHAT_BUBBLE_ANIMATION_NAME} {
-    from { opacity: 0; transform: scale(0.85); }
-    to { opacity: 1; transform: scale(1); }
-  }
-`;
-
 // Reacción "alegre" de la mascota al completar un hábito (Habit
 // Tracker, ver más abajo): no hay todavía ningún asset 3D real de la
 // mascota (sigue siendo Fase 3 en todo el resto del archivo — ver
-// PetPreviewPlaceholder), así que la burbuja de diálogo (ChatBubble,
-// la única pieza de "la mascota" que ya existe en la pantalla
-// principal) es la superficie real más cercana para esa reacción: al
-// completar, además del cambio de texto (que ya dispara su propio
-// pop-in vía key={message}), toda la burbuja pega un salto extra con
-// este keyframe cuando `pulse` es true.
+// PetPreviewPlaceholder), así que la burbuja "¡Hola!" (PNG fijo,
+// public/nav2/chat-bubble-hola.png — reemplaza al ChatBubble
+// code-drawn de fases anteriores) es la superficie real más cercana
+// para esa reacción: al completar un hábito, la burbuja pega un salto
+// con este keyframe cuando `pulse` es true. El PNG trae el texto
+// "¡Hola!" HORNEADO en los píxeles — no hay forma de cambiarlo por
+// otro mensaje sin recrear el botón por código (prohibido), así que a
+// diferencia de fases anteriores ya no hay un mensaje distinto por
+// evento (racha perdida, celebración, crítico): la reacción visible
+// hoy es solo este salto. Si más adelante se necesitan mensajes
+// dinámicos de nuevo, van a hacer falta PNGs adicionales (uno por
+// mensaje) o algún otro mecanismo que no sea dibujar el globo a mano.
 const CHAT_BUBBLE_PULSE_ANIMATION_NAME = "zuzu-bubble-celebrate-pulse";
 const CHAT_BUBBLE_PULSE_KEYFRAMES = `
   @keyframes ${CHAT_BUBBLE_PULSE_ANIMATION_NAME} {
@@ -170,164 +120,6 @@ const COIN_BURST_KEYFRAMES = `
     100% { opacity: 0; transform: translateY(-16px) scale(0.95); }
   }
 `;
-
-// Burbuja de diálogo "Chat Pet": el mensaje llega por prop (`message`,
-// con default "¡Hello!" en MainLayout más abajo) en vez de vivir
-// hardcodeado en el JSX — así, cuando haya diálogo real (reacciones a
-// hábitos, IA, etc. — Fase 3), alimentarlo es solo pasar un `message`
-// distinto, sin tocar este componente.
-// El texto vive DENTRO del mismo <div> que ya dibuja el fill/blur de la
-// cápsula+cola (clip-path + backdrop-filter — ver comentario grande de
-// FASE 4 más abajo), así queda recortado a esa silueta como cualquier
-// otro contenido; un <div> interno de solo 70 de los 88px de alto del
-// path lo centra en la zona de la cápsula, sin invadir la cola (que no
-// tiene espacio para texto). Ese <div> exterior ya lleva
-// `transform: scale(140/240)` para ir de las coordenadas nativas del
-// path a su tamaño real en pantalla, así que el tamaño de fuente
-// también se escribe en esas coordenadas nativas (22px) y termina
-// rindiendo a ~13px reales — mismo criterio que el resto de la geometría
-// de esta burbuja.
-function ChatBubble({ message, pulse }) {
-  return (
-    <div
-      className="relative"
-      style={{
-        width: 140,
-        height: 51.33,
-        animation: pulse ? `${CHAT_BUBBLE_PULSE_ANIMATION_NAME} 550ms ease-out` : undefined,
-      }}
-    >
-      <div
-        className="absolute left-0 top-0"
-        style={{
-          width: 240,
-          height: 88,
-          transform: `scale(${140 / 240})`,
-          transformOrigin: "top left",
-          clipPath: `path("${CHAT_BUBBLE_PATH}")`,
-          isolation: "isolate",
-          background: "rgba(255,255,255,0.12)",
-          backdropFilter: "blur(25px) saturate(200%)",
-          WebkitBackdropFilter: "blur(25px) saturate(200%)",
-        }}
-      >
-        <div className="flex h-[70px] w-full items-center justify-center px-4">
-          <span
-            key={message}
-            style={{ fontSize: 22, lineHeight: 1.1, animation: `${CHAT_BUBBLE_ANIMATION_NAME} 280ms ease-out` }}
-            className={`text-center ${UI_TEXT_STYLE}`}
-          >
-            {message}
-          </span>
-        </div>
-      </div>
-      <svg
-        viewBox="0 0 240 88"
-        width="140"
-        height="51.33"
-        className="absolute inset-0"
-        style={{ overflow: "visible" }}
-      >
-        <path
-          d={CHAT_BUBBLE_PATH}
-          fill="none"
-          stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
-          strokeWidth="1.5"
-          filter={`url(#${CHAT_BUBBLE_SHADOW_FILTER_ID})`}
-        />
-      </svg>
-    </div>
-  );
-}
-
-// Panel del Dock: antes eran 3 piezas (2 costados + 1 SVG central)
-// unidas con el truco de "todo en un mismo grupo opacity-10 + negro
-// opaco" para que no aparecieran costuras entre ellas. Para el acabado
-// de vidrio esa unión ya no alcanza (necesitamos fill translúcido real +
-// drop-shadow + bisel, no un simple negro plano), así que el panel
-// entero — costados, esquinas redondeadas de 20px y la muesca — se
-// unificó en un solo <path>. Verificado aislado: sin costuras. Ancho
-// fijo de 390px (ver comentario más arriba); alto 300px — de sobra para
-// cubrir el borde inferior real de cualquier pantalla razonable, el
-// resto lo recorta el overflow-hidden del contenedor raíz.
-//
-// ESTADOS ENCENDIDO/APAGADO — la muesca ya no está fija al centro: hay
-// un <path> distinto por cada una de las 3 pestañas (Store/Habits/
-// Pets), con el mismo radio/fillet ya validados (R=40, fillet=16) pero
-// centrados en la posición horizontal de cada una (cx=88/195/302 — dos
-// tercios simétricos del ancho, con margen suficiente para que la
-// muesca de las pestañas extremas no choque contra el redondeo de las
-// esquinas del dock). Verificados los 3 aislados antes de integrar.
-const DOCK_PATHS = {
-  store:
-    "M0,20 A20,20 0 0 1 20,0 L35.70,0 A16,16 0 0 1 50.65,10.28 A40,40 0 0 0 125.35,10.28 A16,16 0 0 1 140.30,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z",
-  habits:
-    "M0,20 A20,20 0 0 1 20,0 L142.70,0 A16,16 0 0 1 157.65,10.28 A40,40 0 0 0 232.35,10.28 A16,16 0 0 1 247.30,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z",
-  pets:
-    "M0,20 A20,20 0 0 1 20,0 L249.70,0 A16,16 0 0 1 264.65,10.28 A40,40 0 0 0 339.35,10.28 A16,16 0 0 1 354.30,0 L370,0 A20,20 0 0 1 390,20 L390,300 L0,300 Z",
-};
-const DOCK_TOP = "88.63%"; // borde plano del panel = 748.03px/844
-
-// Botón flotante activo — mismo cy (744) para las 3 pestañas, la
-// muesca/burbuja solo se mueve en X. 60x60px, 10px de margen limpio.
-const ACTIVE_BUBBLE_TOP = "84.60%";
-// Grupo ícono+label de una pestaña inactiva, dentro del cuerpo plano
-// del dock (18px debajo del borde superior: (748.03+18)/844).
-const INACTIVE_ITEM_TOP = "90.76%";
-
-// Store y Pets: PNGs provistos por el usuario (public/nav/store-icon.png,
-// pets-icon.png). Igual que otros assets de este generador en turnos
-// anteriores, venían en un lienzo enorme (2560x1440) con el contenido
-// real ocupando solo ~21% del ancho — se recortaron al bounding box real
-// del canal alfa (+2% de margen) antes de guardarlos, si no el ícono se
-// habría visto minúsculo dentro del botón. Object-fit: contain preserva
-// su proporción nativa (564x586 y 580x496 respectivamente, no son
-// cuadrados) dentro del box cuadrado h-6/h-7 que ya usaban los íconos
-// placeholder — mismo tamaño/posición que tenían antes, solo cambia el
-// contenido gráfico.
-function StoreIcon({ className }) {
-  return (
-    <img
-      src="/nav/store-icon.png"
-      alt=""
-      draggable={false}
-      className={`${className} pointer-events-none select-none object-contain`}
-    />
-  );
-}
-function HabitsIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="white">
-      <path d="M12 3.5 3 11h2.5v8h5v-5.5h3V19h5v-8H21L12 3.5Z" />
-    </svg>
-  );
-}
-function PetsIcon({ className }) {
-  return (
-    <img
-      src="/nav/pets-icon.png"
-      alt=""
-      draggable={false}
-      className={`${className} pointer-events-none select-none object-contain`}
-    />
-  );
-}
-
-const NAV_ITEMS = [
-  { key: "store", labelKey: "nav.store", cx: 88, Icon: StoreIcon },
-  { key: "habits", labelKey: "nav.habits", cx: 195, Icon: HabitsIcon },
-  { key: "pets", labelKey: "nav.pets", cx: 302, Icon: PetsIcon },
-];
-
-const GLASS_BEVEL_GRADIENT_ID = "glass-bevel";
-const CHAT_BUBBLE_SHADOW_FILTER_ID = "glass-shadow-bubble";
-const DOCK_SHADOW_FILTER_ID = "glass-shadow-dock";
-
-// Store/Configuración: sin modal, sin backdrop, sin handler de click —
-// a pedido del usuario, ninguno de los 2 botones/pestañas hace nada
-// todavía. Perfil sí abre ProfileModal (ver más abajo); Store/
-// Configuración quedan visibles pero inertes hasta que se definan sus
-// interfaces desde cero.
 
 // MODAL_BOX: caja del modal de Perfil, medida directo sobre la imagen
 // de referencia del usuario (lienzo 1125x2250, contenido real recortado
@@ -1428,16 +1220,30 @@ function ConfirmAlert({ open, onClose, title, message, confirmLabel, onConfirm, 
 // haya un proveedor (Stripe/RevenueCat/IAP) integrado.
 // Íconos de cada beneficio: reutilizan los assets/íconos YA existentes
 // del proyecto en vez de emoji Unicode genéricos (pedido explícito) —
-// mismo criterio que NAV_ITEMS más abajo (guardar el componente/ícono
-// en el dato, no hardcodearlo en el JSX). "No Ads" es el único que se
-// queda con emoji: no hay ningún ícono propio del proyecto para eso.
-//   - Pets: PetsIcon (el mismo ícono de la pestaña "Pets" del Dock).
+// el componente/ícono se guarda en el propio dato, no se hardcodea en
+// el JSX. "No Ads" es el único que se queda con emoji: no hay ningún
+// ícono propio del proyecto para eso.
+//   - Pets: PetsIcon (mismo ícono/asset que usaba la pestaña "Pets" del
+//     Dock viejo — el Dock en sí se reemplazó por PNGs, pero este ícono
+//     puntual sigue vivo acá porque PremiumModal, un modal interno, no
+//     entra en el alcance de esa purga).
 //   - Backgrounds: ImageIcon (el mismo ícono del botón "Backgrounds"
 //     del header).
 //   - Streak Saver: flame-white.png ("el fueguito blanco" de la racha,
 //     mismo asset que usa ProfileModal/el header).
 //   - 2x Rewards: tokens-icon.png (el ícono de las Zuzu Coins, mismo
 //     asset que la píldora de saldo del header y Store).
+function PetsIcon({ className }) {
+  return (
+    <img
+      src="/nav/pets-icon.png"
+      alt=""
+      draggable={false}
+      className={`${className} pointer-events-none select-none object-contain`}
+    />
+  );
+}
+
 const PREMIUM_BENEFITS = [
   { emoji: "🚫", titleKey: "premium.benefitNoAdsTitle", descKey: "premium.benefitNoAdsDesc" },
   { Icon: PetsIcon, titleKey: "premium.benefitPetsTitle", descKey: "premium.benefitPetsDesc" },
@@ -1479,7 +1285,7 @@ function PremiumModal({ open, onClose }) {
       })}
       {/* CTA de compra: mismo anillo de luz rotando que el banner ZUZU
           PREMIUM de Settings (PREMIUM_RING_GRADIENT/ANIMATION_NAME,
-          inyectado junto a CHAT_BUBBLE_KEYFRAMES) — pedido explícito de
+          inyectado en el <style> del dashboard) — pedido explícito de
           mantenerlo acá también. */}
       <div className="relative overflow-hidden rounded-full" style={{ padding: "2.5px" }}>
         <div
@@ -1734,7 +1540,7 @@ const PREMIUM_BANNER_STYLE = {
 // del contenedor exterior — el botón interior, más chico por el padding de
 // 2px del contenedor, tapa el centro y deja ver solo un aro fino, que es el
 // que gira. Se anima con `transform: rotate()` (ver keyframes más abajo,
-// inyectados junto a CHAT_BUBBLE_KEYFRAMES) en vez de animar el ángulo del
+// inyectados en el <style> del dashboard) en vez de animar el ángulo del
 // propio conic-gradient, que necesitaría `@property` para interpolar suave.
 const PREMIUM_RING_GRADIENT =
   "conic-gradient(from 0deg, rgba(125,211,252,0.3) 0deg, rgba(125,211,252,0.3) 25deg, #ffffff 55deg, rgba(125,211,252,0.95) 85deg, rgba(125,211,252,0.3) 115deg, rgba(125,211,252,0.3) 360deg)";
@@ -1947,7 +1753,7 @@ function SettingsModal({ open, onClose, onLogout }) {
 // resto de íconos en public/nav/), no íconos SVG propios. A pedido
 // explícito del usuario, dejaron de codificarse a mano: se usan las
 // imágenes exactas de su hoja de referencia vía <img>, igual que
-// flame-white.png o profile-icon.png más abajo.
+// flame-white.png más abajo.
 // Token: NO usa un PNG recortado propio — el recorte anterior
 // (token-white.png) mostraba un artefacto de compresión/crop (un
 // punto oscuro) en el trazo de la "Z". En vez de recortar de nuevo,
@@ -2686,7 +2492,6 @@ const QA_TEST_BACKGROUND = `
 `;
 
 export default function MainLayout() {
-  const [activeTab, setActiveTab] = useState("habits");
   // Estructura mínima de click pedida explícitamente para los modales
   // de Perfil/Configuración: solo abren/cierran, sin lógica real todavía.
   const [profileOpen, setProfileOpen] = useState(false);
@@ -2695,8 +2500,7 @@ export default function MainLayout() {
   const [petsOpen, setPetsOpen] = useState(false);
   const [backgroundsOpen, setBackgroundsOpen] = useState(false);
   const [habitsOpen, setHabitsOpen] = useState(false);
-  const { xp, xpToNext, streakJustIncreased, streakJustReset, bestStreak } = usePetStats();
-  const streakProgress = Math.min((xp / xpToNext) * 100, 100);
+  const { xp, xpToNext, bestStreak } = usePetStats();
   const { tokens, addTokens } = useTokens();
   const { habits, completeHabit, addHabit, deleteHabit } = useHabits();
 
@@ -2714,32 +2518,25 @@ export default function MainLayout() {
   const [language, setLanguage] = useLocalStorageString("zuzu-language", "en");
   const t = (key) => translate(language, key);
 
-  // Mensaje de la burbuja "Chat Pet": arranca con el mensaje compasivo
-  // de racha perdida (filosofía "Zero Guilt" del Habit Tracker) si
-  // `streakJustReset` viene true de useStreak (se saltó uno o más días
-  // teniendo racha acumulada) — nunca "Streak Lost" ni lenguaje
-  // negativo, y nunca en la primera visita (streak en 0 sin nada que
-  // perder). Se calcula en el inicializador de useState (no en un
-  // useEffect) para no disparar un render extra ni arriesgar el mismatch
-  // de hidratación que ese patrón trae en este proyecto.
-  const [petMessage, setPetMessage] = useState(() =>
-    streakJustReset ? t("habits.streakGentleMessage") : "¡Hello!"
-  );
-  // Salto extra de la burbuja al completar un hábito (ver
-  // CHAT_BUBBLE_PULSE_ANIMATION_NAME) — además del pop-in de texto que
-  // ya dispara solo por cambiar `petMessage` (key={message} en
-  // ChatBubble). Es la reacción "alegre" de la mascota pedida: no hay
-  // ningún asset 3D de mascota todavía en esta pantalla (ver
-  // PetPreviewPlaceholder y sus comentarios en el resto del archivo),
-  // así que la burbuja es la única superficie real disponible para eso.
+  // Salto de la burbuja "¡Hola!" (PNG fijo, ver más abajo) al completar
+  // un hábito — CHAT_BUBBLE_PULSE_ANIMATION_NAME. Es la reacción
+  // "alegre" de la mascota pedida: no hay ningún asset 3D de mascota
+  // todavía en esta pantalla (ver PetPreviewPlaceholder y sus
+  // comentarios en el resto del archivo), así que la burbuja es la
+  // única superficie real disponible para eso. Antes esto también
+  // cambiaba el TEXTO de la burbuja (mensaje distinto por evento —
+  // racha perdida, celebración, crítico); el PNG que la reemplaza trae
+  // "¡Hola!" horneado en los píxeles y no puede mostrar otro texto sin
+  // recrear el botón por código (prohibido), así que ese mensaje
+  // variable se cae por ahora — ver el comentario de
+  // CHAT_BUBBLE_PULSE_ANIMATION_NAME más arriba.
   const [petPulse, setPetPulse] = useState(false);
   // Partícula "+N 🪙" sobre la píldora de saldo (feedback inmediato al
   // completar un hábito) — se limpia sola con un timeout que coincide
   // con la duración de COIN_BURST_ANIMATION_NAME.
   const [coinBurst, setCoinBurst] = useState(null);
 
-  function triggerPetCelebration(message) {
-    setPetMessage(message);
+  function triggerPetCelebration() {
     setPetPulse(true);
     setTimeout(() => setPetPulse(false), 600);
   }
@@ -2788,7 +2585,7 @@ export default function MainLayout() {
     setTimeout(() => setCoinBurst(null), 1000);
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(30);
     playHabitCompleteSound();
-    triggerPetCelebration(result.isCritical ? t("habits.criticalHit") : t("habits.petCelebration"));
+    triggerPetCelebration();
   }
 
   // Sesión, en dos partes (ver WelcomeScreen.jsx):
@@ -2820,13 +2617,21 @@ export default function MainLayout() {
   const [photoMode, setPhotoMode] = useState(false);
   const lastPhotoModeTapRef = useRef(0);
 
-  function enterPhotoMode() {
+  // Compartida por enterPhotoMode, handleLogout, y ahora también el
+  // botón "Home" del nuevo dock (PNG bottom-nav-bar.png): "volver al
+  // inicio" pedido explícitamente para el botón del medio es, en la
+  // práctica, cerrar cualquier modal que haya quedado abierto.
+  function closeAllModals() {
     setProfileOpen(false);
     setSettingsOpen(false);
     setStoreOpen(false);
     setPetsOpen(false);
     setBackgroundsOpen(false);
     setHabitsOpen(false);
+  }
+
+  function enterPhotoMode() {
+    closeAllModals();
     setPhotoMode(true);
   }
 
@@ -2841,12 +2646,7 @@ export default function MainLayout() {
   }
 
   function handleLogout() {
-    setProfileOpen(false);
-    setSettingsOpen(false);
-    setStoreOpen(false);
-    setPetsOpen(false);
-    setBackgroundsOpen(false);
-    setHabitsOpen(false);
+    closeAllModals();
     setPhotoMode(false);
     setSignedIn(false);
     setEntered(false);
@@ -2875,7 +2675,7 @@ export default function MainLayout() {
       className="relative h-[100dvh] w-full overflow-hidden bg-white"
       style={{ background: QA_TEST_BACKGROUND }}
     >
-      <style>{`${CHAT_BUBBLE_KEYFRAMES}${PREMIUM_RING_KEYFRAMES}${CHAT_BUBBLE_PULSE_KEYFRAMES}${COIN_BURST_KEYFRAMES}`}</style>
+      <style>{`${PREMIUM_RING_KEYFRAMES}${CHAT_BUBBLE_PULSE_KEYFRAMES}${COIN_BURST_KEYFRAMES}`}</style>
 
       {photoMode && (
         <div
@@ -2888,74 +2688,67 @@ export default function MainLayout() {
 
       {!photoMode && (
         <>
-      {/* Definición compartida del degradado del bisel: blanco 50% en la
-          esquina superior-izquierda (el brillo), transparente a mitad de
-          camino, negro 50% en la esquina inferior-derecha (el
-          contrapunto de sombra/refracción) — misma fuente de luz fija
-          arriba-izquierda que el inset blanco/negro de .liquid-glass-btn
-          en globals.css. Reutilizada por la burbuja y el panel del Dock. */}
-      <svg width="0" height="0" className="absolute">
-        <defs>
-          <linearGradient id={GLASS_BEVEL_GRADIENT_ID} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-            <stop offset="50%" stopColor="rgba(255,255,255,0)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0.5)" />
-          </linearGradient>
-          {/* <feDropShadow> nativo en vez de la propiedad CSS
-              filter: drop-shadow(...): esa depende de que el motor de
-              renderizado deje "escapar" el efecto del viewport del
-              <svg> (vía overflow:visible), algo que varía entre
-              navegadores. Con una región de filtro explícita (x/y/
-              width/height ampliados al 300%/-100%) el efecto siempre
-              tiene espacio de sobra y no depende de ese comportamiento. */}
-          <filter id={CHAT_BUBBLE_SHADOW_FILTER_ID} x="-100%" y="-100%" width="300%" height="300%">
-            <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#000000" floodOpacity="0.4" />
-          </filter>
-          <filter id={DOCK_SHADOW_FILTER_ID} x="-100%" y="-100%" width="300%" height="300%">
-            <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#000000" floodOpacity="0.37" />
-          </filter>
-        </defs>
-      </svg>
+      {/* ================================================================
+          CHROME DEL DASHBOARD — reescrito por completo a pedido explícito
+          del usuario para usar EXCLUSIVAMENTE los PNGs que proveyó (perfil,
+          usuarios vinculados, configuración, monedas, "¡Hola!", fondos,
+          racha, hábitos y el dock inferior), en vez de dibujarlos con
+          CSS/SVG/clip-path como en fases anteriores. Regla explícita: cada
+          botón se renderiza tal cual el archivo entregado (mismas
+          proporciones, mismo alfa nativo) — nada de recrear su aspecto por
+          código. Lo único agregado en código es:
+            (a) la posición de cada PNG en pantalla,
+            (b) su área de toque (el propio <button> envolviendo la imagen),
+            (c) el texto de datos dinámicos que ningún PNG estático podría
+                contener (el saldo de monedas, el contador de racha) —
+                overlay de texto, no una reconstrucción del botón.
+          Los 9 assets viven en public/nav2/ (distinto de public/nav/, que
+          sigue en uso DENTRO de los modales — Premium/Perfil/Store/etc. —
+          fuera del alcance de esta pasada; ver el pedido: solo se purgó el
+          chrome EXTERIOR del dashboard, no el contenido de cada modal).
+          Todos comparten el mismo relleno de vidrio translúcido
+          (rgb(223,227,229) @ 50% alfa) horneado en el propio PNG, así que
+          el texto superpuesto usa UI_TEXT_STYLE (blanco + sombra) — el
+          mismo tratamiento que ya usaba esta pantalla para texto sobre
+          vidrio, ver lib/typography.js.
+          Se abandonan intencionalmente, por no poder expresarse con un PNG
+          estático: la barra de RELLENO animada de la racha (quedan el ícono
+          de la llama + el contador "xp/xpToNext", pero no el degradé de
+          progreso que había antes) y los mensajes dinámicos de la burbuja
+          "¡Hola!" (el texto viene horneado en el PNG; ver
+          CHAT_BUBBLE_PULSE_ANIMATION_NAME más arriba). */}
 
-      {/* Barra Superior (Header). Medidas de referencia: círculo 40x40px
-          en cada esquina (top=1.9%, left/right=4.1%), píldora 70x40px
-          debajo de cada uno con 8px de separación (top=7.46%). Posición
-          confirmada con el usuario (invertía la de Fase 1): Perfil a la
-          izquierda, Configuración + Tokens a la derecha. Los 3 PNGs
-          (settings/profile/tokens-icon.png) venían con el mismo margen
-          transparente enorme que otros assets de este generador — se
-          recortaron al bounding box real del canal alfa (+2%) antes de
-          guardarlos. object-fit: contain conserva su proporción nativa
-          (ninguno de los 3 es cuadrado) dentro del círculo/píldora.
-          Perfil abre ProfileModal; Configuración abre SettingsModal
-          (ver más abajo). */}
+      {/* Header. Misma posición que ya estaba validada (top-0, p-4,
+          columnas en los extremos): Perfil + indicador de usuarios
+          vinculados a la izquierda, Configuración + saldo de monedas a la
+          derecha. profile-btn.png/settings-btn.png son ~cuadrados
+          (379x379) -> h-10 w-10 sin distorsión perceptible; las 2 píldoras
+          (avatar-count-btn.png/coin-pill.png, 654x379 ambas) van a altura
+          fija h-10 con ancho AUTOMÁTICO (el navegador lo calcula de la
+          proporción nativa del archivo — nunca se estira de forma
+          desigual). */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-4">
         <div className="flex flex-col items-start gap-2">
           {/* Perfil */}
-          <button
-            type="button"
-            onClick={() => setProfileOpen(true)}
-            aria-label="Profile"
-            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
-          >
+          <button type="button" onClick={() => setProfileOpen(true)} aria-label="Profile" className="block h-10 w-10">
             <img
-              src="/nav/profile-icon.png"
+              src="/nav2/profile-btn.png"
               alt=""
               draggable={false}
-              className="pointer-events-none h-6 w-6 select-none object-contain"
+              className="pointer-events-none h-full w-full select-none"
             />
           </button>
-          {/* Usuarios: 1 o 2 jugadores (PlayerAvatar, arriba), superpuestos
-              (-space-x-2) cuando son 2; un solo círculo centrado cuando
-              es 1 (el `flex justify-center` del contenedor lo resuelve
-              solo, sin condicional aparte). */}
-          <div className="liquid-glass-btn flex h-10 w-[70px] items-center justify-center rounded-full">
-            <div className="flex -space-x-2">
-              {players.slice(0, 2).map((player) => (
-                <PlayerAvatar key={player.id} player={player} />
-              ))}
-            </div>
-          </div>
+          {/* Usuarios vinculados: 1 o 2 personas jugando esta cuenta al
+              mismo tiempo. El PNG ya trae los 2 círculos dibujados — sin
+              lógica de "1 vs 2" todavía (no hay backend de vinculación de
+              cuentas), así que por ahora es puramente indicativo, sin
+              onClick. */}
+          <img
+            src="/nav2/avatar-count-btn.png"
+            alt=""
+            draggable={false}
+            className="h-10 w-auto select-none"
+          />
         </div>
         <div className="flex flex-col items-end gap-2">
           {/* Configuración */}
@@ -2963,39 +2756,41 @@ export default function MainLayout() {
             type="button"
             onClick={() => setSettingsOpen(true)}
             aria-label={t("settings.title")}
-            className="liquid-glass-btn flex h-10 w-10 items-center justify-center rounded-full"
+            className="block h-10 w-10"
           >
             <img
-              src="/nav/settings-icon.png"
+              src="/nav2/settings-btn.png"
               alt=""
               draggable={false}
-              className="pointer-events-none h-6 w-6 select-none object-contain"
+              className="pointer-events-none h-full w-full select-none"
             />
           </button>
-          {/* Tokens: ancho intrínseco (NO fijo) — el ícono va anclado a
-              la izquierda del contenido interno, el contador a la
-              derecha con su propio padding. El contenedor padre de esta
-              columna ya es flex-col items-end, así que el borde derecho
-              de la píldora queda anclado (alineado con Configuración,
-              arriba) sin código extra: si el contador crece, solo el
-              lado izquierdo de la píldora se mueve. whitespace-nowrap +
-              padding evita que una cifra larga rompa la forma de la
-              cápsula. */}
-          <div className="liquid-glass-btn relative flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-1 pr-3">
+          {/* Susu Coins: el saldo real (dato dinámico, ningún PNG estático
+              podría mostrarlo) va como texto AL LADO del ícono, no
+              superpuesto encima — a la altura h-10 que comparte con el
+              resto del header, el PNG completo mide solo ~69px de ancho
+              (654x379 nativo) y el círculo "Z" ya ocupa buena parte de
+              eso: un saldo largo como "1.000.000" se pisaba encima del
+              ícono. El contenedor es un flex normal (no inline-flex con
+              texto absoluto) para que el número reserve su propio
+              espacio en vez de invadir el de la imagen; como la columna
+              padre es items-end, el borde derecho de la imagen se sigue
+              alineando con Configuración, arriba, igual que antes. */}
+          <div className="relative flex h-10 items-center gap-1.5">
+            <span className={`text-xs ${UI_TEXT_STYLE}`}>{tokens.toLocaleString("es")}</span>
             <img
-              src="/nav/tokens-icon.png"
+              src="/nav2/coin-pill.png"
               alt=""
               draggable={false}
-              className="pointer-events-none h-7 w-7 shrink-0 select-none object-contain"
+              className="pointer-events-none h-10 w-auto shrink-0 select-none"
             />
-            <span className={`text-sm ${UI_TEXT_STYLE}`}>{tokens.toLocaleString("es")}</span>
             {/* Partícula "+N 🪙" del Habit Tracker (ver handleHabitComplete
                 más abajo) — se limpia sola con un timeout, no necesita
                 que nada más la desmonte. */}
             {coinBurst && (
               <span
                 key={coinBurst.key}
-                className="pointer-events-none absolute -top-1 right-2 whitespace-nowrap text-xs font-bold text-emerald-300"
+                className="pointer-events-none absolute -top-3 right-2 whitespace-nowrap text-xs font-bold text-emerald-300"
                 style={{
                   animation: `${COIN_BURST_ANIMATION_NAME} 900ms ease-out forwards`,
                   textShadow: "0 1px 2px rgba(0,0,0,0.5)",
@@ -3008,59 +2803,59 @@ export default function MainLayout() {
         </div>
       </div>
 
-      {/* Zona Central: burbuja de diálogo "Chat Pet", centrada sobre la
-          mascota, top=28.67%. Contenedor de 140x51.33px (el tamaño ya
-          validado en fases anteriores) — ver ChatBubble más arriba para
-          el detalle de la geometría (clip-path + backdrop-blur + SVG de
-          bisel/sombra) y de cómo entra el texto. */}
+      {/* Burbuja "¡Hola!": PNG fijo (1081x438, ratio ~2.468), mismo ancho
+          de referencia (140px) y misma posición (top=28.67%, centrada)
+          que el globo dibujado a mano de fases anteriores — solo cambia
+          CÓMO se dibuja el globo, no dónde va. El salto al completar un
+          hábito (petPulse) sigue vivo: es una animación de transform
+          sobre la imagen entera, no una recreación de su aspecto. */}
       <div className="absolute inset-x-0 top-[28.67%] z-10 flex justify-center px-6">
-        <ChatBubble message={petMessage} pulse={petPulse} />
+        <img
+          src="/nav2/chat-bubble-hola.png"
+          alt="¡Hola!"
+          draggable={false}
+          className="w-[140px] h-auto select-none"
+          style={{ animation: petPulse ? `${CHAT_BUBBLE_PULSE_ANIMATION_NAME} 550ms ease-out` : undefined }}
+        />
       </div>
 
-      {/* Racha/Objetos: píldora ancha (235x40px) + círculo chico (39x40px)
-          a su derecha con 9px de separación, centrados como grupo,
-          top=66.35% — justo arriba del dock. Todo en tonos neutros/blancos
-          de cristal, sin ningún tinte rosa (el rosa era un cruce con el
-          diseño de una fase anterior del proyecto, ya descartado).
-          Racha: llama 100% blanca (public/nav/flame-white.png, asset
-          provisto por el usuario, recortada a su bounding box de alfa —
-          mismo criterio que el resto de íconos en public/nav/) contenida
-          por completo dentro de la píldora + barra de progreso con
-          relleno blanco luminoso (sin gradiente de color, solo opacidad)
-          + contador "xp/xpToNext" a la derecha. `xp`/`xpToNext`/
-          `streakJustIncreased` vienen de usePetStats -> useStreak (racha
-          diaria real persistida en localStorage): el ancho del relleno
-          solo anima cuando la racha acaba de subir (día nuevo), no en
-          cada recarga del mismo día.
-          Objetos: NO es el ícono de bolsa (eso era Inventario, del
-          diseño anterior) — es el glifo de texto "..." en blanco puro,
-          mismo tratamiento que el resto de labels/íconos de texto sobre
-          vidrio (ver lib/typography.js). Abre HabitsModal (Habit
-          Tracker, ver más abajo) — dejó de ser decorativo.
-          Al lado de "...", un círculo más (mismos 40px que el resto de
-          burbujas del header/dock) con un ícono de imagen: abre
-          BackgroundsModal (ver más abajo). */}
+      {/* Fondos / Racha / Hábitos: fila horizontal, top=66.35% (misma
+          posición ya validada, justo arriba del dock), orden pedido
+          explícitamente por el usuario (izquierda a derecha): Fondos,
+          racha, Hábitos — antes el orden era racha/Hábitos/Fondos, así que
+          esto es un reacomodo intencional, no solo un cambio de assets.
+          backgrounds-btn.png/habits-btn.png son ~cuadrados (275x274 /
+          274x274) -> h-10 w-10 sin distorsión perceptible; streak-pill.png
+          (1555x278, ratio ~5.59) va a h-10 con ancho automático (~224px,
+          similar al ancho de la píldora dibujada a mano que reemplaza).
+          El contador "xp/xpToNext" se superpone igual que el saldo de
+          monedas arriba — dato dinámico. La barra de RELLENO animada que
+          había antes (el degradé que crecía con el progreso del día) NO
+          tiene equivalente en este PNG (es una superficie lisa) y se cae
+          acá: recrearla por código sería justamente lo que se pidió
+          eliminar. */}
       <div className="absolute inset-x-0 top-[66.35%] z-10 flex items-center justify-center gap-[9px] px-6">
-        <div className="liquid-glass-btn flex h-10 w-[235px] items-center rounded-full pl-2 pr-3">
+        <button
+          type="button"
+          onClick={() => setBackgroundsOpen(true)}
+          aria-label="Backgrounds"
+          className="block h-10 w-10 shrink-0"
+        >
           <img
-            src="/nav/flame-white.png"
+            src="/nav2/backgrounds-btn.png"
             alt=""
             draggable={false}
-            style={{ height: 28, width: 22 }}
-            className="pointer-events-none block shrink-0 select-none object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]"
+            className="pointer-events-none h-full w-full select-none"
           />
-          <div className="relative ml-1.5 h-5 flex-1 overflow-hidden rounded-full bg-black/10">
-            <div
-              className={`relative h-full overflow-hidden rounded-full shadow-[inset_0_1px_2px_rgba(255,255,255,0.7)] ${
-                streakJustIncreased ? "transition-all duration-700 ease-out" : ""
-              }`}
-              style={{
-                width: `${streakProgress}%`,
-                background: "linear-gradient(90deg, rgba(255,255,255,0.85), rgba(255,255,255,0.3))",
-              }}
-            />
-          </div>
-          <span className={`ml-2 shrink-0 text-sm ${UI_TEXT_STYLE}`}>
+        </button>
+        <div className="relative inline-flex h-10 items-center">
+          <img
+            src="/nav2/streak-pill.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none h-10 w-auto select-none"
+          />
+          <span className={`pointer-events-none absolute right-4 text-xs ${UI_TEXT_STYLE}`}>
             {xp}/{xpToNext}
           </span>
         </div>
@@ -3068,98 +2863,41 @@ export default function MainLayout() {
           type="button"
           onClick={() => setHabitsOpen(true)}
           aria-label={t("habits.title")}
-          className="liquid-glass-btn flex h-10 w-[39px] items-center justify-center rounded-full"
+          className="block h-10 w-10 shrink-0"
         >
-          <span className={`text-lg leading-none ${UI_TEXT_STYLE}`}>...</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setBackgroundsOpen(true)}
-          aria-label="Backgrounds"
-          className="liquid-glass-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-        >
-          <ImageIcon className={`h-5 w-5 ${UI_TEXT_STYLE}`} />
+          <img
+            src="/nav2/habits-btn.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none h-full w-full select-none"
+          />
         </button>
       </div>
 
-      {/* Panel/pestaña inferior (Dock): esquinas superiores redondeadas
-          y la muesca cóncava que deja 10px de margen limpio alrededor
-          de la pestaña activa — sin fusionarse con ella. Mismo patrón
-          que la burbuja: un <div> con clip-path (fill + backdrop-blur
-          reales) debajo, un <svg> (solo trazo del bisel + sombra)
-          encima — ancho fijo 390px centrado. El path de ambos cambia
-          según `activeTab` para que la muesca siga a la pestaña activa
-          (DOCK_PATHS arriba). */}
-      <div
-        className="absolute left-1/2 z-20 -translate-x-1/2"
-        style={{
-          top: DOCK_TOP,
-          width: 390,
-          height: 300,
-          clipPath: `path("${DOCK_PATHS[activeTab]}")`,
-          isolation: "isolate",
-          background: "rgba(255,255,255,0.12)",
-          backdropFilter: "blur(25px) saturate(200%)",
-          WebkitBackdropFilter: "blur(25px) saturate(200%)",
-        }}
-      />
-      <svg
-        viewBox="0 0 390 300"
-        width="390"
-        height="300"
-        className="absolute left-1/2 z-20 -translate-x-1/2"
-        style={{ top: DOCK_TOP, overflow: "visible" }}
-      >
-        <path
-          d={DOCK_PATHS[activeTab]}
-          fill="none"
-          stroke={`url(#${GLASS_BEVEL_GRADIENT_ID})`}
-          strokeWidth="1.5"
-          filter={`url(#${DOCK_SHADOW_FILTER_ID})`}
+      {/* Dock inferior: un solo PNG (bottom-nav-bar.png, 2250x700, ratio
+          ~3.214) con Tienda/Home/Mascotas ya dibujados adentro — reemplaza
+          por completo el panel con clip-path + muesca animada de fases
+          anteriores (ya no hay "pestaña activa": ese concepto vivía
+          enteramente en el dibujo por código que se pidió eliminar). Ancho
+          tope 390px (la referencia de todo el resto de esta pantalla),
+          centrado, apoyado en el borde inferior real. Los 3 íconos quedan
+          a tercios iguales del ancho de la imagen (bolsa=izquierda,
+          flecha=centro, mascota=derecha — confirmado visualmente contra el
+          archivo) — cada tercio es un botón invisible superpuesto del
+          mismo alto que la imagen renderizada. */}
+      <div className="absolute inset-x-0 bottom-0 z-20 mx-auto" style={{ maxWidth: 390 }}>
+        <img
+          src="/nav2/bottom-nav-bar.png"
+          alt=""
+          draggable={false}
+          className="pointer-events-none block w-full h-auto select-none"
         />
-      </svg>
-
-      {/* Store / Habits / Pets — estados Encendido/Apagado:
-          - Encendido (activo): el ícono sube y queda encuadrado en la
-            burbuja circular flotante (.liquid-glass-btn, 60x60px, misma
-            que usaba el botón Home suelto); el label desaparece.
-          - Apagado (inactivo): ícono+label planos, dentro del cuerpo
-            del dock, sin burbuja alrededor.
-          Un solo <button> por pestaña; el contenido (bubble vs.
-          ícono+label) cambia según sea la pestaña activa o no. Store
-          abre StoreModal y Pets abre PetsModal (ver más abajo) —
-          Habits solo cambia `activeTab`, sin modal. */}
-      {NAV_ITEMS.map((item) => {
-        const isActive = item.key === activeTab;
-        const Icon = item.Icon;
-        const label = t(item.labelKey);
-        return (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => {
-              setActiveTab(item.key);
-              if (item.key === "store") setStoreOpen(true);
-              if (item.key === "pets") setPetsOpen(true);
-            }}
-            aria-label={label}
-            aria-pressed={isActive}
-            className="absolute z-30 -translate-x-1/2"
-            style={{ left: item.cx, top: isActive ? ACTIVE_BUBBLE_TOP : INACTIVE_ITEM_TOP }}
-          >
-            {isActive ? (
-              <span className="liquid-glass-btn flex h-[60px] w-[60px] items-center justify-center rounded-full">
-                <Icon className="h-7 w-7" />
-              </span>
-            ) : (
-              <span className="flex flex-col items-center gap-1">
-                <Icon className="h-6 w-6" />
-                <span className={`text-xs ${UI_TEXT_STYLE}`}>{label}</span>
-              </span>
-            )}
-          </button>
-        );
-      })}
+        <div className="absolute inset-0 flex">
+          <button type="button" onClick={() => setStoreOpen(true)} aria-label={t("nav.store")} className="h-full flex-1" />
+          <button type="button" onClick={closeAllModals} aria-label={t("nav.home")} className="h-full flex-1" />
+          <button type="button" onClick={() => setPetsOpen(true)} aria-label={t("nav.pets")} className="h-full flex-1" />
+        </div>
+      </div>
 
       <ProfileModal
         open={profileOpen}
