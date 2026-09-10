@@ -2819,8 +2819,7 @@ export default function MainLayout() {
         />
       </div>
 
-      {/* Fondos / Racha / Hábitos: fila horizontal, top=66.35% (misma
-          posición ya validada, justo arriba del dock), orden pedido
+      {/* Fondos / Racha / Hábitos: fila horizontal, orden pedido
           explícitamente por el usuario (izquierda a derecha): Fondos,
           racha, Hábitos — antes el orden era racha/Hábitos/Fondos, así que
           esto es un reacomodo intencional, no solo un cambio de assets.
@@ -2833,8 +2832,18 @@ export default function MainLayout() {
           había antes (el degradé que crecía con el progreso del día) NO
           tiene equivalente en este PNG (es una superficie lisa) y se cae
           acá: recrearla por código sería justamente lo que se pidió
-          eliminar. */}
-      <div className="absolute inset-x-0 top-[66.35%] z-10 flex items-center justify-center gap-[9px] px-6">
+          eliminar.
+          top=82.53% (antes 66.35%, heredado de una posición de fases
+          previas que quedó muy alta apenas se sacó el dock viejo — dejaba
+          ~148px de hueco vacío hasta la barra inferior nueva). Bajado
+          para que el margen entre el fondo de esta fila (h-10 = 40px) y
+          el techo del PNG del dock quede en ~12px, medido en el navegador
+          contra el ancho de referencia de 390px: 82.53% × 844 + 40 + 12 ≈
+          el borde superior real del dock a ese ancho. `items-center` +
+          `justify-center` de este mismo contenedor ya centran el grupo
+          horizontalmente sin tocar nada más — el reacomodo es
+          estrictamente vertical. */}
+      <div className="absolute inset-x-0 top-[82.53%] z-10 flex items-center justify-center gap-[9px] px-6">
         <button
           type="button"
           onClick={() => setBackgroundsOpen(true)}
