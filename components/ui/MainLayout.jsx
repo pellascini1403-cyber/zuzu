@@ -2888,32 +2888,40 @@ export default function MainLayout() {
           flotando con un hueco debajo y esa línea suelta pegada al borde
           real. Recortado ahora SOLO al cuerpo sólido de la barra (sin esa
           línea), así lo que toca bottom:0 es la barra de verdad.
-          Ancho tope 390px (la referencia de todo el resto de esta
-          pantalla). Antes tenía un `max-width: 390` (la referencia de
-          ancho que usa el resto de esta pantalla) + `mx-auto` para
-          centrarlo dentro de eso — en cualquier viewport MÁS ANCHO que
-          390px (la mayoría de los teléfonos reales: 393, 412, 414, 428...)
-          eso dejaba un margen visible a cada lado por el que se filtraba
-          el fondo, y la barra ya no tocaba los bordes reales de la
-          pantalla. Sacado ese tope: el contenedor ahora es
-          `left:0; right:0; bottom:0; width:100%; margin:0; padding:0`
-          SIN excepción (nada de max-width/border-radius/overflow-hidden
-          que la recorte), así que toca los 3 bordes (izquierdo, derecho,
-          inferior) en cualquier ancho de pantalla — ya no hace falta
-          `mx-auto` para centrar algo que ahora ocupa el 100% del ancho.
-          La imagen sigue en `width:100%; height:auto` (nunca se
-          distorsiona: la altura la deriva el navegador de la proporción
-          real del archivo) + `object-fit: cover` explícito, aunque acá es
-          un no-op en la práctica — cover solo actúa cuando el <img> tiene
-          una caja con una relación de aspecto distinta a la nativa, y acá
-          la única dimensión fija es el ancho, la altura es siempre la que
-          le corresponde a la imagen. Los 3 íconos quedan a tercios
-          iguales del ancho de la imagen (bolsa=izquierda, flecha=centro,
-          mascota=derecha — confirmado visualmente contra el archivo) —
-          cada tercio es un botón invisible superpuesto del mismo alto que
-          la imagen renderizada. */}
+          El contenedor es `left:0; right:0; bottom:0; width:100%;
+          margin:0; padding:0` SIN excepción (nada de max-width/
+          border-radius que la recorte), así que toca los 3 bordes
+          (izquierdo, derecho, inferior) en cualquier ancho de pantalla.
+          La imagen va en `width:100%; height:auto` (nunca se distorsiona:
+          la altura la deriva el navegador de la proporción real del
+          archivo).
+          Colchón de sobredimensionado (scale 1.04, mismo origen central
+          por default de `transform`, sin necesidad de `translateX`
+          porque la imagen ya está centrada de por sí al ocupar el 100%
+          del contenedor): un redondeo de subpíxel al convertir el 100%
+          de ancho a píxels de dispositivo reales puede dejar una fila o
+          columna de 1px SIN cubrir en un borde — invisible en Chromium de
+          escritorio (que redondea distinto), pero real en algunos
+          dispositivos, y fue justo lo que se vio como un hueco fino en la
+          esquina inferior derecha. Estirar la imagen un 4% de más
+          (2% de sobra a cada lado) garantiza que ese redondeo caiga
+          siempre DENTRO del área ya cubierta, nunca afuera. El
+          contenedor lleva `overflow-hidden` para que ese ~2% de sobra
+          (que cae fuera del viewport en los costados, y ligeramente por
+          debajo/encima del cuerpo de la barra) no dispare scroll
+          horizontal — aunque el `overflow-hidden` que ya tiene el <div>
+          raíz de todo este dashboard (más arriba) ya lo evitaría solo,
+          este es un segundo cinturón de seguridad explícito sobre el
+          propio contenedor de la barra.
+          Los 3 íconos quedan a tercios iguales del ancho de la imagen
+          (bolsa=izquierda, flecha=centro, mascota=derecha — confirmado
+          visualmente contra el archivo) — cada tercio es un botón
+          invisible superpuesto del mismo alto que la imagen renderizada;
+          los botones NO se escalan (miden el contenedor sin el bleed),
+          pero el corrimiento de los íconos de fondo por el 2% de escala
+          es de un par de píxeles como mucho — no desalinea el toque. */}
       <div
-        className="absolute z-20"
+        className="absolute z-20 overflow-hidden"
         style={{ left: 0, right: 0, bottom: 0, width: "100%", margin: 0, padding: 0 }}
       >
         <img
@@ -2921,7 +2929,15 @@ export default function MainLayout() {
           alt=""
           draggable={false}
           className="pointer-events-none select-none"
-          style={{ display: "block", width: "100%", height: "auto", objectFit: "cover", margin: 0, padding: 0 }}
+          style={{
+            display: "block",
+            width: "100%",
+            height: "auto",
+            objectFit: "cover",
+            margin: 0,
+            padding: 0,
+            transform: "scale(1.04)",
+          }}
         />
         <div className="absolute inset-0 flex">
           <button type="button" onClick={() => setStoreOpen(true)} aria-label={t("nav.store")} className="h-full flex-1" />
