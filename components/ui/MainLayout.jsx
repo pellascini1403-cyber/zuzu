@@ -2888,56 +2888,54 @@ export default function MainLayout() {
           flotando con un hueco debajo y esa línea suelta pegada al borde
           real. Recortado ahora SOLO al cuerpo sólido de la barra (sin esa
           línea), así lo que toca bottom:0 es la barra de verdad.
-          El contenedor es `left:0; right:0; bottom:0; width:100%;
-          margin:0; padding:0` SIN excepción (nada de max-width/
-          border-radius que la recorte), así que toca los 3 bordes
-          (izquierdo, derecho, inferior) en cualquier ancho de pantalla.
-          La imagen va en `width:100%; height:auto` (nunca se distorsiona:
-          la altura la deriva el navegador de la proporción real del
-          archivo).
-          Colchón de sobredimensionado (scale 1.04, mismo origen central
-          por default de `transform`, sin necesidad de `translateX`
-          porque la imagen ya está centrada de por sí al ocupar el 100%
-          del contenedor): un redondeo de subpíxel al convertir el 100%
-          de ancho a píxels de dispositivo reales puede dejar una fila o
-          columna de 1px SIN cubrir en un borde — invisible en Chromium de
-          escritorio (que redondea distinto), pero real en algunos
-          dispositivos, y fue justo lo que se vio como un hueco fino en la
-          esquina inferior derecha. Estirar la imagen un 4% de más
-          (2% de sobra a cada lado) garantiza que ese redondeo caiga
-          siempre DENTRO del área ya cubierta, nunca afuera. El
-          contenedor lleva `overflow-hidden` para que ese ~2% de sobra
-          (que cae fuera del viewport en los costados, y ligeramente por
-          debajo/encima del cuerpo de la barra) no dispare scroll
-          horizontal — aunque el `overflow-hidden` que ya tiene el <div>
-          raíz de todo este dashboard (más arriba) ya lo evitaría solo,
-          este es un segundo cinturón de seguridad explícito sobre el
-          propio contenedor de la barra.
+          El contenedor está centrado con `left:50%` + `transform:
+          translateX(-50%)` y anclado con `bottom:0; margin:0; padding:0`
+          — sin max-width/border-radius que lo recorte —, así que toca los
+          3 bordes (izquierdo, derecho, inferior) en cualquier ancho de
+          pantalla. La imagen va en `width:100%; height:auto` DENTRO de
+          ese contenedor (nunca se distorsiona: la altura la deriva el
+          navegador de la proporción real del archivo).
+          Colchón de sobredimensionado: el contenedor mide `width:102%`
+          (no el 100% del viewport) — un redondeo de subpíxel al convertir
+          un ancho al 100% a píxeles reales de dispositivo puede dejar una
+          fila o columna de 1px sin cubrir en un borde, invisible en
+          Chromium de escritorio pero real en algunos dispositivos, y fue
+          justo lo que se vio como un hueco fino en la esquina inferior
+          derecha. Ese 2% de sobra (1% a cada lado, porque translateX
+          centra el contenedor entero) garantiza que ese redondeo caiga
+          siempre DENTRO del área ya cubierta.
+          OJO con el mecanismo: la primera vuelta de este colchón usaba
+          `transform: scale(1.04)` en la IMAGEN sola, dejando el
+          CONTENEDOR en 100% con `overflow: hidden` — pero `transform` es
+          puramente de pintado, no cambia la caja de layout del
+          contenedor, así que ese `overflow: hidden` (puesto para evitar
+          scroll horizontal por el sobrante en los costados) terminaba
+          recortando TAMBIÉN el ~2% que la escala empujaba hacia arriba:
+          el borde blanco de la ola superior quedaba cortado. Ahora el
+          sobredimensionado es un `width` real en el contenedor (no un
+          `transform` en la imagen): el contenedor CRECE de verdad, así
+          que no hace falta (ni conviene) recortar en vertical — de ahí
+          `overflow-x: hidden` (still corta el sobrante horizontal que cae
+          fuera del viewport) + `overflow-y: visible` (el trazo blanco de
+          arriba nunca se toca). El de la izquierda/derecha sigue
+          contenido igual por el `overflow-hidden` del <div> raíz de todo
+          el dashboard (más arriba), que ya lo cubriría solo.
           Los 3 íconos quedan a tercios iguales del ancho de la imagen
           (bolsa=izquierda, flecha=centro, mascota=derecha — confirmado
           visualmente contra el archivo) — cada tercio es un botón
           invisible superpuesto del mismo alto que la imagen renderizada;
-          los botones NO se escalan (miden el contenedor sin el bleed),
-          pero el corrimiento de los íconos de fondo por el 2% de escala
-          es de un par de píxeles como mucho — no desalinea el toque. */}
+          ahora miden el mismo 102% que la imagen (son hijos del mismo
+          contenedor), así que quedan perfectamente alineados con ella. */}
       <div
-        className="absolute z-20 overflow-hidden"
-        style={{ left: 0, right: 0, bottom: 0, width: "100%", margin: 0, padding: 0 }}
+        className="absolute z-20 overflow-x-hidden overflow-y-visible"
+        style={{ left: "50%", bottom: 0, width: "102%", margin: 0, padding: 0, transform: "translateX(-50%)" }}
       >
         <img
           src="/nav2/bottom-nav-bar.png"
           alt=""
           draggable={false}
           className="pointer-events-none select-none"
-          style={{
-            display: "block",
-            width: "100%",
-            height: "auto",
-            objectFit: "cover",
-            margin: 0,
-            padding: 0,
-            transform: "scale(1.04)",
-          }}
+          style={{ display: "block", width: "100%", height: "auto", objectFit: "cover", margin: 0, padding: 0 }}
         />
         <div className="absolute inset-0 flex">
           <button type="button" onClick={() => setStoreOpen(true)} aria-label={t("nav.store")} className="h-full flex-1" />
