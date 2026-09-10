@@ -2889,18 +2889,39 @@ export default function MainLayout() {
           real. Recortado ahora SOLO al cuerpo sólido de la barra (sin esa
           línea), así lo que toca bottom:0 es la barra de verdad.
           Ancho tope 390px (la referencia de todo el resto de esta
-          pantalla); `mx-auto` con `inset-x-0` centra el contenedor sin
-          padding/margin asimétrico que lo empuje a un lado. Los 3 íconos
-          quedan a tercios iguales del ancho de la imagen (bolsa=izquierda,
-          flecha=centro, mascota=derecha — confirmado visualmente contra el
-          archivo) — cada tercio es un botón invisible superpuesto del
-          mismo alto que la imagen renderizada. */}
-      <div className="absolute inset-x-0 bottom-0 z-20 mx-auto" style={{ maxWidth: 390 }}>
+          pantalla). Antes tenía un `max-width: 390` (la referencia de
+          ancho que usa el resto de esta pantalla) + `mx-auto` para
+          centrarlo dentro de eso — en cualquier viewport MÁS ANCHO que
+          390px (la mayoría de los teléfonos reales: 393, 412, 414, 428...)
+          eso dejaba un margen visible a cada lado por el que se filtraba
+          el fondo, y la barra ya no tocaba los bordes reales de la
+          pantalla. Sacado ese tope: el contenedor ahora es
+          `left:0; right:0; bottom:0; width:100%; margin:0; padding:0`
+          SIN excepción (nada de max-width/border-radius/overflow-hidden
+          que la recorte), así que toca los 3 bordes (izquierdo, derecho,
+          inferior) en cualquier ancho de pantalla — ya no hace falta
+          `mx-auto` para centrar algo que ahora ocupa el 100% del ancho.
+          La imagen sigue en `width:100%; height:auto` (nunca se
+          distorsiona: la altura la deriva el navegador de la proporción
+          real del archivo) + `object-fit: cover` explícito, aunque acá es
+          un no-op en la práctica — cover solo actúa cuando el <img> tiene
+          una caja con una relación de aspecto distinta a la nativa, y acá
+          la única dimensión fija es el ancho, la altura es siempre la que
+          le corresponde a la imagen. Los 3 íconos quedan a tercios
+          iguales del ancho de la imagen (bolsa=izquierda, flecha=centro,
+          mascota=derecha — confirmado visualmente contra el archivo) —
+          cada tercio es un botón invisible superpuesto del mismo alto que
+          la imagen renderizada. */}
+      <div
+        className="absolute z-20"
+        style={{ left: 0, right: 0, bottom: 0, width: "100%", margin: 0, padding: 0 }}
+      >
         <img
           src="/nav2/bottom-nav-bar.png"
           alt=""
           draggable={false}
-          className="pointer-events-none block w-full h-auto select-none"
+          className="pointer-events-none select-none"
+          style={{ display: "block", width: "100%", height: "auto", objectFit: "cover", margin: 0, padding: 0 }}
         />
         <div className="absolute inset-0 flex">
           <button type="button" onClick={() => setStoreOpen(true)} aria-label={t("nav.store")} className="h-full flex-1" />
