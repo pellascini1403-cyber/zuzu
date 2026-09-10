@@ -63,3 +63,13 @@ body {
     inset -1px -1px 2px rgba(0, 0, 0, 0.5),
     0 8px 24px rgba(0, 0, 0, 0.3);
 }
+
+/* Carrusel de Hábitos (MainLayout.jsx): oculta la scrollbar nativa del
+   track con scroll-snap sin perder el scroll/swipe en sí — el swipe es
+   el gesto real, la barra visible no aporta nada en un carrusel táctil.
+   `scrollbar-width: none` (Firefox) va inline en el componente porque es
+   una propiedad estándar; el pseudo-elemento de WebKit/Chrome no tiene
+   equivalente inline, así que esta única regla vive acá. */
+.habit-carousel-track::-webkit-scrollbar {
+  display: none;
+}

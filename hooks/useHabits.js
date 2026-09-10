@@ -158,6 +158,13 @@ export default function useHabits() {
       coinReward: habit.coinReward ?? 10,
       microTitle: habit.microTitle || null,
       schedule: habit.schedule || { type: "noPressure" },
+      // durationMinutes: campo nuevo (carrusel de hábitos del dashboard
+      // principal, distinto del alta libre de HabitsModal) — 15/30/60/120,
+      // de donde ese carrusel deriva tanto la píldora "1 Hour / day" como
+      // el coinReward que ya viene calculado en `habit.coinReward` al
+      // llegar acá (la tabla vive en el propio carrusel, no en este hook).
+      // `null` para altas que no pasan por ese flujo (HabitsModal, seeds).
+      durationMinutes: habit.durationMinutes ?? null,
       completedDates: {},
     };
     writeRaw([...habits, newHabit]);

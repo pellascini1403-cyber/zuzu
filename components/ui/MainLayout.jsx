@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { UI_TEXT_STYLE } from "@/lib/typography";
 import { LANGUAGES, translate } from "@/lib/i18n";
 import usePetStats from "@/hooks/usePetStats";
@@ -440,7 +440,7 @@ function FriendSearchModal({ open, onClose }) {
             className="w-full bg-transparent text-sm text-white placeholder:text-white/60 focus:outline-none"
           />
         </div>
-        <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
+        <div className="mt-4 min-h-0 flex-auto space-y-2 overflow-y-auto">
           {results.map((u) => (
             <div key={u.handle} className={`flex items-center justify-between rounded-2xl px-4 py-3 ${tc.card}`}>
               <div>
@@ -1146,7 +1146,26 @@ function NestedModal({ open, onClose, title, children }) {
             <PlusIcon className="h-4 w-4 rotate-45 text-white" />
           </button>
         </div>
-        <div className="mt-4 flex-1 space-y-2 overflow-y-auto pb-1">{children}</div>
+        {/* `flex-auto` (flex: 1 1 auto), NO `flex-1` (flex: 1 1 0%) — este
+            div es scrolleable Y vive en un flex-col cuya propia altura es
+            `auto`/`max-height` (NESTED_MODAL_BOX), nunca un alto fijo. Con
+            flex-basis:0% (flex-1) el navegador no tiene "espacio libre"
+            bien definido para repartir cuando la altura del padre también
+            es auto — y como `overflow-y-auto` además apaga el piso de
+            "automatic minimum size = alto del contenido" que el spec de
+            flexbox le daría por defecto, el resultado es que este div
+            colapsa a una altura chica arbitraria (bug real, encontrado
+            con contenido corto: un formulario de 4 campos quedaba en
+            ~148px con 325px de contenido real, cortando los botones de
+            abajo). flex-basis:auto arranca del alto NATURAL del contenido
+            en vez de 0 — con contenido corto el diálogo simplemente lo
+            envuelve sin recortar nada; con contenido más alto que
+            NESTED_MODAL_BOX.maxHeight (el caso ya resuelto antes para
+            PremiumModal), `min-h-0` sigue permitiendo que se achique y
+            scrollee al llegar a ese límite, mismo comportamiento de
+            siempre. Mismo fix aplicado en los otros 2 lugares de este
+            archivo con este patrón (FriendSearchModal, HabitsModal). */}
+        <div className="mt-4 min-h-0 flex-auto space-y-2 overflow-y-auto pb-1">{children}</div>
       </div>
     </>
   );
@@ -2066,7 +2085,12 @@ const HABIT_ICON_ASSETS = {
 // invisible) o un emoji Unicode crudo (blanqueado vía filter). Un único
 // helper decide cuál renderizar, así HabitCard y el selector de
 // AddHabitForm no repiten la lógica cada uno por su lado.
-function HabitIcon({ icon, className }) {
+// `style` (opcional, nuevo): el carrusel de hábitos del dashboard
+// principal es una tarjeta CLARA — estos 5 PNG son blanco puro y se
+// volverían invisibles ahí sin poder recolorearlos. `style` pisa
+// HABIT_EMOJI_MONO_STYLE cuando viene (los llamadores existentes, que no
+// lo pasan, no cambian de comportamiento).
+function HabitIcon({ icon, className, style }) {
   const src = HABIT_ICON_ASSETS[icon];
   if (src) {
     return (
@@ -2075,11 +2099,12 @@ function HabitIcon({ icon, className }) {
         alt=""
         draggable={false}
         className={`${className} pointer-events-none select-none object-contain`}
+        style={style}
       />
     );
   }
   return (
-    <span className={className} style={HABIT_EMOJI_MONO_STYLE}>
+    <span className={className} style={{ ...HABIT_EMOJI_MONO_STYLE, ...style }}>
       {icon}
     </span>
   );
@@ -2167,6 +2192,372 @@ function habitScheduleLabel(schedule, t) {
       .join(" ");
   }
   return t("habits.scheduleNoPressure");
+}
+
+// ---------------------------------------------------------------------
+// Carrusel de Hábitos del dashboard principal — pedido explícito, distinto
+// del Habit Tracker en bottom-sheet de más abajo (HabitsModal/HabitCard/
+// AddHabitForm, vidrio oscuro): esta es una tira de tarjetas CLARAS/
+// blancas visible directamente en la pantalla principal, con su propio
+// alta simplificada (nombre + ícono + días + duración, sin micro-hábito
+// ni "veces por semana" ni recompensa manual). Comparte el mismo hook
+// useHabits() — mismos datos, misma persistencia — así que un hábito
+// creado acá también aparece en el HabitsModal viejo y viceversa.
+// ---------------------------------------------------------------------
+
+// Tabla fija duración -> Susu Coins, pedida explícita: a diferencia del
+// stepper libre de AddHabitForm, acá la recompensa NO se elige a mano,
+// se deriva de la duración elegida.
+const HABIT_DURATION_OPTIONS = [
+  { minutes: 15, labelKey: "habits.duration15", coins: 2 },
+  { minutes: 30, labelKey: "habits.duration30", coins: 3 },
+  { minutes: 60, labelKey: "habits.duration60", coins: 5 },
+  { minutes: 120, labelKey: "habits.duration120", coins: 10 },
+];
+function coinsForDuration(minutes) {
+  return HABIT_DURATION_OPTIONS.find((o) => o.minutes === minutes)?.coins ?? 0;
+}
+function durationLabel(minutes, t) {
+  const opt = HABIT_DURATION_OPTIONS.find((o) => o.minutes === minutes);
+  return opt ? t(opt.labelKey) : null;
+}
+
+// Encabezado de cada tarjeta: "Daily Habit" (pedido explícito, tal cual la
+// referencia) cuando el hábito corre los 7 días; para cualquier otro
+// subconjunto de días se reutiliza habitScheduleLabel (mismas letras
+// M/T/W... que ya usa el resto de la app) en vez de inventar una frase
+// nueva por cada combinación posible.
+function habitCarouselHeaderLabel(schedule, t) {
+  if (schedule?.type === "days" && schedule.days?.length === 7) return t("habits.carouselDailyHabit");
+  return habitScheduleLabel(schedule, t);
+}
+
+// Los 5 PNG de HABIT_ICON_ASSETS son blanco puro (pensados para el vidrio
+// OSCURO del HabitsModal) — sobre la tarjeta CLARA del carrusel serían
+// invisibles. `brightness(0)` los aplana a negro conservando el alfa
+// (mismo truco que HABIT_EMOJI_MONO_STYLE, pero sin el invert() que los
+// volvería blancos de nuevo); la opacidad los deja en gris oscuro en vez
+// de negro puro, a tono con el resto del texto gris-pizarra de la tarjeta.
+const HABIT_ICON_DARK_STYLE = { filter: "brightness(0)", opacity: 0.72 };
+
+function ClockIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}
+
+const HABIT_CAROUSEL_CARD_SHADOW = "0 12px 28px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.08)";
+const HABIT_CAROUSEL_CARD_WIDTH = 236;
+const HABIT_CAROUSEL_CARD_HEIGHT = 288;
+const HABIT_CAROUSEL_SLOT_COUNT = 5;
+
+// Tarjeta vacía: pedido explícito — SOLO el botón "+ Add habit" centrado,
+// sin ningún otro contenido (a diferencia de la tarjeta llena, que nunca
+// muestra este botón).
+function EmptyHabitCarouselCard({ onAdd, t }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-[28px] bg-white"
+      style={{ width: HABIT_CAROUSEL_CARD_WIDTH, height: HABIT_CAROUSEL_CARD_HEIGHT, boxShadow: HABIT_CAROUSEL_CARD_SHADOW }}
+    >
+      <button
+        type="button"
+        onClick={onAdd}
+        className="rounded-full bg-slate-100 px-5 py-3 text-sm font-bold text-slate-500 transition-transform active:scale-95"
+      >
+        + {t("habits.addHabit")}
+      </button>
+    </div>
+  );
+}
+
+// Tarjeta llena: header (ícono "+" + etiqueta de frecuencia + chevron que
+// abre edición) / emoji + título + estado / barra de progreso (binaria:
+// 0% sin completar hoy, 100% completado — no hay ninguna noción de avance
+// parcial en el modelo de datos, así que no se inventa una) / píldoras de
+// duración y recompensa. Tocar el emoji+título completa el hábito (mismo
+// gesto que el check del HabitsModal viejo, sin duplicar un botón aparte).
+function HabitCarouselCard({ habit, onComplete, onEdit, t }) {
+  const done = Boolean(habit.completedToday);
+  const header = habitCarouselHeaderLabel(habit.schedule, t);
+  const durLabel = habit.durationMinutes ? durationLabel(habit.durationMinutes, t) : null;
+  return (
+    <div
+      className="flex select-none flex-col rounded-[28px] bg-white p-4"
+      style={{ width: HABIT_CAROUSEL_CARD_WIDTH, height: HABIT_CAROUSEL_CARD_HEIGHT, boxShadow: HABIT_CAROUSEL_CARD_SHADOW }}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-bold text-slate-600">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-500 text-white">
+            <PlusIcon className="h-3.5 w-3.5" />
+          </span>
+          <span className="truncate">{header}</span>
+        </span>
+        <button type="button" onClick={onEdit} aria-label={t("habits.carouselEditHabit")} className="shrink-0 text-slate-400">
+          <ChevronIcon className="h-4 w-4 rotate-90" />
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={() => onComplete(habit.id, false)}
+        disabled={done}
+        className="mt-3 flex min-w-0 items-center gap-3 text-left"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100">
+          <HabitIcon icon={habit.emoji} className="h-5 w-5" style={HABIT_ICON_DARK_STYLE} />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-base font-bold text-slate-700">{habit.title}</span>
+          <span className="block text-xs font-medium text-slate-400">
+            {done ? t("habits.doneToday") : t("habits.carouselInProgress")}
+          </span>
+        </span>
+      </button>
+      <div className="mt-3 h-2 shrink-0 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-emerald-400 transition-[width] duration-500"
+          style={{ width: done ? "100%" : "0%" }}
+        />
+      </div>
+      {/* Justo debajo de la barra, no ancladas al fondo de la tarjeta: un
+          hábito legado sin durationMinutes (los 3 sembrados de fábrica,
+          o cualquiera dado de alta desde el HabitsModal viejo) solo
+          muestra la píldora de monedas — con `justify-end` eso dejaba un
+          hueco enorme y vacío antes de una sola píldora pegada abajo del
+          todo. */}
+      <div className="mt-4 flex flex-col gap-2">
+        {durLabel && (
+          <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2">
+            <ClockIcon className="h-4 w-4 shrink-0 text-slate-500" />
+            <span className="truncate text-sm font-semibold text-slate-600">
+              {durLabel} {t("habits.carouselPerDay")}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2">
+          <img src="/nav/tokens-icon.png" alt="" draggable={false} className="h-4 w-4 shrink-0 object-contain" />
+          <span className="truncate text-sm font-semibold text-slate-600">
+            +{habit.coinReward} {t("habits.carouselCoinsSuffix")}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// AddHabitCarouselModal: alta/edición del carrusel — deliberadamente MÁS
+// simple que AddHabitForm (sin micro-hábito, sin "veces por semana", sin
+// "sin presión", sin stepper de moneda): nombre, ícono, días, duración.
+// La recompensa se muestra pero no se edita — es 100% derivada de
+// `durationMinutes` vía coinsForDuration, así que cambiar la duración
+// recalcula el número en vivo antes incluso de guardar.
+function AddHabitCarouselModal({ open, habit, onClose, onSave, t }) {
+  const isEdit = Boolean(habit);
+  const [title, setTitle] = useState("");
+  const [emoji, setEmoji] = useState(HABIT_EMOJI_CHOICES[0]);
+  const [days, setDays] = useState([0, 1, 2, 3, 4, 5, 6]);
+  const [durationMinutes, setDurationMinutes] = useState(30);
+
+  // Repoblar los campos cada vez que se abre (alta nueva -> valores por
+  // default; edición -> los del hábito) en vez de un useEffect atado a
+  // `open`: son valores derivados de props en el momento del render, no
+  // un efecto secundario, así que no hace falta el hook para esto — y
+  // evita el re-render extra que un efecto dispararía.
+  const [lastOpenKey, setLastOpenKey] = useState(null);
+  const openKey = open ? habit?.id ?? "new" : null;
+  if (open && openKey !== lastOpenKey) {
+    setLastOpenKey(openKey);
+    setTitle(habit?.title ?? "");
+    setEmoji(habit?.emoji ?? HABIT_EMOJI_CHOICES[0]);
+    setDays(habit?.schedule?.type === "days" && habit.schedule.days ? habit.schedule.days : [0, 1, 2, 3, 4, 5, 6]);
+    setDurationMinutes(habit?.durationMinutes ?? 30);
+  }
+
+  function toggleDay(d) {
+    setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b)));
+  }
+
+  function handleSave() {
+    if (!title.trim()) return;
+    onSave({
+      title: title.trim(),
+      emoji,
+      schedule: { type: "days", days: days.length ? days : [0, 1, 2, 3, 4, 5, 6] },
+      durationMinutes,
+      coinReward: coinsForDuration(durationMinutes),
+    });
+  }
+
+  return (
+    <NestedModal open={open} onClose={onClose} title={isEdit ? t("habits.carouselEditHabit") : t("habits.carouselNewHabit")}>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.habitTitleLabel")}</label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t("habits.habitTitlePlaceholder")}
+          className="w-full rounded-xl border-b border-current/20 bg-transparent px-1 py-2 text-sm text-white focus:outline-none"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.emojiLabel")}</label>
+        <div className="flex flex-wrap gap-1.5">
+          {HABIT_EMOJI_CHOICES.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              onClick={() => setEmoji(choice)}
+              style={emoji === choice ? HABIT_GLASS_WHITE_GLOW_STYLE : undefined}
+              className="liquid-glass-btn flex h-9 w-9 items-center justify-center rounded-full text-lg"
+            >
+              <HabitIcon icon={choice} className="h-5 w-5 text-lg" />
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.carouselDaysLabel")}</label>
+        <div className="mt-1 flex justify-between gap-1">
+          {HABIT_WEEKDAY_LETTERS.map((letter, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggleDay(i)}
+              style={days.includes(i) ? HABIT_GLASS_ACCENT_STYLE : undefined}
+              className={`liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                days.includes(i) ? "text-white" : "text-white/70"
+              }`}
+            >
+              {letter}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.carouselDurationLabel")}</label>
+        <div className="grid grid-cols-4 gap-1.5">
+          {HABIT_DURATION_OPTIONS.map((opt) => (
+            <button
+              key={opt.minutes}
+              type="button"
+              onClick={() => setDurationMinutes(opt.minutes)}
+              style={durationMinutes === opt.minutes ? HABIT_GLASS_ACCENT_STYLE : undefined}
+              className={`liquid-glass-btn rounded-full py-2 text-xs font-semibold ${
+                durationMinutes === opt.minutes ? "text-white" : "text-white/70"
+              }`}
+            >
+              {t(opt.labelKey)}
+            </button>
+          ))}
+        </div>
+        <p className={`mt-2 flex items-center justify-center gap-1 text-sm font-semibold ${HABIT_COIN_TEXT_CLASS}`}>
+          +{coinsForDuration(durationMinutes)}
+          <img src="/nav/tokens-icon.png" alt="" draggable={false} className="h-4 w-4 object-contain" />
+        </p>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button type="button" onClick={onClose} className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white/70">
+          {t("habits.cancel")}
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!title.trim()}
+          style={HABIT_GLASS_ACCENT_STYLE}
+          className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          {t("habits.save")}
+        </button>
+      </div>
+    </NestedModal>
+  );
+}
+
+// HabitCarousel: hasta 5 tramos horizontales con scroll-snap nativo (no
+// drag a mano — a diferencia de la burbuja de WelcomeScreen, un carrusel
+// de swipe es exactamente el caso para el que el navegador ya resuelve
+// inercia/rebote/accesibilidad solo). El efecto de foco (100% al centro,
+// ~87% a los lados) se deriva de la posición de scroll en un handler con
+// rAF, sin estado de React de por medio — mismo criterio de "escritura
+// imperativa directa al DOM para algo que corre en cada frame" que ya usa
+// el resto de la app.
+// El modal de alta/edición NO se renderiza acá adentro a propósito — ver
+// el comentario en MainLayout, junto a <AddHabitCarouselModal>, para la
+// razón (un bug real que costó una vuelta encontrar: anidado en este
+// componente, sus % de tamaño/posición quedaban resueltos contra el div
+// chico de 288px que posiciona el carrusel, no contra la pantalla
+// completa). Esta pieza solo pide que se abra, vía `onAddSlot`/`onEdit`.
+function HabitCarousel({ habits, onComplete, onAddSlot, onEdit, t }) {
+  const trackRef = useRef(null);
+  const cardRefs = useRef([]);
+  const rafRef = useRef(0);
+
+  const slots = Array.from({ length: HABIT_CAROUSEL_SLOT_COUNT }, (_, i) => habits[i] ?? null);
+
+  const updateScales = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const trackRect = track.getBoundingClientRect();
+    const centerX = trackRect.left + trackRect.width / 2;
+    cardRefs.current.forEach((el) => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const dist = Math.abs(r.left + r.width / 2 - centerX);
+      const proximity = Math.min(1, dist / (trackRect.width / 2 || 1));
+      const scale = 1 - proximity * 0.13; // 1 al centro -> ~0.87 en los bordes
+      el.style.transform = `scale(${scale.toFixed(3)})`;
+      el.style.opacity = (1 - proximity * 0.4).toFixed(3);
+    });
+  }, []);
+
+  const onScroll = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(updateScales);
+  }, [updateScales]);
+
+  useEffect(() => {
+    updateScales();
+    const track = trackRef.current;
+    track?.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", updateScales);
+    return () => {
+      track?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", updateScales);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [onScroll, updateScales, habits.length]);
+
+  return (
+    <div
+      ref={trackRef}
+      className="habit-carousel-track flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-visible"
+      style={{
+        paddingLeft: `calc(50% - ${HABIT_CAROUSEL_CARD_WIDTH / 2}px)`,
+        paddingRight: `calc(50% - ${HABIT_CAROUSEL_CARD_WIDTH / 2}px)`,
+        scrollbarWidth: "none",
+      }}
+    >
+      {slots.map((habit, i) => (
+        <div
+          key={habit?.id ?? `empty-${i}`}
+          ref={(el) => {
+            cardRefs.current[i] = el;
+          }}
+          className="shrink-0 snap-center"
+          style={{ transition: "transform 150ms ease-out, opacity 150ms ease-out" }}
+        >
+          {habit ? (
+            <HabitCarouselCard habit={habit} onComplete={onComplete} onEdit={() => onEdit(habit.id)} t={t} />
+          ) : (
+            <EmptyHabitCarouselCard onAdd={onAddSlot} t={t} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // HabitCard: una fila por hábito — emoji + título + badge de frecuencia
@@ -2441,7 +2832,7 @@ function HabitsModal({ open, onClose, habits, onComplete, onAddHabit, onDeleteHa
           </button>
         </div>
 
-        <div className="mt-4 flex-1 space-y-2 overflow-y-auto pb-1">
+        <div className="mt-4 min-h-0 flex-auto space-y-2 overflow-y-auto pb-1">
           {habits.length === 0 && !showAddForm && (
             <p className="py-6 text-center text-sm text-white/70">{t("habits.emptyState")}</p>
           )}
@@ -2500,9 +2891,15 @@ export default function MainLayout() {
   const [petsOpen, setPetsOpen] = useState(false);
   const [backgroundsOpen, setBackgroundsOpen] = useState(false);
   const [habitsOpen, setHabitsOpen] = useState(false);
+  // Carrusel de Hábitos (dashboard principal, distinto de habitsOpen de
+  // arriba — ese es el HabitsModal viejo en bottom-sheet): null | "new" |
+  // el id de un hábito existente. Vive ACÁ y no dentro de HabitCarousel a
+  // propósito — ver el comentario largo junto a <AddHabitCarouselModal>
+  // más abajo.
+  const [habitCarouselEditingKey, setHabitCarouselEditingKey] = useState(null);
   const { xp, xpToNext, bestStreak } = usePetStats();
   const { tokens, addTokens } = useTokens();
-  const { habits, completeHabit, addHabit, deleteHabit } = useHabits();
+  const { habits, completeHabit, addHabit, updateHabit, deleteHabit } = useHabits();
 
   // Dark mode: "app-wide" (ver DarkModeContext arriba), persistido en
   // localStorage vía useLocalStorageFlag (useSyncExternalStore, no
@@ -2628,6 +3025,7 @@ export default function MainLayout() {
     setPetsOpen(false);
     setBackgroundsOpen(false);
     setHabitsOpen(false);
+    setHabitCarouselEditingKey(null);
   }
 
   function enterPhotoMode() {
@@ -2819,6 +3217,22 @@ export default function MainLayout() {
         />
       </div>
 
+      {/* Carrusel de Hábitos: pedido explícito, "en el área central entre
+          la botonera superior y la barra de racha" — top=36% deja ~45px
+          libres bajo la burbuja "¡Hola!" (que termina en ~299px de un
+          alto de referencia de 844) y el carrusel (288px de tarjeta) cae
+          bastante antes de donde arranca la fila de racha (bottom:22vh,
+          ~658px de esos mismos 844) — sin tocar ninguna de las dos. */}
+      <div className="absolute inset-x-0 top-[36%] z-10">
+        <HabitCarousel
+          habits={habits}
+          onComplete={handleHabitComplete}
+          onAddSlot={() => setHabitCarouselEditingKey("new")}
+          onEdit={(id) => setHabitCarouselEditingKey(id)}
+          t={t}
+        />
+      </div>
+
       {/* Fondos / Racha / Hábitos: fila horizontal, orden pedido
           explícitamente por el usuario (izquierda a derecha): Fondos,
           racha, Hábitos — antes el orden era racha/Hábitos/Fondos, así que
@@ -2975,6 +3389,38 @@ export default function MainLayout() {
         onComplete={handleHabitComplete}
         onAddHabit={addHabit}
         onDeleteHabit={deleteHabit}
+      />
+      {/* AddHabitCarouselModal: se renderiza ACÁ, al mismo nivel que el
+          resto de los modales de arriba — NO adentro de <HabitCarousel>,
+          aunque ahí es donde uno esperaría encontrarlo. Motivo (bug real
+          encontrado, no una preferencia de estilo): NestedModal posiciona
+          su tarjeta con `position: absolute` + medidas en %
+          (NESTED_MODAL_BOX: top 50%, maxHeight 82%) — esos porcentajes se
+          resuelven contra el ANCESTRO POSICIONADO más cercano, que es
+          justamente el <div className="absolute ... top-[36%]"> de más
+          arriba que ubica al carrusel en la pantalla. Anidado ahí
+          adentro, "82% de alto" terminaba siendo 82% de los 288px de ESE
+          div (231px), no de la pantalla — el formulario de alta quedaba
+          con ~148px reales para 4 campos que necesitan más de 300px,
+          cortando los botones de Guardar/Cancelar. Como sibling de
+          ProfileModal/SettingsModal/etc. (todos ellos DIRECTOS del <div>
+          raíz del dashboard, h-[100dvh]) el mismo NestedModal se
+          dimensiona bien, igual que en cualquier otro lado de este
+          archivo. */}
+      <AddHabitCarouselModal
+        open={habitCarouselEditingKey !== null}
+        habit={
+          habitCarouselEditingKey && habitCarouselEditingKey !== "new"
+            ? (habits.find((h) => h.id === habitCarouselEditingKey) ?? null)
+            : null
+        }
+        onClose={() => setHabitCarouselEditingKey(null)}
+        onSave={(data) => {
+          if (habitCarouselEditingKey === "new") addHabit(data);
+          else if (habitCarouselEditingKey) updateHabit(habitCarouselEditingKey, data);
+          setHabitCarouselEditingKey(null);
+        }}
+        t={t}
       />
         </>
       )}
