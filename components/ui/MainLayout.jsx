@@ -2874,14 +2874,24 @@ export default function MainLayout() {
         </button>
       </div>
 
-      {/* Dock inferior: un solo PNG (bottom-nav-bar.png, 2250x700, ratio
-          ~3.214) con Tienda/Home/Mascotas ya dibujados adentro — reemplaza
+      {/* Dock inferior: un solo PNG (bottom-nav-bar.png, 2250x560, ratio
+          ~4.018) con Tienda/Home/Mascotas ya dibujados adentro — reemplaza
           por completo el panel con clip-path + muesca animada de fases
           anteriores (ya no hay "pestaña activa": ese concepto vivía
-          enteramente en el dibujo por código que se pidió eliminar). Ancho
-          tope 390px (la referencia de todo el resto de esta pantalla),
-          centrado, apoyado en el borde inferior real. Los 3 íconos quedan
-          a tercios iguales del ancho de la imagen (bolsa=izquierda,
+          enteramente en el dibujo por código que se pidió eliminar).
+          El recorte original de este archivo incluía, separado por un
+          hueco vacío, un adorno fino (una línea curva que en el lienzo
+          sin rotar corría a la izquierda del cuerpo de la barra) que no
+          pertenece al cuerpo sólido de la barra — al conservarlo, el
+          bounding box completo quedaba más alto que la barra visible, y
+          anclar ESE bounding box al borde inferior dejaba la barra
+          flotando con un hueco debajo y esa línea suelta pegada al borde
+          real. Recortado ahora SOLO al cuerpo sólido de la barra (sin esa
+          línea), así lo que toca bottom:0 es la barra de verdad.
+          Ancho tope 390px (la referencia de todo el resto de esta
+          pantalla); `mx-auto` con `inset-x-0` centra el contenedor sin
+          padding/margin asimétrico que lo empuje a un lado. Los 3 íconos
+          quedan a tercios iguales del ancho de la imagen (bolsa=izquierda,
           flecha=centro, mascota=derecha — confirmado visualmente contra el
           archivo) — cada tercio es un botón invisible superpuesto del
           mismo alto que la imagen renderizada. */}
