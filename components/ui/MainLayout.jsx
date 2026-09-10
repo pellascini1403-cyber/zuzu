@@ -2833,17 +2833,33 @@ export default function MainLayout() {
           tiene equivalente en este PNG (es una superficie lisa) y se cae
           acá: recrearla por código sería justamente lo que se pidió
           eliminar.
-          top=82.53% (antes 66.35%, heredado de una posición de fases
-          previas que quedó muy alta apenas se sacó el dock viejo — dejaba
-          ~148px de hueco vacío hasta la barra inferior nueva). Bajado
-          para que el margen entre el fondo de esta fila (h-10 = 40px) y
-          el techo del PNG del dock quede en ~12px, medido en el navegador
-          contra el ancho de referencia de 390px: 82.53% × 844 + 40 + 12 ≈
-          el borde superior real del dock a ese ancho. `items-center` +
-          `justify-center` de este mismo contenedor ya centran el grupo
-          horizontalmente sin tocar nada más — el reacomodo es
-          estrictamente vertical. */}
-      <div className="absolute inset-x-0 top-[82.53%] z-10 flex items-center justify-center gap-[9px] px-6">
+          Posición vertical: `bottom: calc(24.48vw + 14px)`, NO un
+          `top` en porcentaje. Antes iba con `top-[82.53%]` (66.35%
+          heredado de fases previas, subido después a 82.53% para achicar
+          el hueco de ~148px que quedó al reemplazar el dock viejo) — pero
+          un `top`/`bottom` en % sobre un elemento absoluto se calcula
+          contra la ALTURA del contenedor, mientras que la altura real del
+          dock (bottom-nav-bar.png) es pura función de su ANCHO (ratio
+          nativo 2250x540, contenedor al 102% del viewport → altura
+          renderizada = 1.02 × 100vw × (540/2250) = 24.48vw). Dos
+          teléfonos con el mismo ancho pero distinto alto (o el mismo
+          teléfono con la barra de direcciones mostrándose/ocultándose)
+          tienen el dock exactamente a la misma altura en px pero un %
+          de la altura total DISTINTO — con `top` en % eso deja que esta
+          fila y el dock se acerquen o se superpongan según el alto real
+          de cada pantalla (exactamente lo que pasó: a 82.53% de un alto
+          más bajo que los 844px de referencia, la fila quedó pisando la
+          ola blanca de arriba del dock). Anclando por `bottom` con la
+          MISMA fórmula de ancho que ya usa el dock, el margen entre
+          ambos queda siempre ~14px sin importar el alto real de la
+          pantalla — solo depende del ancho, que es lo único de lo que
+          depende el propio dock. `items-center` + `justify-center` de
+          este mismo contenedor siguen centrando el grupo horizontalmente
+          sin tocar nada más. */}
+      <div
+        className="absolute inset-x-0 z-10 flex items-center justify-center gap-[9px] px-6"
+        style={{ bottom: "calc(24.48vw + 14px)" }}
+      >
         <button
           type="button"
           onClick={() => setBackgroundsOpen(true)}
