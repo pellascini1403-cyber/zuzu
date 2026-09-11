@@ -2844,31 +2844,39 @@ export default function MainLayout() {
         />
       </div>
 
-      {/* Pestaña de Hábitos: pedido explícito de cortar toda maquetación en
-          código acá — el PNG entregado (rotado 90° a la izquierda, igual
-          que el resto de nav2/) se muestra TAL CUAL, sin recortar en
-          piezas ni superponer texto/botones propios. Es la única pestaña
-          por ahora; el resto (deslizar entre 5, nombre+emoji por pestaña)
-          es una iteración futura, todavía sin assets/spec. Misma zona
-          "central entre la botonera superior y la barra de racha" que
-          tenía el carrusel anterior — top=36% deja ~45px libres bajo la
-          burbuja "¡Hola!" y no toca la fila de racha (bottom:22vh). El
-          ancho fijo (640px) escala la tarjeta central del PNG a ~240px en
-          pantalla; el resto del archivo (las 2 tarjetas en blanco a los
-          costados) queda centrado y se recorta solo, de forma natural,
-          contra el `overflow-hidden` del contenedor raíz del dashboard —
-          no hace falta ningún crop manual. `maxWidth: "none"` porque el
-          preflight de Tailwind pone `max-width:100%` en todo <img> — sin
-          esto, el ancho quedaba forzado al 100% del contenedor (390px de
-          pantalla) en vez del 640px pedido acá. */}
-      <div className="absolute inset-x-0 top-[36%] z-10 flex justify-center">
-        <img
-          src="/nav2/habit-tab.png"
-          alt=""
-          draggable={false}
-          className="select-none"
-          style={{ width: 640, maxWidth: "none", height: "auto" }}
-        />
+      {/* Carrusel de Hábitos: 5 posiciones (límite del plan gratuito),
+          todas mostrando por ahora el mismo PNG de estado vacío entregado
+          (recortado a la tarjeta central del archivo — las 2 tarjetas en
+          blanco a los costados del original son relleno del lienzo del
+          diseño, no un segundo estado visual — y rotado 90° a la
+          izquierda). Cada tarjeta se muestra TAL CUAL: nada de texto,
+          botones ni estado se dibuja encima todavía — eso es la
+          iteración siguiente (input de título, selección de días,
+          duración/monedas, ícono, play) una vez que haya spec para la
+          capa de interacción. El deslizamiento entre posiciones es
+          scroll-snap nativo del navegador (el mismo mecanismo que ya
+          usaba el carrusel anterior), no una reconstrucción visual de la
+          tarjeta. Misma zona "central entre la botonera superior y la
+          barra de racha": top=36% deja ~45px libres bajo la burbuja
+          "¡Hola!" y no toca la fila de racha (bottom:22vh). */}
+      <div
+        className="habit-carousel-track absolute inset-x-0 top-[36%] z-10 flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-visible"
+        style={{
+          paddingLeft: "calc(50% - 120px)",
+          paddingRight: "calc(50% - 120px)",
+          scrollbarWidth: "none",
+        }}
+      >
+        {Array.from({ length: 5 }, (_, i) => (
+          <img
+            key={i}
+            src="/nav2/habit-tab-empty.png"
+            alt=""
+            draggable={false}
+            className="shrink-0 snap-center select-none"
+            style={{ width: 240, height: "auto" }}
+          />
+        ))}
       </div>
 
       {/* Fondos / Racha / Hábitos: fila horizontal, orden pedido
