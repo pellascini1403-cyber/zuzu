@@ -2240,111 +2240,211 @@ function habitCarouselHeaderLabel(schedule, t) {
 // de negro puro, a tono con el resto del texto gris-pizarra de la tarjeta.
 const HABIT_ICON_DARK_STYLE = { filter: "brightness(0)", opacity: 0.72 };
 
-function ClockIcon({ className }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3.5 2" />
-    </svg>
-  );
-}
-
-const HABIT_CAROUSEL_CARD_SHADOW = "0 12px 28px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.08)";
-const HABIT_CAROUSEL_CARD_WIDTH = 236;
+// ---------------------------------------------------------------------
+// Tarjeta del carrusel — reconstrucción a partir del PNG real entregado
+// (alta 42bba305, rotado 90° a la izquierda como el resto de los assets
+// de nav2/). El archivo fuente es UNA composición de 3 tarjetas: 2 en
+// blanco (usadas tal cual para el marco — `habit-card-frame.png`, sin
+// ningún contenido dibujado encima) y 1 con contenido de ejemplo ("Study!",
+// "1 Hour / day", "+5 zuzu coins", ícono foto de lápiz) que sirvió para
+// recortar las piezas de arte real reutilizables: el marco, el ícono "+"
+// del encabezado, el chevron, el riel de progreso vacío y las dos
+// píldoras (con su ícono de reloj/moneda tal cual, borrando SOLO los
+// píxeles del texto de ejemplo — mismo color de fondo, sin costura
+// visible) — ver public/nav2/habit-*.png. Lo único que no se pudo
+// extraer del PNG es la foto de la mano con lápiz (es un ejemplo fijo
+// para "Study!", no serviría para "Drink water" ni para ningún otro
+// hábito) y el aro que la monta: para esos dos casos puntuales se cae al
+// mismo criterio "blanco/minimalista sin degradados" que pide la
+// corrección — un círculo plano bg-slate-100 sosteniendo el ícono PNG
+// del hábito que ya existía (HABIT_ICON_ASSETS). Todo lo demás (marco,
+// "+", chevron, riel, píldoras) es el PNG recortado posicionado por
+// coordenadas — NUNCA recreado con gradientes/sombras de código — y los
+// datos dinámicos (nombre, estado, duración, monedas, header) son texto
+// plano superpuesto, tal como pide la corrección.
+const HABIT_CAROUSEL_CARD_WIDTH = 228;
 const HABIT_CAROUSEL_CARD_HEIGHT = 288;
 const HABIT_CAROUSEL_SLOT_COUNT = 5;
 
-// Tarjeta vacía: pedido explícito — SOLO el botón "+ Add habit" centrado,
-// sin ningún otro contenido (a diferencia de la tarjeta llena, que nunca
-// muestra este botón).
+// Tarjeta vacía: el marco PNG en blanco + el botón "+ Add habit" (asset
+// real, texto ya incluido) centrado — pedido explícito, sin ningún otro
+// contenido.
 function EmptyHabitCarouselCard({ onAdd, t }) {
   return (
     <div
-      className="flex items-center justify-center rounded-[28px] bg-white"
-      style={{ width: HABIT_CAROUSEL_CARD_WIDTH, height: HABIT_CAROUSEL_CARD_HEIGHT, boxShadow: HABIT_CAROUSEL_CARD_SHADOW }}
+      className="relative"
+      style={{ width: HABIT_CAROUSEL_CARD_WIDTH, height: HABIT_CAROUSEL_CARD_HEIGHT }}
     >
+      <img
+        src="/nav2/habit-card-frame.png"
+        alt=""
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full select-none"
+      />
       <button
         type="button"
         onClick={onAdd}
-        className="rounded-full bg-slate-100 px-5 py-3 text-sm font-bold text-slate-500 transition-transform active:scale-95"
+        aria-label={t("habits.addHabit")}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95"
+        style={{ width: 135 }}
       >
-        + {t("habits.addHabit")}
+        <img src="/nav2/habit-add-btn.png" alt={`+ ${t("habits.addHabit")}`} draggable={false} className="pointer-events-none w-full select-none" />
       </button>
     </div>
   );
 }
 
-// Tarjeta llena: header (ícono "+" + etiqueta de frecuencia + chevron que
-// abre edición) / emoji + título + estado / barra de progreso (binaria:
-// 0% sin completar hoy, 100% completado — no hay ninguna noción de avance
-// parcial en el modelo de datos, así que no se inventa una) / píldoras de
-// duración y recompensa. Tocar el emoji+título completa el hábito (mismo
-// gesto que el check del HabitsModal viejo, sin duplicar un botón aparte).
+// Tarjeta llena: mismo marco PNG, con cada pieza de arte real (header
+// "+", chevron, riel de progreso, píldoras de duración/monedas)
+// posicionada por coordenadas fijas — derivadas 1:1 de dónde cae cada
+// elemento dentro del PNG fuente a 228x288 (ver el comentario largo más
+// arriba). Tocar el ícono+título completa el hábito (mismo gesto que el
+// check del HabitsModal viejo).
 function HabitCarouselCard({ habit, onComplete, onEdit, t }) {
   const done = Boolean(habit.completedToday);
   const header = habitCarouselHeaderLabel(habit.schedule, t);
   const durLabel = habit.durationMinutes ? durationLabel(habit.durationMinutes, t) : null;
   return (
     <div
-      className="flex select-none flex-col rounded-[28px] bg-white p-4"
-      style={{ width: HABIT_CAROUSEL_CARD_WIDTH, height: HABIT_CAROUSEL_CARD_HEIGHT, boxShadow: HABIT_CAROUSEL_CARD_SHADOW }}
+      className="relative select-none"
+      style={{ width: HABIT_CAROUSEL_CARD_WIDTH, height: HABIT_CAROUSEL_CARD_HEIGHT }}
     >
-      <div className="flex shrink-0 items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5 text-sm font-bold text-slate-600">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-500 text-white">
-            <PlusIcon className="h-3.5 w-3.5" />
-          </span>
-          <span className="truncate">{header}</span>
-        </span>
-        <button type="button" onClick={onEdit} aria-label={t("habits.carouselEditHabit")} className="shrink-0 text-slate-400">
-          <ChevronIcon className="h-4 w-4 rotate-90" />
-        </button>
-      </div>
+      <img
+        src="/nav2/habit-card-frame.png"
+        alt=""
+        draggable={false}
+        className="pointer-events-none absolute inset-0 h-full w-full select-none"
+      />
+
+      {/* Encabezado: "+" decorativo (asset real) + etiqueta de frecuencia +
+          chevron (asset real, clickeable — abre edición). */}
+      <img
+        src="/nav2/habit-header-plus.png"
+        alt=""
+        draggable={false}
+        className="pointer-events-none absolute select-none"
+        style={{ left: 20, top: 17, width: 20 }}
+      />
+      <span
+        className="absolute truncate text-[13px] font-bold text-slate-600"
+        style={{ left: 46, top: 20, width: 130, lineHeight: "20px" }}
+      >
+        {header}
+      </span>
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={t("habits.carouselEditHabit")}
+        className="absolute flex items-center justify-center"
+        style={{ left: 178, top: 8, width: 34, height: 34 }}
+      >
+        <img src="/nav2/habit-chevron-down.png" alt="" draggable={false} className="pointer-events-none w-4 select-none" />
+      </button>
+
+      {/* Ícono + título + estado. La foto de referencia ("mano con lápiz")
+          era un ejemplo fijo de "Study!" — no sirve para otros hábitos, así
+          que acá se sigue usando el ícono PNG del hábito real sobre un
+          círculo plano (única pieza sin equivalente en el asset fuente). */}
       <button
         type="button"
         onClick={() => onComplete(habit.id, false)}
         disabled={done}
-        className="mt-3 flex min-w-0 items-center gap-3 text-left"
+        className="absolute flex items-center justify-center rounded-full bg-slate-100"
+        style={{ left: 22, top: 53, width: 36, height: 36 }}
       >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100">
-          <HabitIcon icon={habit.emoji} className="h-5 w-5" style={HABIT_ICON_DARK_STYLE} />
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-base font-bold text-slate-700">{habit.title}</span>
-          <span className="block text-xs font-medium text-slate-400">
-            {done ? t("habits.doneToday") : t("habits.carouselInProgress")}
-          </span>
-        </span>
+        <HabitIcon icon={habit.emoji} className="h-4 w-4" style={HABIT_ICON_DARK_STYLE} />
       </button>
-      <div className="mt-3 h-2 shrink-0 overflow-hidden rounded-full bg-slate-100">
+      <span className="absolute truncate text-[15px] font-bold text-slate-700" style={{ left: 62, top: 50, width: 150 }}>
+        {habit.title}
+      </span>
+      <span className="absolute truncate text-xs font-medium text-slate-400" style={{ left: 62, top: 71, width: 150 }}>
+        {done ? t("habits.doneToday") : t("habits.carouselInProgress")}
+      </span>
+
+      {/* Riel de progreso: PNG vacío de fondo + relleno plano (binario: 0%
+          sin completar hoy, 100% completado — no hay noción de avance
+          parcial en el modelo de datos) por encima, color liso sin
+          degradado. */}
+      <div className="absolute overflow-hidden rounded-full" style={{ left: 20, top: 91, width: 187, height: 12 }}>
+        <img src="/nav2/habit-progress-track.png" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none" />
         <div
-          className="h-full rounded-full bg-emerald-400 transition-[width] duration-500"
+          className="absolute inset-y-0 left-0 rounded-full bg-emerald-400 transition-[width] duration-500"
           style={{ width: done ? "100%" : "0%" }}
         />
       </div>
-      {/* Justo debajo de la barra, no ancladas al fondo de la tarjeta: un
-          hábito legado sin durationMinutes (los 3 sembrados de fábrica,
-          o cualquiera dado de alta desde el HabitsModal viejo) solo
-          muestra la píldora de monedas — con `justify-end` eso dejaba un
-          hueco enorme y vacío antes de una sola píldora pegada abajo del
-          todo. */}
-      <div className="mt-4 flex flex-col gap-2">
+
+      {/* Píldora doble de duración + monedas: UNA sola pieza del PNG real
+          (las dos cápsulas ya vienen unidas por el halo gris que las
+          envuelve en el asset original — separarlas en 2 recortes
+          dejaba a cada una con un fragmento cortado de ese halo
+          compartido, visible como una "esquina" gris suelta). Mismo
+          criterio que el resto: texto de ejemplo borrado, ícono de
+          reloj/moneda intacto, dato dinámico superpuesto encima. Un
+          hábito legado sin durationMinutes (los 3 sembrados de fábrica)
+          no tiene texto que poner en la fila de arriba — se deja el
+          ícono de reloj solo antes que inventar una duración que no
+          existe en sus datos. */}
+      <div className="absolute" style={{ left: 20, top: 116, width: 187 }}>
+        <img src="/nav2/habit-pill-duo.png" alt="" draggable={false} className="pointer-events-none w-full select-none" />
         {durLabel && (
-          <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2">
-            <ClockIcon className="h-4 w-4 shrink-0 text-slate-500" />
-            <span className="truncate text-sm font-semibold text-slate-600">
-              {durLabel} {t("habits.carouselPerDay")}
-            </span>
-          </div>
-        )}
-        <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2">
-          <img src="/nav/tokens-icon.png" alt="" draggable={false} className="h-4 w-4 shrink-0 object-contain" />
-          <span className="truncate text-sm font-semibold text-slate-600">
-            +{habit.coinReward} {t("habits.carouselCoinsSuffix")}
+          <span
+            className="absolute truncate text-[12px] font-semibold text-slate-600"
+            style={{ left: "24%", right: "8%", top: "24.2%", transform: "translateY(-50%)" }}
+          >
+            {durLabel} {t("habits.carouselPerDay")}
           </span>
-        </div>
+        )}
+        <span
+          className="absolute truncate text-[12px] font-semibold text-slate-600"
+          style={{ left: "24%", right: "8%", top: "68.9%", transform: "translateY(-50%)" }}
+        >
+          +{habit.coinReward} {t("habits.carouselCoinsSuffix")}
+        </span>
       </div>
     </div>
+  );
+}
+
+// CleanFormModal: shell PROPIO para el alta/edición del carrusel — a
+// diferencia de NestedModal (vidrio azul oscuro, pensado para los 7
+// sub-modales "espaciales" de Configuración), acá se pidió explícito
+// blanco/minimalista, sin degradados ni brillos — mismo dimmer de fondo
+// (ModalBackdrop, no es "glass", es solo el scrim estándar de cualquier
+// modal) pero la tarjeta en sí es blanca sólida y el botón de cerrar es
+// un círculo plano gris, no el liquid-glass-btn del resto de la app.
+function CleanFormModal({ open, onClose, title, closeLabel, children }) {
+  return (
+    <>
+      <ModalBackdrop open={open} onClose={onClose} zIndexClassName="z-[55]" />
+      <div
+        role="dialog"
+        aria-label={title}
+        aria-hidden={!open}
+        onClick={(e) => e.stopPropagation()}
+        className={`absolute z-[60] flex flex-col rounded-[28px] bg-white p-5 shadow-[0_20px_50px_rgba(15,23,42,0.35)] ${
+          open ? "" : "pointer-events-none"
+        }`}
+        style={{
+          ...NESTED_MODAL_BOX,
+          transform: `translate(-50%, -50%) scale(${open ? 1 : 0.9})`,
+          opacity: open ? 1 : 0,
+          transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION,
+        }}
+      >
+        <div className="flex shrink-0 items-center justify-between">
+          <h2 className="text-base font-bold text-slate-800">{title}</h2>
+          <button
+            type="button"
+            aria-label={closeLabel}
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500"
+          >
+            <PlusIcon className="h-4 w-4 rotate-45" />
+          </button>
+        </div>
+        <div className="mt-4 min-h-0 flex-auto space-y-4 overflow-y-auto">{children}</div>
+      </div>
+    </>
   );
 }
 
@@ -2353,7 +2453,11 @@ function HabitCarouselCard({ habit, onComplete, onEdit, t }) {
 // "sin presión", sin stepper de moneda): nombre, ícono, días, duración.
 // La recompensa se muestra pero no se edita — es 100% derivada de
 // `durationMinutes` vía coinsForDuration, así que cambiar la duración
-// recalcula el número en vivo antes incluso de guardar.
+// recalcula el número en vivo antes incluso de guardar. Estilos
+// deliberadamente planos (bg-slate-100/bg-slate-800, sin liquid-glass):
+// no hay un PNG entregado para este modal, así que se cae al criterio
+// "blanco/minimalista sin degradados" pedido explícito, en vez de
+// reusar el vidrio oscuro de AddHabitForm/HabitsModal.
 function AddHabitCarouselModal({ open, habit, onClose, onSave, t }) {
   const isEdit = Boolean(habit);
   const [title, setTitle] = useState("");
@@ -2392,43 +2496,48 @@ function AddHabitCarouselModal({ open, habit, onClose, onSave, t }) {
   }
 
   return (
-    <NestedModal open={open} onClose={onClose} title={isEdit ? t("habits.carouselEditHabit") : t("habits.carouselNewHabit")}>
+    <CleanFormModal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? t("habits.carouselEditHabit") : t("habits.carouselNewHabit")}
+      closeLabel={t("common.close")}
+    >
       <div>
-        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.habitTitleLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-slate-500">{t("habits.habitTitleLabel")}</label>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t("habits.habitTitlePlaceholder")}
-          className="w-full rounded-xl border-b border-current/20 bg-transparent px-1 py-2 text-sm text-white focus:outline-none"
+          className="w-full rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.emojiLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-slate-500">{t("habits.emojiLabel")}</label>
         <div className="flex flex-wrap gap-1.5">
           {HABIT_EMOJI_CHOICES.map((choice) => (
             <button
               key={choice}
               type="button"
               onClick={() => setEmoji(choice)}
-              style={emoji === choice ? HABIT_GLASS_WHITE_GLOW_STYLE : undefined}
-              className="liquid-glass-btn flex h-9 w-9 items-center justify-center rounded-full text-lg"
+              className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                emoji === choice ? "bg-slate-800" : "bg-slate-100"
+              }`}
             >
-              <HabitIcon icon={choice} className="h-5 w-5 text-lg" />
+              <HabitIcon icon={choice} className="h-5 w-5" style={emoji === choice ? undefined : HABIT_ICON_DARK_STYLE} />
             </button>
           ))}
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.carouselDaysLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-slate-500">{t("habits.carouselDaysLabel")}</label>
         <div className="mt-1 flex justify-between gap-1">
           {HABIT_WEEKDAY_LETTERS.map((letter, i) => (
             <button
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              style={days.includes(i) ? HABIT_GLASS_ACCENT_STYLE : undefined}
-              className={`liquid-glass-btn flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
-                days.includes(i) ? "text-white" : "text-white/70"
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                days.includes(i) ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500"
               }`}
             >
               {letter}
@@ -2437,42 +2546,40 @@ function AddHabitCarouselModal({ open, habit, onClose, onSave, t }) {
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold text-white/70">{t("habits.carouselDurationLabel")}</label>
+        <label className="mb-1 block text-xs font-semibold text-slate-500">{t("habits.carouselDurationLabel")}</label>
         <div className="grid grid-cols-4 gap-1.5">
           {HABIT_DURATION_OPTIONS.map((opt) => (
             <button
               key={opt.minutes}
               type="button"
               onClick={() => setDurationMinutes(opt.minutes)}
-              style={durationMinutes === opt.minutes ? HABIT_GLASS_ACCENT_STYLE : undefined}
-              className={`liquid-glass-btn rounded-full py-2 text-xs font-semibold ${
-                durationMinutes === opt.minutes ? "text-white" : "text-white/70"
+              className={`rounded-full py-2 text-xs font-semibold ${
+                durationMinutes === opt.minutes ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500"
               }`}
             >
               {t(opt.labelKey)}
             </button>
           ))}
         </div>
-        <p className={`mt-2 flex items-center justify-center gap-1 text-sm font-semibold ${HABIT_COIN_TEXT_CLASS}`}>
+        <p className="mt-2 flex items-center justify-center gap-1 text-sm font-semibold text-slate-600">
           +{coinsForDuration(durationMinutes)}
           <img src="/nav/tokens-icon.png" alt="" draggable={false} className="h-4 w-4 object-contain" />
         </p>
       </div>
       <div className="flex gap-2 pt-1">
-        <button type="button" onClick={onClose} className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white/70">
+        <button type="button" onClick={onClose} className="flex-1 rounded-full bg-slate-100 py-2.5 text-sm font-semibold text-slate-500">
           {t("habits.cancel")}
         </button>
         <button
           type="button"
           onClick={handleSave}
           disabled={!title.trim()}
-          style={HABIT_GLASS_ACCENT_STYLE}
-          className="liquid-glass-btn flex-1 rounded-full py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+          className="flex-1 rounded-full bg-slate-800 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
         >
           {t("habits.save")}
         </button>
       </div>
-    </NestedModal>
+    </CleanFormModal>
   );
 }
 
