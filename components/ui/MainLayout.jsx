@@ -2194,7 +2194,16 @@ function habitScheduleLabel(schedule, t) {
   return t("habits.scheduleNoPressure");
 }
 
-const HABIT_TAB_CARD_WIDTH = 240;
+// Margen lateral pedido explícito (20-25px máximo contra los bordes del
+// teléfono): cada SLOT del carrusel (no la tarjeta en sí) mide
+// `calc(100% - HABIT_TAB_SIDE_MARGIN*2)`, y la tarjeta vive centrada
+// ADENTRO de ese slot vía flex + maxWidth/maxHeight (ver más abajo). Esto
+// separa dos cosas que antes eran la misma medida: cuánto asoma el
+// vecino en reposo (fijo, siempre este margen) de cuánto mide realmente
+// la tarjeta (variable — ver comentario en HabitTabCarousel sobre el
+// techo real que impone la altura disponible).
+const HABIT_TAB_SIDE_MARGIN = 22;
+
 // Rango del efecto de foco pedido explícito: 100%→70% escala, 100%→35%
 // opacidad (mitad del rango 30-40% pedido), 0px→4px blur. `proximity` va
 // de 0 (tarjeta centrada) a 1 (a un slot completo de distancia) — más
@@ -2208,15 +2217,38 @@ function habitTabFocusStyle(proximity) {
   return { scale, opacity, blur };
 }
 
-// HabitTabCarousel: mismo mecanismo de scroll-snap nativo del carrusel
-// anterior (ver historial), ahora con el efecto de foco pedido explícito
-// — escala/opacidad/blur de cada tarjeta derivados de su distancia al
-// centro del track, escritos directo al DOM en un handler con rAF (sin
-// estado de React por frame, mismo criterio que el resto de la app para
-// algo que corre en cada frame de scroll). `willChange` en las 5
-// tarjetas porque las tres propiedades cambian juntas en cada frame de
-// swipe — sin este hint Chromium repintaba en vez de solo componitar,
-// visible como un pequeño salto en dispositivos de gama baja.
+// Separación fija entre tarjetas consecutivas — chica a propósito (a
+// diferencia de HABIT_TAB_SIDE_MARGIN, que fija cuánto asoma la primera/
+// última tarjeta contra el borde de pantalla). Con la tarjeta ahora al
+// 85-90% de ancho, un gap grande empujaría a la vecina casi entera fuera
+// de pantalla sin asomar nada; uno chico dejá vera "un pequeño borde muy
+// sutil" del vecino en el margen lateral, tal como se pidió.
+const HABIT_TAB_CARD_GAP = 16;
+
+// HabitTabCarousel: pedido explícito de agrandar la tarjeta a ~85-90%
+// del ANCHO de pantalla. Con el aspecto del PNG (846x1067, más alta que
+// ancha) eso da ~420-440px de alto — más de lo que entra entre la
+// burbuja "¡Hola!" y la fila de racha sin pisarlas (~320px reales,
+// medidos). Se resolvió explícito con el usuario: la tarjeta prioriza el
+// 85-90% de ancho pedido y puede solapar burbuja/racha — para que ese
+// solape no se vea roto, MainLayout pone un fondo oscuro+blur detrás de
+// todo el carrusel (ver el comentario junto a ese overlay) y este
+// contenedor se ubica en la franja GRANDE real entre el header y el
+// dock, no en la franja chica entre burbuja y racha.
+// El margen lateral (HABIT_TAB_SIDE_MARGIN) vive en el `paddingLeft/
+// Right` del track, no acá: por eso la tarjeta usa `width:"100%"` sin
+// restar nada — ese 100% ya resuelve contra el content-box del track,
+// que el padding ya redujo en esos 44px. Restarlo DE NUEVO acá era un
+// bug real (encontrado midiendo el ancho computado en el navegador):
+// dejaba la tarjeta en 302px en vez de 346px, un margen de facto
+// duplicado. `height:auto` + `maxHeight:"100%"` (techo de seguridad, por
+// si un viewport muy bajo dejara menos alto del que la tarjeta al
+// 85-90% necesita — ver el comentario largo en MainLayout con los
+// números reales medidos) dejan que el navegador mismo re-derive el
+// ancho a partir del alto disponible en ese caso límite, sin
+// intervención de JS — mismo algoritmo que usa `object-fit: contain`,
+// aplicado acá vía las reglas de tamaño de elementos reemplazados del
+// propio spec de CSS.
 function HabitTabCarousel() {
   const trackRef = useRef(null);
   const cardRefs = useRef([]);
@@ -2226,11 +2258,12 @@ function HabitTabCarousel() {
     if (!track) return;
     const trackRect = track.getBoundingClientRect();
     const centerX = trackRect.left + trackRect.width / 2;
+    const cardWidth = cardRefs.current[0]?.getBoundingClientRect().width || trackRect.width;
     cardRefs.current.forEach((el) => {
       if (!el) return;
       const r = el.getBoundingClientRect();
       const dist = Math.abs(r.left + r.width / 2 - centerX);
-      const proximity = Math.min(1, dist / (HABIT_TAB_CARD_WIDTH || 1));
+      const proximity = Math.min(1, dist / (cardWidth + HABIT_TAB_CARD_GAP));
       const { scale, opacity, blur } = habitTabFocusStyle(proximity);
       el.style.transform = `scale(${scale.toFixed(3)})`;
       el.style.opacity = opacity.toFixed(3);
@@ -2259,10 +2292,11 @@ function HabitTabCarousel() {
   return (
     <div
       ref={trackRef}
-      className="habit-carousel-track flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-visible"
+      className="habit-carousel-track flex h-full snap-x snap-mandatory items-center overflow-x-auto overflow-y-visible"
       style={{
-        paddingLeft: `calc(50% - ${HABIT_TAB_CARD_WIDTH / 2}px)`,
-        paddingRight: `calc(50% - ${HABIT_TAB_CARD_WIDTH / 2}px)`,
+        gap: HABIT_TAB_CARD_GAP,
+        paddingLeft: HABIT_TAB_SIDE_MARGIN,
+        paddingRight: HABIT_TAB_SIDE_MARGIN,
         scrollbarWidth: "none",
       }}
     >
@@ -2276,7 +2310,20 @@ function HabitTabCarousel() {
           alt=""
           draggable={false}
           className="shrink-0 snap-center select-none"
-          style={{ width: HABIT_TAB_CARD_WIDTH, height: "auto", willChange: "transform, opacity, filter", transition: "transform 150ms ease-out, opacity 150ms ease-out, filter 150ms ease-out" }}
+          style={{
+            // 100% acá, NO calc(100% - margen): el margen lateral ya lo
+            // pone el `paddingLeft/Right: HABIT_TAB_SIDE_MARGIN` del
+            // track de más abajo, que reduce el content-box del track
+            // (contra el que resuelve este 100%) en esos mismos 44px.
+            // Restarlo DE NUEVO acá lo restaba dos veces (346px de
+            // margen esperado terminaban siendo 302px reales — bug real,
+            // encontrado midiendo el ancho computado en el navegador).
+            width: "100%",
+            height: "auto",
+            maxHeight: "100%",
+            willChange: "transform, opacity, filter",
+            transition: "transform 150ms ease-out, opacity 150ms ease-out, filter 150ms ease-out",
+          }}
         />
       ))}
     </div>
@@ -2933,6 +2980,22 @@ export default function MainLayout() {
         />
       </div>
 
+      {/* Fondo oscuro + blur DETRÁS del carrusel de hábitos: pedido
+          explícito una vez confirmado que la tarjeta al 85-90% de ancho
+          (ver HabitTabCarousel) es más alta de lo que entra entre la
+          burbuja "¡Hola!" y la fila de racha sin taparlas — en vez de
+          reducir la tarjeta o mover esos elementos, se los oscurece y
+          desenfoca para que el solape se vea intencional ("no importa si
+          la tarjeta tapa los elementos de atrás" — respuesta explícita
+          del usuario a esa disyuntiva). z-[15]: por ENCIMA de la burbuja,
+          la fila de racha y los círculos de fondo (z-10 o sin z-index),
+          por DEBAJO del header y el dock (z-20, ver más abajo) — esos dos
+          siguen intactos y usables arriba de todo, tal como se pidió no
+          alterarlos. `pointer-events-none` para no bloquear los botones
+          de esa fila (Fondos/Hábitos) para quien igual llegue a tocarlos
+          en el borde visible. */}
+      <div className="pointer-events-none absolute inset-0 z-[15] bg-black/55 backdrop-blur-md" />
+
       {/* Carrusel de Hábitos: 5 posiciones (límite del plan gratuito),
           todas mostrando por ahora el mismo PNG de estado vacío entregado
           (recortado a la tarjeta central del archivo — las 2 tarjetas en
@@ -2944,11 +3007,26 @@ export default function MainLayout() {
           duración/monedas, ícono, play) una vez que haya spec para la
           capa de interacción. Efecto de foco (escala/opacidad/blur según
           distancia al centro) implementado en <HabitTabCarousel> — ver
-          ese componente para el detalle. Misma zona "central entre la
-          botonera superior y la barra de racha": top=36% deja ~45px
-          libres bajo la burbuja "¡Hola!" y no toca la fila de racha
-          (bottom:22vh). */}
-      <div className="absolute inset-x-0 top-[36%] z-10">
+          ese componente para el detalle.
+          Tamaño pedido explícito: 85-90% del ancho de pantalla. Con el
+          aspecto del PNG (846x1067) eso da ~420-440px de alto, más de lo
+          que entra entre la burbuja y la racha (~320px reales, medidos)
+          — así que en vez de un tope de altura ajustado a esa franja
+          chica (lo que dejaba la tarjeta casi del mismo tamaño de antes,
+          ver historial), este contenedor usa la franja GRANDE real entre
+          el header y el dock (104px a 748px medidos en un viewport de
+          844 de alto — ambos con posición en px/vw fija, no relativa a
+          la altura de pantalla) con margen de seguridad, para que el
+          85-90% de ancho sea real y la tarjeta no tenga que competir por
+          altura. El solape resultante con la burbuja/racha es a
+          propósito — ver el fondo oscuro/blur de arriba. z-20: por
+          ENCIMA del fondo oscuro (z-15), sin invadir el z-20 de
+          header/dock por diseño (hay margen de sobra en ambos extremos:
+          ver los números reales arriba). */}
+      <div
+        className="absolute inset-x-0 z-20"
+        style={{ top: "120px", bottom: "calc(24.48vw + 20px)" }}
+      >
         <HabitTabCarousel />
       </div>
 
