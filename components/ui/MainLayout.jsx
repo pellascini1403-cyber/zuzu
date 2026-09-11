@@ -2194,6 +2194,95 @@ function habitScheduleLabel(schedule, t) {
   return t("habits.scheduleNoPressure");
 }
 
+const HABIT_TAB_CARD_WIDTH = 240;
+// Rango del efecto de foco pedido explícito: 100%→70% escala, 100%→35%
+// opacidad (mitad del rango 30-40% pedido), 0px→4px blur. `proximity` va
+// de 0 (tarjeta centrada) a 1 (a un slot completo de distancia) — más
+// allá de eso se clampea a 1, así que una tarjeta a 2+ slots de
+// distancia (posible con solo 3 visibles a la vez de las 5) queda con el
+// mismo tope que una a 1 slot, no sigue empequeñeciéndose.
+function habitTabFocusStyle(proximity) {
+  const scale = 1 - proximity * 0.3;
+  const opacity = 1 - proximity * 0.65;
+  const blur = proximity * 4;
+  return { scale, opacity, blur };
+}
+
+// HabitTabCarousel: mismo mecanismo de scroll-snap nativo del carrusel
+// anterior (ver historial), ahora con el efecto de foco pedido explícito
+// — escala/opacidad/blur de cada tarjeta derivados de su distancia al
+// centro del track, escritos directo al DOM en un handler con rAF (sin
+// estado de React por frame, mismo criterio que el resto de la app para
+// algo que corre en cada frame de scroll). `willChange` en las 5
+// tarjetas porque las tres propiedades cambian juntas en cada frame de
+// swipe — sin este hint Chromium repintaba en vez de solo componitar,
+// visible como un pequeño salto en dispositivos de gama baja.
+function HabitTabCarousel() {
+  const trackRef = useRef(null);
+  const cardRefs = useRef([]);
+
+  const updateFocus = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const trackRect = track.getBoundingClientRect();
+    const centerX = trackRect.left + trackRect.width / 2;
+    cardRefs.current.forEach((el) => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const dist = Math.abs(r.left + r.width / 2 - centerX);
+      const proximity = Math.min(1, dist / (HABIT_TAB_CARD_WIDTH || 1));
+      const { scale, opacity, blur } = habitTabFocusStyle(proximity);
+      el.style.transform = `scale(${scale.toFixed(3)})`;
+      el.style.opacity = opacity.toFixed(3);
+      el.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : "none";
+    });
+  }, []);
+
+  const rafRef = useRef(0);
+  const onScroll = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(updateFocus);
+  }, [updateFocus]);
+
+  useEffect(() => {
+    updateFocus();
+    const track = trackRef.current;
+    track?.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", updateFocus);
+    return () => {
+      track?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", updateFocus);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [onScroll, updateFocus]);
+
+  return (
+    <div
+      ref={trackRef}
+      className="habit-carousel-track flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-visible"
+      style={{
+        paddingLeft: `calc(50% - ${HABIT_TAB_CARD_WIDTH / 2}px)`,
+        paddingRight: `calc(50% - ${HABIT_TAB_CARD_WIDTH / 2}px)`,
+        scrollbarWidth: "none",
+      }}
+    >
+      {Array.from({ length: 5 }, (_, i) => (
+        <img
+          key={i}
+          ref={(el) => {
+            cardRefs.current[i] = el;
+          }}
+          src="/nav2/habit-tab-empty.png"
+          alt=""
+          draggable={false}
+          className="shrink-0 snap-center select-none"
+          style={{ width: HABIT_TAB_CARD_WIDTH, height: "auto", willChange: "transform, opacity, filter", transition: "transform 150ms ease-out, opacity 150ms ease-out, filter 150ms ease-out" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // HabitCard: una fila por hábito — emoji + título + badge de frecuencia
 // + recompensa, con botón "Completar" (y "Hacer versión mini" si el
 // hábito tiene micro-hábito definido). El estado "hecho hoy" viene ya
@@ -2853,30 +2942,14 @@ export default function MainLayout() {
           botones ni estado se dibuja encima todavía — eso es la
           iteración siguiente (input de título, selección de días,
           duración/monedas, ícono, play) una vez que haya spec para la
-          capa de interacción. El deslizamiento entre posiciones es
-          scroll-snap nativo del navegador (el mismo mecanismo que ya
-          usaba el carrusel anterior), no una reconstrucción visual de la
-          tarjeta. Misma zona "central entre la botonera superior y la
-          barra de racha": top=36% deja ~45px libres bajo la burbuja
-          "¡Hola!" y no toca la fila de racha (bottom:22vh). */}
-      <div
-        className="habit-carousel-track absolute inset-x-0 top-[36%] z-10 flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-visible"
-        style={{
-          paddingLeft: "calc(50% - 120px)",
-          paddingRight: "calc(50% - 120px)",
-          scrollbarWidth: "none",
-        }}
-      >
-        {Array.from({ length: 5 }, (_, i) => (
-          <img
-            key={i}
-            src="/nav2/habit-tab-empty.png"
-            alt=""
-            draggable={false}
-            className="shrink-0 snap-center select-none"
-            style={{ width: 240, height: "auto" }}
-          />
-        ))}
+          capa de interacción. Efecto de foco (escala/opacidad/blur según
+          distancia al centro) implementado en <HabitTabCarousel> — ver
+          ese componente para el detalle. Misma zona "central entre la
+          botonera superior y la barra de racha": top=36% deja ~45px
+          libres bajo la burbuja "¡Hola!" y no toca la fila de racha
+          (bottom:22vh). */}
+      <div className="absolute inset-x-0 top-[36%] z-10">
+        <HabitTabCarousel />
       </div>
 
       {/* Fondos / Racha / Hábitos: fila horizontal, orden pedido
