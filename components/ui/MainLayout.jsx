@@ -2506,24 +2506,22 @@ function HabitsModal({ open, onClose, habits, onComplete, onAddHabit, onDeleteHa
   );
 }
 
-// FONDO DE PRUEBA TEMPORAL — solo para verificar el backdrop-blur/
-// transparencia del Liquid Glass; NO es el fondo final de la app (eso
-// sigue sin definirse). Un degradado liso no sirve para esto: el blur
-// no se nota si no hay detalle de alta frecuencia detrás para
-// suavizar, así que son varios blobs radiales de colores saturados con
-// el borde bien marcado (transición de solo 1% entre color y
-// transparente) — un "wallpaper" con formas, no un gradiente continuo.
-// Reemplazar/quitar cuando se defina el fondo real de la app.
-const QA_TEST_BACKGROUND = `
-  radial-gradient(circle at 18% 12%, #ff2d78 0%, #ff2d78 17%, transparent 18%),
-  radial-gradient(circle at 82% 8%, #00e5ff 0%, #00e5ff 14%, transparent 15%),
-  radial-gradient(circle at 12% 52%, #ffb020 0%, #ffb020 19%, transparent 20%),
-  radial-gradient(circle at 88% 46%, #7c3aed 0%, #7c3aed 21%, transparent 22%),
-  radial-gradient(circle at 38% 82%, #22d3a5 0%, #22d3a5 17%, transparent 18%),
-  radial-gradient(circle at 92% 88%, #ff2d78 0%, #ff2d78 15%, transparent 16%),
-  radial-gradient(circle at 55% 35%, #fde047 0%, #fde047 12%, transparent 13%),
-  linear-gradient(135deg, #1a1a2e, #16213e)
-`;
+// Fondo real de la app — reemplaza a los blobs radiales multicolores
+// que había antes (aquellos eran un placeholder de QA para verificar el
+// backdrop-blur del Liquid Glass, nunca el fondo definitivo).
+// `cover` + `center`: el asset es 704x1520 (relación 0.463), casi
+// idéntica a la de un teléfono típico (390x844 -> 0.462), así que
+// cubrir la pantalla no recorta nada perceptible en ningún alto.
+// `backgroundColor` es el color promedio real del propio archivo
+// (muestreado, no elegido a ojo) — solo se ve mientras el JPG carga, y
+// al coincidir con el tono dominante evita el flash blanco.
+const APP_BACKGROUND_STYLE = {
+  backgroundColor: "rgb(196, 203, 221)",
+  backgroundImage: "url('/app-background.jpg')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+};
 
 export default function MainLayout() {
   // Estructura mínima de click pedida explícitamente para los modales
@@ -2715,8 +2713,8 @@ export default function MainLayout() {
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
     <DarkModeContext.Provider value={{ darkMode, setDarkMode }}>
     <div
-      className="relative h-[100dvh] w-full overflow-hidden bg-white"
-      style={{ background: QA_TEST_BACKGROUND }}
+      className="relative h-[100dvh] w-full overflow-hidden"
+      style={APP_BACKGROUND_STYLE}
     >
       <style>{`${PREMIUM_RING_KEYFRAMES}${CHAT_BUBBLE_PULSE_KEYFRAMES}${COIN_BURST_KEYFRAMES}`}</style>
 
