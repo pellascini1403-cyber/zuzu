@@ -1579,315 +1579,28 @@ const PREMIUM_TEXT_GLOW_STYLE = {
   filter: "drop-shadow(0 0 8px rgba(125,211,252,0.85)) drop-shadow(0 0 18px rgba(56,189,248,0.5))",
 };
 
-// ---------------------------------------------------------------------
-// Menú circular de Configuración ("wheel menu") — pedido explícito de
-// reemplazar la tarjeta plana de antes por una rueda vertical curva: 9
-// opciones dispuestas sobre el arco de una circunferencia cuyo centro
-// cae fuera de pantalla a la derecha, con la seleccionada en el punto
-// más "cercano" (más a la izquierda) del arco. No hay PNG de por medio
-// acá — es geometría (posición/ángulo por trigonometría) y físicas de
-// arrastre, así que a diferencia de la pestaña de Hábitos esto SÍ se
-// construye con código.
-// ---------------------------------------------------------------------
-
-// Orden pedido explícito, de arriba a abajo. `id` es la clave que
-// SettingsModal usa para resolver qué acción dispara cada una (abrir su
-// sub-modal, alternar un switch, etc.) — separado de la definición
-// visual (ícono/etiqueta) porque esa parte no depende de ningún hook.
-const SETTINGS_WHEEL_ITEM_DEFS = [
-  { id: "logOut", labelKey: "settings.logOut", Icon: LogoutIcon },
-  { id: "userPolicy", labelKey: "settings.userPolicy", Icon: ShieldCheckIcon },
-  { id: "terms", labelKey: "settings.termsOfService", Icon: DocumentIcon },
-  { id: "faq", labelKey: "settings.faq", Icon: QuestionIcon },
-  { id: "notifications", labelKey: "settings.wheelNotifications", Icon: BellIcon },
-  { id: "general", labelKey: "settings.wheelGeneral", Icon: GearIcon },
-  { id: "darkMode", labelKey: "settings.darkMode", Icon: MoonIcon },
-  { id: "language", labelKey: "settings.language", Icon: AaIcon },
-  { id: "contact", labelKey: "settings.wheelContact", Icon: ZLogoIcon },
-];
-// Índice de partida: "Notifications" pedido explícito como "seleccionada
-// por defecto en la muestra".
-const SETTINGS_WHEEL_DEFAULT_INDEX = 4;
-
-const WHEEL_ANGLE_STEP = 0.22; // rad entre ítems consecutivos sobre el arco
-const WHEEL_RADIUS = 460; // circunferencia grande -> curva suave, no un "banana" exagerado
-const WHEEL_ROW_WIDTH = 258; // ancho fijo de cada fila texto+píldora
-const WHEEL_ROW_HEIGHT = 52;
-const WHEEL_PX_PER_ITEM = WHEEL_RADIUS * WHEEL_ANGLE_STEP; // ~101px — cuánto hay que arrastrar para avanzar 1 ítem
-const WHEEL_TAP_THRESHOLD = 6; // px: por debajo de esto, un pointerdown+up cuenta como tap, no arrastre
-const WHEEL_SNAP_EASE = 0.22; // por-frame, hacia el entero más cercano
-
-// Distancia circular más corta entre dos índices sobre un círculo de `n`
-// posiciones — el corazón de que la rueda sea "infinita": permite tanto
-// posicionar cada ítem (dist(i, actual)) como animar un tap al vecino
-// más cercano en vez de dar la vuelta larga.
-function wheelShortestDelta(a, b, n) {
-  let d = a - b;
-  d -= Math.round(d / n) * n;
-  return d;
-}
-
-// Colores interpolados (no clases Tailwind fijas) porque el pedido es
-// explícito: la transición seleccionada->inactiva es CONTINUA según la
-// distancia angular, no un salto de 2 estados.
-const WHEEL_COLOR_PILL_ACTIVE = [71, 85, 105]; // slate-600
-const WHEEL_COLOR_PILL_INACTIVE = [226, 232, 240]; // slate-200
-const WHEEL_COLOR_ICON_ACTIVE = [255, 255, 255];
-const WHEEL_COLOR_ICON_INACTIVE = [148, 163, 184]; // slate-400
-const WHEEL_COLOR_TEXT_ACTIVE = [30, 41, 59]; // slate-800
-const WHEEL_COLOR_TEXT_INACTIVE = [180, 188, 199];
-function lerpRgb(a, b, t) {
-  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)}, ${Math.round(a[1] + (b[1] - a[1]) * t)}, ${Math.round(a[2] + (b[2] - a[2]) * t)})`;
-}
-
-// Curva/indicador decorativo (la línea gris con la "perilla" que marca
-// el centro): sigue LA MISMA circunferencia que los ítems (mismo
-// WHEEL_RADIUS/baseX), muestreada en puntos discretos y unida en un
-// path suave — así el indicador y las tarjetas quedan matemáticamente
-// alineados, no dos curvas dibujadas por separado a ojo.
-function wheelCurvePath(width, height, sampleCount = 32) {
-  const baseX = width * 0.86;
-  const centerY = height / 2;
-  const maxTheta = 5.4 * WHEEL_ANGLE_STEP;
-  const points = [];
-  for (let i = 0; i <= sampleCount; i++) {
-    const theta = -maxTheta + (2 * maxTheta * i) / sampleCount;
-    const x = baseX + WHEEL_RADIUS * (1 - Math.cos(theta));
-    const y = centerY + WHEEL_RADIUS * Math.sin(theta);
-    points.push(`${x.toFixed(1)},${y.toFixed(1)}`);
-  }
-  return `M${points.join(" L")}`;
-}
-
-// SettingsWheelMenu: mecánica de arrastre + snap. Todo el cálculo por
-// frame (posición/ángulo/color/opacidad de las 9 filas) se escribe
-// directo al DOM vía refs — mismo criterio imperativo que ya usa el
-// resto de la app para algo que corre en cada frame de gesto, sin
-// re-render de React de por medio. React sólo se entera de CUÁL quedó
-// activa al asentarse (para que SettingsModal sepa qué acción disparar
-// en un tap), no de la posición continua mientras se arrastra.
-function SettingsWheelMenu({ items }) {
-  const trackRef = useRef(null);
-  const itemRefs = useRef([]);
-  const curvePathRef = useRef(null);
-  const selectedFloatRef = useRef(SETTINGS_WHEEL_DEFAULT_INDEX);
-  const dragRef = useRef(null);
-  const rafRef = useRef(0);
-  const animTargetRef = useRef(null);
-  const n = items.length;
-
-  const applyPositions = useCallback(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    const { width, height } = track.getBoundingClientRect();
-    const baseX = width * 0.86;
-    const centerY = height / 2;
-    // El indicador SVG se recalcula con las MISMAS width/height recién
-    // medidas (no un tamaño fijo supuesto) para que quede matemáticamente
-    // alineado con las tarjetas en cualquier viewport, no solo en el que
-    // se probó a mano.
-    if (curvePathRef.current) curvePathRef.current.setAttribute("d", wheelCurvePath(width, height));
-    itemRefs.current.forEach((el, i) => {
-      if (!el) return;
-      const d = wheelShortestDelta(i, selectedFloatRef.current, n);
-      const theta = d * WHEEL_ANGLE_STEP;
-      const proximity = Math.min(1, Math.abs(d) / 3.2);
-      const edgeFade = Math.max(0, 1 - Math.min(1, Math.abs(d) / 4.4));
-      const x = baseX + WHEEL_RADIUS * (1 - Math.cos(theta));
-      const y = centerY + WHEEL_RADIUS * Math.sin(theta);
-      const rotateDeg = (-theta * 180) / Math.PI * 0.55;
-      const scale = 1 - proximity * 0.16;
-      el.style.transform = `translate(${(x - WHEEL_ROW_WIDTH).toFixed(1)}px, ${(y - WHEEL_ROW_HEIGHT / 2).toFixed(1)}px) rotate(${rotateDeg.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-      el.style.opacity = edgeFade.toFixed(3);
-      el.style.zIndex = String(Math.round((1 - proximity) * 100));
-      const pill = el.querySelector("[data-wheel-pill]");
-      const icon = el.querySelector("[data-wheel-icon]");
-      const label = el.querySelector("[data-wheel-label]");
-      if (pill) pill.style.background = lerpRgb(WHEEL_COLOR_PILL_ACTIVE, WHEEL_COLOR_PILL_INACTIVE, proximity);
-      if (icon) icon.style.color = lerpRgb(WHEEL_COLOR_ICON_ACTIVE, WHEEL_COLOR_ICON_INACTIVE, proximity);
-      if (label) {
-        label.style.color = lerpRgb(WHEEL_COLOR_TEXT_ACTIVE, WHEEL_COLOR_TEXT_INACTIVE, proximity);
-        label.style.fontWeight = proximity < 0.15 ? "700" : "600";
-      }
-    });
-  }, [n]);
-
-  const commitSelection = useCallback(() => {
-    const idx = ((Math.round(selectedFloatRef.current) % n) + n) % n;
-    items[idx]?.onSettle?.();
-  }, [items, n]);
-
-  const animateTo = useCallback(
-    (targetFloat) => {
-      animTargetRef.current = targetFloat;
-      cancelAnimationFrame(rafRef.current);
-      const step = () => {
-        const cur = selectedFloatRef.current;
-        const diff = animTargetRef.current - cur;
-        if (Math.abs(diff) < 0.003) {
-          selectedFloatRef.current = animTargetRef.current;
-          applyPositions();
-          commitSelection();
-          return;
-        }
-        selectedFloatRef.current = cur + diff * WHEEL_SNAP_EASE;
-        applyPositions();
-        rafRef.current = requestAnimationFrame(step);
-      };
-      rafRef.current = requestAnimationFrame(step);
-    },
-    [applyPositions, commitSelection]
-  );
-
-  useEffect(() => {
-    applyPositions();
-    const onResize = () => applyPositions();
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [applyPositions]);
-
-  function handlePointerDown(e, index) {
-    cancelAnimationFrame(rafRef.current);
-    dragRef.current = { startY: e.clientY, startFloat: selectedFloatRef.current, moved: 0, tappedIndex: index };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function handlePointerMove(e) {
-    const d = dragRef.current;
-    if (!d) return;
-    const deltaY = e.clientY - d.startY;
-    d.moved = Math.max(d.moved, Math.abs(deltaY));
-    selectedFloatRef.current = d.startFloat - deltaY / WHEEL_PX_PER_ITEM;
-    applyPositions();
-  }
-  function handlePointerUp() {
-    const d = dragRef.current;
-    dragRef.current = null;
-    if (!d) return;
-    if (d.moved < WHEEL_TAP_THRESHOLD) {
-      // Tap: activa YA la acción del ítem tocado y anima la rueda para
-      // centrarlo — no hace falta soltar un arrastre primero.
-      const delta = wheelShortestDelta(d.tappedIndex, Math.round(d.startFloat), n);
-      items[d.tappedIndex]?.onActivate?.();
-      animateTo(Math.round(d.startFloat) + delta);
-      return;
-    }
-    animateTo(Math.round(selectedFloatRef.current));
-  }
-
-  return (
-    <div
-      ref={trackRef}
-      className="absolute inset-0 touch-none select-none"
-      style={{
-        maskImage: "linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%)",
-      }}
-    >
-      <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
-        <path
-          ref={curvePathRef}
-          fill="none"
-          stroke="rgba(100,116,139,0.45)"
-          strokeWidth="1.5"
-        />
-      </svg>
-      {/* Perilla/indicador: marca el punto fijo del arco donde cae la
-          tarjeta seleccionada (theta=0 en la misma fórmula de arriba,
-          x=width*0.86 — de ahí `right:14%`) — no necesita medirse por JS
-          porque, a diferencia de las tarjetas, esta pieza NUNCA se
-          mueve: es la seleccionada la que viaja hasta acá, no al revés. */}
-      <div
-        className="pointer-events-none absolute h-2 w-6 -translate-y-1/2 rounded-full bg-slate-500/70"
-        style={{ right: "14%", top: "50%" }}
-      />
-      {items.map((item, i) => (
-        <button
-          key={item.id}
-          type="button"
-          aria-label={item.label}
-          ref={(el) => {
-            itemRefs.current[i] = el;
-          }}
-          onPointerDown={(e) => handlePointerDown(e, i)}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className="absolute left-0 top-0 flex items-center justify-end gap-3 px-1"
-          style={{ width: WHEEL_ROW_WIDTH, height: WHEEL_ROW_HEIGHT, transformOrigin: "100% 50%", touchAction: "none" }}
-        >
-          <span data-wheel-label className="truncate text-[13px]">
-            {item.label}
-          </span>
-          <span
-            data-wheel-pill
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-          >
-            <item.Icon data-wheel-icon className="h-5 w-5" />
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// SettingsModal: pantalla completa (no ya una tarjeta chica) — pedido
-// explícito de reemplazar el menú plano por la rueda circular de arriba,
-// con el fondo del dashboard desenfocado+oscurecido detrás ("blur
-// profundo", más fuerte que el `backdrop-blur-md` estándar de
-// ModalBackdrop en el resto de la app). ZUZU PREMIUM salió de acá: no
-// estaba en la lista de 9 opciones pedida — PremiumModal se deja
-// definido en el archivo por si se le busca otro punto de entrada más
-// adelante, simplemente no se monta desde este menú.
-// Funcionalidad real igual que antes, ahora disparada por
-// item.onActivate en vez de un onClick por fila:
-// - Notifications: alterna `pauseNotifications` (persistido, mismo
-//   criterio que ya había).
-// - Dark mode: alterna el DarkModeContext de arriba (app-wide).
-// - General/Language/Contact/FAQ/Terms/User policy: abren su
-//   sub-modal de siempre.
-// - Log out: abre ConfirmAlert; confirmar llama a `onLogout`.
-function SettingsModal({ open, onClose, onLogout }) {
-  const { darkMode, setDarkMode } = useDarkMode();
+// SettingsModal: corrección explícita — la versión anterior recreó la
+// rueda de Configuración con trigonometría/CSS/SVG propios; el pedido
+// fue exactamente lo contrario: usar el PNG entregado (ya dibujado a
+// mano, con sus 9 opciones, la curva y la perilla incluidas) TAL CUAL,
+// sin redibujar nada. `public/nav2/settings-wheel.png` es ese archivo,
+// recortado a su bounding box de alfa +2% (mismo criterio que el resto
+// de assets de nav2/) — nunca reconstruido. Se ubica pegado al borde
+// derecho, alto natural (altura completa de la imagen, no estirada ni
+// recortada), sobre el mismo fondo oscurecido+desenfocado de antes.
+// Pedido explícito también: "por ahora" es solo visual, sin animar la
+// curva ni recrear su comportamiento — así que, a diferencia de la
+// versión anterior, ACÁ NO HAY NINGÚN <button> por opción: el PNG entero
+// es una sola imagen estática, sin zonas tocables propias. Efecto
+// colateral que se advierte a propósito: Log out/Dark mode/Language/
+// General/Contact/FAQ/Terms/User policy quedan temporalmente
+// inalcanzables desde acá hasta que se dé la siguiente capa de
+// interacción — sus sub-modales y ConfirmAlert se dejaron de montar
+// (siguen definidos en el archivo, listos para reconectarse). El único
+// control agregado es el botón "×" para cerrar la pantalla — no es
+// parte de la rueda, es la mínima infraestructura para poder salir.
+function SettingsModal({ open, onClose }) {
   const { t } = useLanguage();
-  const [pauseNotifications, setPauseNotifications] = useLocalStorageFlag("zuzu-notifications-paused", false);
-
-  const [generalOpen, setGeneralOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
-  const [contactOpen, setContactOpen] = useState(false);
-  const [faqOpen, setFaqOpen] = useState(false);
-  const [termsOpen, setTermsOpen] = useState(false);
-  const [policyOpen, setPolicyOpen] = useState(false);
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-
-  const wheelItems = SETTINGS_WHEEL_ITEM_DEFS.map((def) => ({
-    ...def,
-    label: t(def.labelKey),
-    onActivate: {
-      logOut: () => setLogoutConfirmOpen(true),
-      userPolicy: () => setPolicyOpen(true),
-      terms: () => setTermsOpen(true),
-      faq: () => setFaqOpen(true),
-      // useLocalStorageFlag.setValue hace `String(next)` directo, sin
-      // soporte de forma funcional `(v) => !v` como el setState nativo
-      // de React — pasarle una función ahí guarda el SOURCE de la
-      // función como string ("(v) => !v") en vez de "true"/"false", y
-      // como `readValue` solo reconoce el string exacto "true", el flag
-      // queda roto en falso para siempre (bug real, encontrado
-      // comparando el valor de localStorage antes/después en el
-      // navegador). Por eso acá se usa el valor ya leído en este
-      // render (`pauseNotifications`/`darkMode`, de los hooks de
-      // arriba), no una forma funcional.
-      notifications: () => setPauseNotifications(!pauseNotifications),
-      general: () => setGeneralOpen(true),
-      darkMode: () => setDarkMode(!darkMode),
-      language: () => setLanguageOpen(true),
-      contact: () => setContactOpen(true),
-    }[def.id],
-  }));
-
   return (
     <>
       <div
@@ -1901,35 +1614,27 @@ function SettingsModal({ open, onClose, onLogout }) {
         role="dialog"
         aria-label={t("settings.title")}
         aria-hidden={!open}
-        className={`absolute inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
+        className={`absolute inset-0 z-50 overflow-hidden ${open ? "" : "pointer-events-none"}`}
         style={{ opacity: open ? 1 : 0, transition: open ? MODAL_OPEN_TRANSITION : MODAL_CLOSE_TRANSITION }}
       >
+        {/* left-5, no right-5: la imagen está pegada al borde derecho y
+            su primera píldora ("Log out") ya llega bastante arriba —
+            un botón de cerrar a la derecha se le superponía. */}
         <button
           type="button"
           onClick={onClose}
           aria-label={t("common.close")}
-          className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-600 shadow-md"
+          className="absolute left-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-600 shadow-md"
         >
           <PlusIcon className="h-4 w-4 rotate-45" />
         </button>
-        <SettingsWheelMenu items={wheelItems} />
+        <img
+          src="/nav2/settings-wheel.png"
+          alt={t("settings.title")}
+          draggable={false}
+          className="pointer-events-none absolute right-0 top-1/2 h-full w-auto max-w-none -translate-y-1/2 select-none"
+        />
       </div>
-
-      <GeneralSettingsModal open={generalOpen} onClose={() => setGeneralOpen(false)} />
-      <LanguageModal open={languageOpen} onClose={() => setLanguageOpen(false)} />
-      <MyContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
-      <FaqModal open={faqOpen} onClose={() => setFaqOpen(false)} />
-      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
-      <UserPolicyModal open={policyOpen} onClose={() => setPolicyOpen(false)} onDeleteAccount={onLogout} />
-      <ConfirmAlert
-        open={logoutConfirmOpen}
-        onClose={() => setLogoutConfirmOpen(false)}
-        title={t("settings.logOut")}
-        message={t("settings.logOutConfirmMessage")}
-        confirmLabel={t("settings.logOutConfirmLabel")}
-        destructive
-        onConfirm={onLogout}
-      />
     </>
   );
 }
