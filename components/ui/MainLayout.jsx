@@ -2534,6 +2534,15 @@ export default function MainLayout() {
   const [petsOpen, setPetsOpen] = useState(false);
   const [backgroundsOpen, setBackgroundsOpen] = useState(false);
   const [habitsOpen, setHabitsOpen] = useState(false);
+  // Corrección explícita: con CUALQUIER modal abierto (Configuración,
+  // Perfil, Tienda, etc.), la tarjeta de Hábitos — grande, con su propio
+  // fondo oscuro/blur — se veía DETRÁS del backdrop del modal, doble
+  // blur sobre doble oscurecido, leyéndose como "dos modales
+  // superpuestos" en vez de un único fondo de dashboard desenfocado.
+  // `anyModalOpen` deja de renderizar esa zona entera (ni el PNG de la
+  // tarjeta ni su propio backdrop) mientras haya un modal encima, en vez
+  // de confiar en que el z-index y el blur del modal la tapen solos.
+  const anyModalOpen = profileOpen || settingsOpen || storeOpen || petsOpen || backgroundsOpen || habitsOpen;
   const { xp, xpToNext, bestStreak } = usePetStats();
   const { tokens, addTokens } = useTokens();
   const { habits, completeHabit, addHabit, updateHabit, deleteHabit } = useHabits();
@@ -2853,55 +2862,70 @@ export default function MainLayout() {
         />
       </div>
 
-      {/* Fondo oscuro + blur DETRÁS del carrusel de hábitos: pedido
-          explícito una vez confirmado que la tarjeta al 85-90% de ancho
-          (ver HabitTabCarousel) es más alta de lo que entra entre la
-          burbuja "¡Hola!" y la fila de racha sin taparlas — en vez de
-          reducir la tarjeta o mover esos elementos, se los oscurece y
-          desenfoca para que el solape se vea intencional ("no importa si
-          la tarjeta tapa los elementos de atrás" — respuesta explícita
-          del usuario a esa disyuntiva). z-[15]: por ENCIMA de la burbuja,
-          la fila de racha y los círculos de fondo (z-10 o sin z-index),
-          por DEBAJO del header y el dock (z-20, ver más abajo) — esos dos
-          siguen intactos y usables arriba de todo, tal como se pidió no
-          alterarlos. `pointer-events-none` para no bloquear los botones
-          de esa fila (Fondos/Hábitos) para quien igual llegue a tocarlos
-          en el borde visible. */}
-      <div className="pointer-events-none absolute inset-0 z-[15] bg-black/55 backdrop-blur-md" />
+      {/* Toda esta zona (fondo oscuro propio + tarjeta de hábitos) se
+          deja de renderizar por completo mientras haya CUALQUIER modal
+          abierto (`anyModalOpen`, definido arriba junto a los demás
+          `useState`) — ver el comentario ahí para el motivo (dos fondos
+          oscuros/blur superpuestos leyéndose como dos modales a la vez).
+          Antes esto confiaba en que el z-index/blur del modal por
+          encima "tapara" esta zona solo; ahora directamente no existe
+          en el DOM mientras un modal está abierto. */}
+      {!anyModalOpen && (
+        <>
+          {/* Fondo oscuro + blur DETRÁS del carrusel de hábitos: pedido
+              explícito una vez confirmado que la tarjeta al 85-90% de
+              ancho (ver HabitTabCarousel) es más alta de lo que entra
+              entre la burbuja "¡Hola!" y la fila de racha sin taparlas —
+              en vez de reducir la tarjeta o mover esos elementos, se los
+              oscurece y desenfoca para que el solape se vea intencional
+              ("no importa si la tarjeta tapa los elementos de atrás" —
+              respuesta explícita del usuario a esa disyuntiva). z-[15]:
+              por ENCIMA de la burbuja, la fila de racha y los círculos de
+              fondo (z-10 o sin z-index), por DEBAJO del header y el dock
+              (z-20, ver más abajo) — esos dos siguen intactos y usables
+              arriba de todo, tal como se pidió no alterarlos.
+              `pointer-events-none` para no bloquear los botones de esa
+              fila (Fondos/Hábitos) para quien igual llegue a tocarlos en
+              el borde visible. */}
+          <div className="pointer-events-none absolute inset-0 z-[15] bg-black/55 backdrop-blur-md" />
 
-      {/* Carrusel de Hábitos: 5 posiciones (límite del plan gratuito),
-          todas mostrando por ahora el mismo PNG de estado vacío entregado
-          (recortado a la tarjeta central del archivo — las 2 tarjetas en
-          blanco a los costados del original son relleno del lienzo del
-          diseño, no un segundo estado visual — y rotado 90° a la
-          izquierda). Cada tarjeta se muestra TAL CUAL: nada de texto,
-          botones ni estado se dibuja encima todavía — eso es la
-          iteración siguiente (input de título, selección de días,
-          duración/monedas, ícono, play) una vez que haya spec para la
-          capa de interacción. Efecto de foco (escala/opacidad/blur según
-          distancia al centro) implementado en <HabitTabCarousel> — ver
-          ese componente para el detalle.
-          Tamaño pedido explícito: 85-90% del ancho de pantalla. Con el
-          aspecto del PNG (846x1067) eso da ~420-440px de alto, más de lo
-          que entra entre la burbuja y la racha (~320px reales, medidos)
-          — así que en vez de un tope de altura ajustado a esa franja
-          chica (lo que dejaba la tarjeta casi del mismo tamaño de antes,
-          ver historial), este contenedor usa la franja GRANDE real entre
-          el header y el dock (104px a 748px medidos en un viewport de
-          844 de alto — ambos con posición en px/vw fija, no relativa a
-          la altura de pantalla) con margen de seguridad, para que el
-          85-90% de ancho sea real y la tarjeta no tenga que competir por
-          altura. El solape resultante con la burbuja/racha es a
-          propósito — ver el fondo oscuro/blur de arriba. z-20: por
-          ENCIMA del fondo oscuro (z-15), sin invadir el z-20 de
-          header/dock por diseño (hay margen de sobra en ambos extremos:
-          ver los números reales arriba). */}
-      <div
-        className="absolute inset-x-0 z-20"
-        style={{ top: "120px", bottom: "calc(24.48vw + 20px)" }}
-      >
-        <HabitTabCarousel />
-      </div>
+          {/* Carrusel de Hábitos: 5 posiciones (límite del plan
+              gratuito), todas mostrando por ahora el mismo PNG de estado
+              vacío entregado (recortado a la tarjeta central del archivo
+              — las 2 tarjetas en blanco a los costados del original son
+              relleno del lienzo del diseño, no un segundo estado visual
+              — y rotado 90° a la izquierda). Cada tarjeta se muestra TAL
+              CUAL: nada de texto, botones ni estado se dibuja encima
+              todavía — eso es la iteración siguiente (input de título,
+              selección de días, duración/monedas, ícono, play) una vez
+              que haya spec para la capa de interacción. Efecto de foco
+              (escala/opacidad/blur según distancia al centro)
+              implementado en <HabitTabCarousel> — ver ese componente
+              para el detalle.
+              Tamaño pedido explícito: 85-90% del ancho de pantalla. Con
+              el aspecto del PNG (846x1067) eso da ~420-440px de alto,
+              más de lo que entra entre la burbuja y la racha (~320px
+              reales, medidos) — así que en vez de un tope de altura
+              ajustado a esa franja chica (lo que dejaba la tarjeta casi
+              del mismo tamaño de antes, ver historial), este contenedor
+              usa la franja GRANDE real entre el header y el dock (104px
+              a 748px medidos en un viewport de 844 de alto — ambos con
+              posición en px/vw fija, no relativa a la altura de
+              pantalla) con margen de seguridad, para que el 85-90% de
+              ancho sea real y la tarjeta no tenga que competir por
+              altura. El solape resultante con la burbuja/racha es a
+              propósito — ver el fondo oscuro/blur de arriba. z-20: por
+              ENCIMA del fondo oscuro (z-15), sin invadir el z-20 de
+              header/dock por diseño (hay margen de sobra en ambos
+              extremos: ver los números reales arriba). */}
+          <div
+            className="absolute inset-x-0 z-20"
+            style={{ top: "120px", bottom: "calc(24.48vw + 20px)" }}
+          >
+            <HabitTabCarousel />
+          </div>
+        </>
+      )}
 
       {/* Fondos / Racha / Hábitos: fila horizontal, orden pedido
           explícitamente por el usuario (izquierda a derecha): Fondos,
